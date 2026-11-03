@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2b2233" />
+  <title>Little Toybox</title>
+  <!-- One emoji font everywhere, so items look the same on every device (falls back to the system's if offline). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #2b2233; overflow: hidden; overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+    #game { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    canvas { touch-action: none; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.45); }
+    .note { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
+      gap: 12px; text-align: center; padding: 24px; color: #fff; font: 20px/1.4 sans-serif; background: #2b2233; z-index: 10; }
+    .note b { font-size: 56px; }
+    #rotate { z-index: 20; }
+    /* A phone held upright makes the 16:10 game tiny — ask for landscape. */
+    @media (orientation: portrait) and (max-width: 700px) { #rotate { display: flex; } }
+    #problem[data-show] { display: flex; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="rotate" class="note"><b>📱↔️</b>Turn your device sideways to play!</div>
+  <div id="problem" class="note"></div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script type="module" src="main.js"></script>
+  <script>
+    // If the game hasn't started after a few seconds, say why instead of showing a blank page.
+    setTimeout(function () {
+      if (window.__toybox) return;
+      var box = document.getElementById('problem');
+      box.textContent = typeof Phaser === 'undefined'
+        ? "Couldn't load the game engine. Check your internet connection and reload."
+        : location.protocol === 'file:'
+          ? 'Open this through a web server (for example: npm start), not straight from the file.'
+          : 'The game did not start. Try reloading; if it keeps happening, check the browser console.';
+      box.setAttribute('data-show', '');
+    }, 5000);
+    document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  </script>
+</body>
+</html>
