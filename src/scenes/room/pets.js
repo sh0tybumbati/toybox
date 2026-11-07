@@ -51,6 +51,7 @@ export const petMethods = {
 
   // A tap: hearts, a cry and a happy hop.
   petPet(pet) {
+    pet.pats = (pet.pats || 0) + 1;
     pet.vz = 420; pet.z = Math.max(pet.z, 0.01);
     this.petCry(pet);
     floatText(this, pet.x, pet.y - 50, '💖');
@@ -108,7 +109,7 @@ export const petMethods = {
       pet.setPosition(pet.x, pet.lane - hop - pet.z);
       pet.setAngle(r.moved ? Math.sin(pet.phase) * 6 : 0);
       pet.setScale(1 + Math.sin(now / 500 + pet.lane) * 0.015);
-      pet.setDepth(4 + pet.lane / 1000);
+      pet.setDepth(this.topDepth - 0.5 + pet.lane / 100000);       // above the kids it follows (so it can always be patted), below whatever was grabbed last
       const k = 1 / (1 + pet.z / 200);
       pet.shadow.setPosition(pet.x, pet.lane + 2).setScale(k).setAlpha(0.28 * k);
     }

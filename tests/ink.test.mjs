@@ -63,3 +63,32 @@ test('inking draws fills and strokes with only Graphics calls', () => {
   const widths = new Set(calls.filter(c => c[0] === 'lineStyle').map(c => c[1][0].toFixed(2)));
   assert.ok(widths.size > 1, 'line weight is uneven');
 });
+
+import { rectPoints, wobblyPoly, inkRect, inkLine, smoothPath, inkDashed } from '../src/data/ink.js';
+
+test('a wobbly rectangle has more points than corners and wanders off true', () => {
+  const pts = wobblyPoly(rectPoints(0, 0, 100, 60), { amp: 2, seed: 3 });
+  assert.ok(pts.length > 8);
+  const offTrue = pts.filter(p => (Math.abs(p.y) > 0.3 && Math.abs(p.y - 60) > 0.3) || (Math.abs(p.x) > 0.3 && Math.abs(p.x - 100) > 0.3));
+  assert.ok(offTrue.length > 0, 'no perfectly straight edges');
+  for (const p of pts) assert.ok(p.x > -4 && p.x < 104 && p.y > -4 && p.y < 64, 'but it is still roughly a rectangle');
+  assert.deepEqual(pts, wobblyPoly(rectPoints(0, 0, 100, 60), { amp: 2, seed: 3 }), 'repeatable');
+});
+
+test('a smooth path passes through its points and stays inside their bounds roughly', () => {
+  const pts = [{ x: 0, y: 0 }, { x: 50, y: 40 }, { x: 100, y: 0 }, { x: 150, y: 40 }];
+  const s = smoothPath(pts, 8);
+  assert.deepEqual(s[0], pts[0]);
+  assert.deepEqual(s[s.length - 1], pts[3]);
+  assert.ok(s.length > pts.length * 4);
+  assert.ok(s.every(p => p.x >= -5 && p.x <= 155 && p.y >= -10 && p.y <= 50));
+});
+
+test('rects, lines and dashes draw with Graphics calls only', () => {
+  const { g, calls } = stubGraphics();
+  inkRect(g, 0, 0, 40, 20, 0xffffff, { seed: 2 });
+  inkLine(g, { x: 0, y: 0 }, { x: 60, y: 5 }, { seed: 2 });
+  inkDashed(g, wobblyPoly(rectPoints(0, 0, 80, 50)), { seed: 1 });
+  assert.ok(calls.length > 10);
+  assert.ok(calls.every(([n]) => ['fillStyle', 'fillPoints', 'lineStyle', 'strokePoints', 'fillCircle'].includes(n)), 'only plain Graphics methods');
+});

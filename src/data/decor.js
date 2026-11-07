@@ -1,80 +1,98 @@
-// How rooms look, as data. An indoor room is a wallpaper + a floor + windows (+ fixed `decor`
-// art), so players can repaint walls and floors and move windows (the look is saved per room;
-// see systems/save.js `looks`). Wall area is y 0..WALL_H, floor is WALL_H..H.
-// All painters draw onto a Graphics in room-local coordinates (0..W).
+// How rooms look, as data — hand-inked (art/reference/). An indoor room is a wallpaper + a floor + windows
+// (+ fixed `decor` art), so players can repaint walls and floors and move windows (the look is saved per
+// room; see systems/save.js `looks`). Wall area is y 0..WALL_H, floor is WALL_H..H. All painters draw onto a
+// Graphics in room-local coordinates (0..w). Flat matte colour, wobbly lines, uneven boards: nothing is straight.
 import { W, H } from '../config.js';
-import { sunbeamShapes, SUNBEAM_ALPHA, tonal } from './style.js';
-
+import { sunbeamShapes, SUNBEAM_ALPHA, shade } from './style.js';
+import { INK, blob, inkFill, inkLine, inkStroke, noise, rectPoints, wobblyPoly } from './ink.js';
+import { InkPen } from './inkpen.js';
+import { MAP_COLORS, paintBush, paintHill, paintMountain, paintTree } from './mapart.js';
 
 export const WALL_H = 430;
 
-const lines = (g, color, step, vertical, horizontal, w) => {
-  g.lineStyle(2, color, 1);
-  if (vertical) for (let x = 0; x < w; x += step) g.lineBetween(x, 0, x, WALL_H);
-  if (horizontal) for (let y = 0; y < WALL_H; y += step) g.lineBetween(0, y, w, y);
-};
-const planks = (g, base, shade, line, rowH, w) => {
+const wob = (g, a, b, color, w, seed, amp = 1.8) => inkLine(g, a, b, { color, w, seed, amp, heavy: 0, step: 16 });
+const patch = (g, x, y, w, h, color, seed, amp = 1.4) => g.fillStyle(color, 1).fillPoints(wobblyPoly(rectPoints(x, y, w, h), { amp, seed, step: 26 }), true);
+const lineTone = c => shade(c, 0.84);
+
+// Uneven floorboards: staggered boards, each a slightly different tone, wobbly seams, a thick wobbly skirting.
+function boards(g, w, base, rowH, seed) {
   g.fillStyle(base, 1).fillRect(0, WALL_H, w, H - WALL_H);
-  g.lineStyle(2, line, 1);
-  for (let y = WALL_H + rowH, r = 0; y < H; y += rowH, r++) {
-    g.lineBetween(0, y, w, y);
-    for (let x = (r % 2) * 110; x < w; x += 220) g.lineBetween(x, y - rowH, x, y);   // staggered boards
+  let r = 0;
+  for (let y = WALL_H; y < H; y += rowH, r++) {
+    let x = -((r * 137 + seed * 31) % 190);
+    while (x < w) {
+      const len = 150 + 70 * Math.abs(noise(r * 5 + x * 0.01, seed));
+      patch(g, x, y, len, rowH, shade(base, 0.93 + 0.09 * noise(r * 3 + x * 0.02, seed + 2)), seed + r, 1.2);
+      wob(g, { x: x + len, y }, { x: x + len + noise(x, seed) * 3, y: y + rowH }, lineTone(base), 2.2, seed + r + x);
+      x += len;
+    }
+    if (y > WALL_H) wob(g, { x: 0, y }, { x: w, y: y + noise(r, seed) * 2 }, lineTone(base), 2.4, seed + r * 7, 2.2);
   }
-  g.fillStyle(shade, 1).fillRect(0, WALL_H, w, 8);                                 // skirting
-};
+  patch(g, 0, WALL_H, w, 9, shade(base, 0.8), seed + 90, 0.8);
+  wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, seed + 91, 2.4);                       // the skirting line, thick and wavering
+}
 
 export const WALLPAPERS = {
-  cream:    { name: 'Cream',          paint: (g, w) => g.fillStyle(0xffe8b0, 1).fillRect(0, 0, w, WALL_H) },
-  sage:     { name: 'Sage',           paint: (g, w) => { g.fillStyle(0xbfe3d4, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(0xa9d3c1, 1).fillRect(0, 380, w, 50); } },
-  blush:    { name: 'Blush',          paint: (g, w) => g.fillStyle(0xfdeee6, 1).fillRect(0, 0, w, WALL_H) },
-  mintTiles: { name: 'Mint tiles',    paint: (g, w) => { g.fillStyle(0xcdeee6, 1).fillRect(0, 0, w, WALL_H); lines(g, 0xb6dcd3, 60, true, true, w); } },
-  pinkStripes: { name: 'Pink stripes', paint: (g, w) => { g.fillStyle(0xffe3ec, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(0xffd0dc, 1); for (let x = 0; x < w; x += 80) g.fillRect(x, 0, 40, WALL_H); } },
-  panel:    { name: 'Lavender panel', paint: (g, w) => { g.fillStyle(0xdfe6f2, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(0xc9d3e6, 1).fillRect(0, 300, w, 130); g.lineStyle(3, 0xb3bfd6, 1).lineBetween(0, 300, w, 300); } },
+  cream:    { name: 'Cream',          paint: (g, w) => { g.fillStyle(0xf6e3b0, 1).fillRect(0, 0, w, WALL_H); for (let x = 90; x < w; x += 130) wob(g, { x, y: 0 }, { x: x + noise(x, 1) * 5, y: WALL_H }, lineTone(0xf6e3b0), 2, x); } },
+  sage:     { name: 'Sage',           paint: (g, w) => { g.fillStyle(0xb9dccb, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(shade(0xb9dccb, 0.9), 1).fillPoints(wobblyPoly(rectPoints(0, 332, w, 98), { amp: 2, seed: 4, step: 30 }), true); wob(g, { x: 0, y: 332 }, { x: w, y: 332 }, INK, 3.2, 5, 2.4); } },
+  blush:    { name: 'Blush',          paint: (g, w) => { g.fillStyle(0xf8e1d8, 1).fillRect(0, 0, w, WALL_H); for (let x = 70; x < w; x += 150) wob(g, { x, y: 0 }, { x: x + noise(x, 2) * 4, y: WALL_H }, lineTone(0xf8e1d8), 2, x + 3); } },
+  mintTiles: { name: 'Mint tiles',    paint: (g, w) => { g.fillStyle(0xc4e8dc, 1).fillRect(0, 0, w, WALL_H); for (let x = 0; x < w; x += 62) wob(g, { x, y: 0 }, { x: x + noise(x, 3) * 3, y: WALL_H }, lineTone(0xc4e8dc), 2, x); for (let y = 0; y < WALL_H; y += 62) wob(g, { x: 0, y }, { x: w, y: y + noise(y, 4) * 3 }, lineTone(0xc4e8dc), 2, y + 9); } },
+  pinkStripes: { name: 'Pink stripes', paint: (g, w) => { g.fillStyle(0xf9d9e2, 1).fillRect(0, 0, w, WALL_H); for (let x = 0; x < w; x += 84) patch(g, x, 0, 40, WALL_H, 0xf4b9ca, x, 2.2); } },
+  panel:    { name: 'Lavender panel', paint: (g, w) => { g.fillStyle(0xd7def0, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(shade(0xd7def0, 0.9), 1).fillPoints(wobblyPoly(rectPoints(0, 300, w, 130), { amp: 2, seed: 6, step: 30 }), true); wob(g, { x: 0, y: 300 }, { x: w, y: 300 }, INK, 3.2, 7, 2.4); } },
   shells:   { name: 'Seashells',      paint: (g, w) => {
-    g.fillStyle(0xf3ead2, 1).fillRect(0, 0, w, 300);
-    g.fillStyle(0xa9cfc4, 1);
-    for (let y = 0; y < 300; y += 70) for (let x = (y / 70 % 2) * 35; x < w; x += 70) g.fillCircle(x + 35, y + 35, 24);
-    g.fillStyle(0xf3ead2, 1);
-    for (let y = 0; y < 300; y += 70) for (let x = (y / 70 % 2) * 35; x < w; x += 70) g.fillCircle(x + 35, y + 35, 14);
-    g.fillStyle(0x9dbdb8, 1).fillRect(0, 300, w, WALL_H - 300);                       // teal wainscot
-    g.fillStyle(0xdfeceb, 1).fillRect(0, 296, w, 8);
+    g.fillStyle(0xf1e6c8, 1).fillRect(0, 0, w, 300);
+    for (let y = 0; y < 300; y += 72) for (let x = (y / 72 % 2) * 36; x < w; x += 72) {
+      g.fillStyle(0x9fc9bd, 1).fillPoints(blob(x + 36, y + 36, 25, 24, { n: 12, amp: 0.1, seed: x + y }), true);
+      g.fillStyle(0xf1e6c8, 1).fillPoints(blob(x + 36, y + 36, 14, 13, { n: 10, amp: 0.1, seed: x + y + 1 }), true);
+    }
+    g.fillStyle(0x93b8b2, 1).fillPoints(wobblyPoly(rectPoints(0, 300, w, WALL_H - 300), { amp: 2, seed: 8, step: 30 }), true);
+    wob(g, { x: 0, y: 300 }, { x: w, y: 300 }, INK, 3.2, 9, 2.4);
   } },
-  sky:      { name: 'Sky dots',       paint: (g, w) => { g.fillStyle(0xd6ecff, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(0xffffff, 1); for (let y = 30; y < WALL_H; y += 60) for (let x = (y / 60 % 2) * 30; x < w; x += 60) g.fillCircle(x + 20, y, 7); } },
+  sky:      { name: 'Sky dots',       paint: (g, w) => { g.fillStyle(0xcfe6f8, 1).fillRect(0, 0, w, WALL_H); for (let y = 30; y < WALL_H; y += 62) for (let x = (y / 62 % 2) * 31; x < w; x += 62) g.fillStyle(0xffffff, 1).fillPoints(blob(x + 20, y, 7, 6, { n: 8, amp: 0.15, seed: x + y }), true); } },
 };
 
 export const FLOORS = {
-  honey:   { name: 'Honey wood',   paint: (g, w) => planks(g, 0xc98f5a, 0xb07a48, 0xb8824f, 38, w) },
-  oak:     { name: 'Light oak',    paint: (g, w) => planks(g, 0xf0cfa8, 0xe3bd92, 0xe2bc92, 40, w) },
-  warm:    { name: 'Warm wood',    paint: (g, w) => planks(g, 0xd9a86c, 0xb98550, 0xc2915a, 34, w) },
-  shop:    { name: 'Boardwalk',    paint: (g, w) => planks(g, 0xcfae86, 0xb8936b, 0xb8936b, 30, w) },
-  checker: { name: 'Checkered',    paint: (g, w) => {
-    for (let row = 0; row < 3; row++) for (let col = 0; col * 60 < w; col++) g.fillStyle((row + col) % 2 ? 0xf1e4d0 : 0xe0cfb5, 1).fillRect(col * 60, WALL_H + row * 57, 60, 57);
-    g.fillStyle(0xa8c9c0, 1).fillRect(0, WALL_H, w, 8);
+  honey:   { name: 'Honey wood',    paint: (g, w) => boards(g, w, 0xd09a62, 40, 1) },
+  oak:     { name: 'Light oak',     paint: (g, w) => boards(g, w, 0xf0cfa8, 42, 2) },
+  warm:    { name: 'Warm wood',     paint: (g, w) => boards(g, w, 0xdcae72, 36, 3) },
+  shop:    { name: 'Boardwalk',     paint: (g, w) => boards(g, w, 0xd2b48c, 32, 4) },
+  checker: { name: 'Checkered',     paint: (g, w) => {
+    for (let row = 0; row < 3; row++) for (let col = 0; col * 62 < w; col++) patch(g, col * 62, WALL_H + row * 57, 62, 57, (row + col) % 2 ? 0xf3e7d2 : 0xe2d0b4, row * 31 + col, 1.4);
+    for (let row = 1; row < 3; row++) wob(g, { x: 0, y: WALL_H + row * 57 }, { x: w, y: WALL_H + row * 57 }, lineTone(0xe2d0b4), 2.2, row);
+    wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 12, 2.4);
   } },
-  carpet:  { name: 'Purple carpet', paint: (g, w) => { g.fillStyle(0x8e7cc3, 1).fillRect(0, WALL_H, w, H - WALL_H); g.fillStyle(0x7a68b0, 1).fillRect(0, WALL_H, w, 8); } },
-  stars:   { name: 'Star tiles',   paint: (g, w) => {
+  carpet:  { name: 'Purple carpet', paint: (g, w) => { g.fillStyle(0x9a86cc, 1).fillRect(0, WALL_H, w, H - WALL_H); wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 13, 2.4); for (let i = 0; i < 40; i++) inkStroke(g, [{ x: (i * 97) % w, y: WALL_H + 20 + ((i * 53) % 140) }, { x: ((i * 97) % w) + 6, y: WALL_H + 22 + ((i * 53) % 140) }], { w: 2, color: 0x7d6bb0, heavy: 0 }); } },
+  stars:   { name: 'Star tiles',    paint: (g, w) => {
     g.fillStyle(0xf3ece8, 1).fillRect(0, WALL_H, w, H - WALL_H);
-    g.fillStyle(0xcdbfb8, 1);
-    for (let y = WALL_H + 30; y < H; y += 56) for (let x = (((y - WALL_H) / 56) % 2) * 50; x < w; x += 100) g.fillTriangle(x + 50, y - 12, x + 40, y + 6, x + 60, y + 6);
-    g.fillStyle(0xd8cdc7, 1).fillRect(0, WALL_H, w, 8);
+    for (let y = WALL_H + 30; y < H; y += 56) for (let x = (((y - WALL_H) / 56) % 2) * 50; x < w; x += 100) g.fillStyle(0xcdbfb8, 1).fillPoints(wobblyPoly([{ x: x + 50, y: y - 12 }, { x: x + 40, y: y + 6 }, { x: x + 60, y: y + 6 }], { amp: 0.6, seed: x + y, step: 8 }), true);
+    wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 14, 2.4);
   } },
 };
 
-// A window: sky, white frame, cross bars. `w` = { x, y, w, h } in room-local coordinates.
+// A window looking out on rolling hills: a wobbly white frame, a patch of sky, a hill, a cloud, crooked bars.
+// `w` = { x, y, w, h } in room-local coordinates.
 export function paintWindow(g, w) {
-  g.fillStyle(0x9bd8ff, 1).fillRoundedRect(w.x, w.y, w.w, w.h, 10);
-  g.lineStyle(8, 0xffffff, 1).strokeRoundedRect(w.x, w.y, w.w, w.h, 10);
-  g.lineStyle(5, tonal(0xffffff, 0.86), 1).lineBetween(w.x + w.w / 2, w.y, w.x + w.w / 2, w.y + w.h).lineBetween(w.x, w.y + w.h / 2, w.x + w.w, w.y + w.h / 2);   // bars: a tonal line, not pure white
+  const pen = new InkPen(g, 40 + (w.x % 50), { weight: 3.6 });
+  pen.fillStyle(0xf4f1e8, 1).fillRoundedRect(w.x, w.y, w.w, w.h, 12);
+  const gx = w.x + 11, gy = w.y + 11, gw = w.w - 22, gh = w.h - 22;
+  g.fillStyle(0xa9d9f0, 1).fillPoints(wobblyPoly(rectPoints(gx, gy, gw, gh), { amp: 1.2, seed: 5, step: 24 }), true);
+  const hill = [{ x: gx, y: gy + gh }, { x: gx, y: gy + gh * 0.72 }, { x: gx + gw * 0.3, y: gy + gh * 0.55 }, { x: gx + gw * 0.62, y: gy + gh * 0.7 }, { x: gx + gw, y: gy + gh * 0.6 }, { x: gx + gw, y: gy + gh }];
+  g.fillStyle(MAP_COLORS.grass, 1).fillPoints(hill, true);
+  inkStroke(g, hill.slice(1, 5), { w: 2.6, seed: 6, heavy: 0 });
+  inkFill(g, blob(gx + gw * 0.3, gy + gh * 0.25, gw * 0.18, gh * 0.1, { n: 12, amp: 0.1, seed: 7 }), 0xffffff, { w: 2.4, seed: 7, heavy: 0 });
+  pen.lineStyle(5, INK).lineBetween(w.x + w.w / 2, w.y + 6, w.x + w.w / 2 + 1, w.y + w.h - 6).lineBetween(w.x + 6, w.y + w.h / 2, w.x + w.w - 6, w.y + w.h / 2 + 2);
 }
 
-// Light coming through each window as hard-edged pale shapes on the wall and floor (house style:
-// the only light effect). Painted on its own Graphics so it can be hidden at night.
+// Light coming through each window as flat pale shapes on the wall and floor. Painted on its own Graphics so it
+// can be hidden at night.
 export function paintSunbeams(g, windows, w = W) {
   g.fillStyle(0xffffff, SUNBEAM_ALPHA);
   for (const win of windows) for (const poly of sunbeamShapes(win, w, WALL_H, H)) g.fillPoints(poly, true);
 }
 
-// A whole indoor room from its look; `decor` is the room type's fixed extra art.
+const hashName = s => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) % 900 + 1;
+
+// A whole indoor room from its look; `decor` is the room type's fixed extra art (drawn through the ink pen).
 // look = { wall, floor, windows } (ids from WALLPAPERS/FLOORS; unknown ids fall back to the defaults).
 export function paintIndoor(g, type, look, w = W) {
   const wall = WALLPAPERS[look.wall] || WALLPAPERS[type.style.wall];
@@ -84,16 +102,40 @@ export function paintIndoor(g, type, look, w = W) {
   for (const win of look.windows) paintWindow(g, win);
   if (type.decor) {                                          // fixed art sits in the middle of a stretched room
     g.save().translateCanvas((w - W) / 2, 0);
-    type.decor(g);
+    type.decor(new InkPen(g, hashName(type.label)));
     g.restore();
   }
 }
 
-// Paint any room: outdoor rooms draw themselves, indoor ones come from their look.
-export function paintRoom(g, type, look, w = W) {
-  if (!type.outdoor) return paintIndoor(g, type, look, w);
-  type.draw(g);                                                 // outdoor art is one screen; stretched rooms get more lawn
-  if (w > W) g.fillStyle(0x66b552, 1).fillRect(W, 430, w - W, H - 430);
+// Outdoor rooms: a flat sky, wobbly clouds and hills, a lumpy ground line, trees and bushes. `kind` = 'park' | 'playground'.
+export function paintOutdoor(g, kind) {
+  g.fillStyle(0xbfe3f2, 1).fillRect(0, 0, W, WALL_H);
+  paintMountain(g, 560, 300, 420, 120, 31); paintMountain(g, -40, 300, 330, 100, 32);
+  inkFill(g, blob(830, 96, 40, 38, { n: 14, amp: 0.06, seed: 3 }), 0xffe27a, { w: 3.2, seed: 3, heavy: 1 });         // the sun
+  for (const [x, y, s] of [[190, 96, 1], [470, 140, 0.8], [700, 70, 0.7]]) {
+    for (const [ox, oy, rx, ry] of [[-26, 4, 30, 17], [0, -6, 36, 22], [28, 5, 28, 16]]) inkFill(g, blob(x + ox * s, y + oy * s, rx * s, ry * s, { n: 12, amp: 0.08, seed: x + ox }), 0xffffff, { w: 3, seed: x + ox, heavy: 0 });
+  }
+  paintHill(g, 250, 372, 260, 64, 0xa9d77c, 33); paintHill(g, 700, 380, 300, 70, 0x9bcf6c, 34);
+  g.fillStyle(MAP_COLORS.grass, 1).fillRect(0, WALL_H, W, H - WALL_H);
+  inkLine(g, { x: 0, y: WALL_H }, { x: W, y: WALL_H }, { w: 4.5, seed: 8, amp: 3, heavy: 1 });
+  for (let i = 0; i < 70; i++) {                                                          // tufts and little flowers
+    const x = (i * 211) % W, y = WALL_H + 12 + ((i * 97) % (H - WALL_H - 20));
+    if (i % 5 === 0) { g.fillStyle([0xff8fa3, 0xffd166, 0xffffff][i % 3], 1).fillPoints(blob(x, y, 4, 4, { n: 6, seed: i }), true); inkStroke(g, [{ x, y: y + 3 }, { x, y: y + 9 }], { w: 1.8, heavy: 0, color: 0x3f7f3f }); }
+    else inkStroke(g, [{ x: x - 5, y }, { x: x - 2, y: y - 5 }, { x, y }, { x: x + 3, y: y - 6 }, { x: x + 6, y }], { w: 1.8, heavy: 0, color: shade(MAP_COLORS.grass, 0.65) });
+  }
+  const pen = new InkPen(g, kind === 'park' ? 21 : 22);
+  if (kind === 'park') {
+    paintTree(g, 335, 430, 3.4, 11); paintTree(g, 640, 430, 3.0, 12); paintBush(g, 200, 440, 2.4, 13); paintBush(g, 830, 442, 2.8, 14);
+  } else {
+    pen.fillStyle(0xe8cf93, 1).fillRoundedRect(300, 440, 360, 92, 34);                           // a sandbox with a rim
+    pen.fillStyle(0xf3dfae, 1).fillRoundedRect(318, 454, 324, 62, 26);
+    pen.fillStyle(0xd95f5f, 1).lineStyle(9).lineBetween(330, 250, 298, 436).lineBetween(430, 250, 462, 436).lineBetween(326, 250, 434, 250);          // swing frame
+    pen.lineStyle(3).lineBetween(352, 250, 351, 362).lineBetween(410, 250, 411, 362);
+    pen.fillStyle(0xffd166, 1).fillRoundedRect(338, 358, 84, 14, 5);
+    pen.fillStyle(0x6ec6ff, 1).fillTriangle(604, 252, 600, 436, 764, 436);                          // a wobbly slide
+    pen.fillStyle(0x4da3d9, 1).fillRect(584, 250, 16, 190);
+    paintBush(g, 160, 442, 2.2, 15); paintTree(g, 880, 430, 2.6, 16);
+  }
 }
 
 // The look a room starts with, as plain data (saves store only what differs from it).
@@ -103,16 +145,22 @@ export const defaultLook = (type, w = W) => ({
   windows: (type.windows || []).map(win => ({ ...win, x: Math.round(win.x * w / W / 10) * 10 })),
 });
 
-// The doorway between two neighbouring rooms, at world x = `x` (the seam): a white frame
-// pillar with the next room's side wall receding beside it, as in Toca-style houses.
+// Paint any room: outdoor rooms paint themselves, indoor ones come from their look.
+export function paintRoom(g, type, look, w = W) {
+  if (!type.outdoor) return paintIndoor(g, type, look, w);
+  type.draw(g);                                                 // outdoor art is one screen; stretched rooms get more lawn
+  if (w > W) g.fillStyle(MAP_COLORS.grass, 1).fillRect(W, WALL_H, w - W, H - WALL_H);
+}
+
+// The doorway between two neighbouring rooms, at world x = `x` (the seam): a wobbly white frame pillar with
+// the next room's side wall receding beside it, as in the style guide.
 export function paintDivider(g, x) {
-  const P = 27, FOOT = 506;                                           // half pillar width, where its foot meets the floor
-  g.fillStyle(0xeaf0f1, 1).fillPoints([{ x: x + P, y: 0 }, { x: x + 112, y: 0 }, { x: x + 112, y: WALL_H }, { x: x + P, y: FOOT - 6 }], true);   // receding side wall
-  g.fillStyle(0x000000, 0.06).fillPoints([{ x: x + P, y: 0 }, { x: x + 112, y: 0 }, { x: x + 112, y: WALL_H }, { x: x + P, y: FOOT - 6 }], true);
-  g.lineStyle(8, 0xf6f9f9, 1).lineBetween(x + P, FOOT - 8, x + 112, WALL_H + 4);                    // sloping skirting
-  g.lineStyle(3, 0xa9bcc0, 1).lineBetween(x + P, FOOT - 14, x + 112, WALL_H - 2);
-  g.fillStyle(0xf4f7f7, 1).fillRect(x - P, 0, P * 2, FOOT);                                          // the pillar
-  g.lineStyle(3, 0xa9bcc0, 1).strokeRect(x - P, -4, P * 2, FOOT + 4).lineBetween(x - P + 12, 0, x - P + 12, FOOT);
-  g.fillStyle(0xdde6e8, 1).fillRect(x - P - 6, FOOT - 2, P * 2 + 12, 12);                           // foot block
-  g.lineStyle(3, 0xa9bcc0, 1).strokeRect(x - P - 6, FOOT - 2, P * 2 + 12, 12);
+  const P = 27, FOOT = 506, pen = new InkPen(g, 61, { weight: 3.6 });
+  const wedge = [{ x: x + P, y: -4 }, { x: x + 112, y: -4 }, { x: x + 112, y: WALL_H }, { x: x + P, y: FOOT - 6 }];
+  pen.fillStyle(0xeae3d0, 1).fillPoints(wedge, true);                                            // the receding side wall
+  g.fillStyle(0x000000, 0.06).fillPoints(wedge, true);
+  inkLine(g, { x: x + P, y: FOOT - 8 }, { x: x + 112, y: WALL_H + 4 }, { w: 5, seed: 62, amp: 2, heavy: 0 });     // sloping skirting
+  pen.fillStyle(0xf4f1e8, 1).fillRect(x - P, -6, P * 2, FOOT + 6);                                // the pillar
+  inkLine(g, { x: x - P + 12, y: 0 }, { x: x - P + 13, y: FOOT }, { w: 2.2, seed: 63, amp: 1.4, heavy: 0, color: shade(0xf4f1e8, 0.7) });
+  pen.fillStyle(0xe2dcc8, 1).fillRoundedRect(x - P - 7, FOOT - 3, P * 2 + 14, 14, 4);              // foot block
 }

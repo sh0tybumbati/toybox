@@ -4,11 +4,14 @@
 import { BIN, FLOOR_TOP, FLOOR_BOTTOM, H } from '../../config.js';
 import { ROOMS, defaultFurniture, shelvesFor } from '../../data/rooms.js';
 import { defaultLook, paintDivider, paintRoom, paintSunbeams } from '../../data/decor.js';
+import { InkPen } from '../../data/inkpen.js';
 import Character from '../../entities/Character.js';
 import { flushProps } from '../../systems/props.js';
 import { sectionAt, zoneInfo, entryZone } from '../../systems/world.js';
 import { SHELF_STEP, SHELF_W } from '../../config.js';
 import { clamp } from '../../util.js';
+
+const SUNBEAMS = false;            // the hand-inked style (art/reference/) is flat: no light effects
 
 export const worldMethods = {
   // --- per-room state lookups ---------------------------------------------------
@@ -159,7 +162,7 @@ export const worldMethods = {
       const g = this.add.graphics().setDepth(0).setPosition(sec.offset, 0);
       this.roomGfx.push(g);
       paintRoom(g, type, look, sec.w);
-      if (!type.outdoor && look.windows.length) {                       // light through the windows, off at night
+      if (SUNBEAMS && !type.outdoor && look.windows.length) {          // light through the windows, off at night (the ink style has no lighting effects)
         const beam = this.add.graphics().setDepth(0.4).setPosition(sec.offset, 0).setVisible(!this.night);
         paintSunbeams(beam, look.windows, sec.w);
         this.roomGfx.push(beam);
@@ -173,15 +176,15 @@ export const worldMethods = {
 
       for (const entry of this.sectionProps(sec)) this.props.push(this.createProp({ ...entry, x: entry.x + sec.offset }, sec));
 
+      const pen = new InkPen(g, 77 + sec.index);
       for (const sh of shelvesFor(sec.type, sec.w)) {
-        g.fillStyle(0xd9b98a, 1).fillRect(sh.x, sh.y, SHELF_W, 12);              // shelf board
-        g.fillStyle(0x9c6b3f, 1).fillRect(sh.x, sh.y + 12, SHELF_W, 5);
         if (type.shelfStyle === 'stand') {                                       // posts down to the ground
-          g.fillStyle(0x9c6b3f, 1).fillRect(sh.x + 14, sh.y + 12, 10, 432 - sh.y - 12).fillRect(sh.x + SHELF_W - 24, sh.y + 12, 10, 432 - sh.y - 12);
+          pen.fillStyle(0xb98657, 1).fillRect(sh.x + 14, sh.y + 12, 11, 432 - sh.y - 12).fillRect(sh.x + SHELF_W - 25, sh.y + 12, 11, 432 - sh.y - 12);
         } else {                                                                 // wall brackets
-          g.fillStyle(0x9c6b3f, 1).fillTriangle(sh.x + 20, sh.y + 17, sh.x + 50, sh.y + 17, sh.x + 20, sh.y + 40)
-            .fillTriangle(sh.x + SHELF_W - 20, sh.y + 17, sh.x + SHELF_W - 50, sh.y + 17, sh.x + SHELF_W - 20, sh.y + 40);
+          pen.fillStyle(0xb98657, 1).fillTriangle(sh.x + 20, sh.y + 17, sh.x + 50, sh.y + 17, sh.x + 20, sh.y + 42)
+            .fillTriangle(sh.x + SHELF_W - 20, sh.y + 17, sh.x + SHELF_W - 50, sh.y + 17, sh.x + 20 + SHELF_W - 40, sh.y + 42);
         }
+        pen.fillStyle(0xe3c291, 1).fillRect(sh.x, sh.y, SHELF_W, 14);           // shelf board
         sh.items.forEach((key, i) => {
           this.spawnShelfItem(key, { x: sec.offset + sh.x + SHELF_STEP / 2 + i * SHELF_STEP, y: sh.y }, { pop: true, delay: 150 + n++ * 40 });
         });

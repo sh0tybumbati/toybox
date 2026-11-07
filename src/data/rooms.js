@@ -6,6 +6,7 @@
 //   fixed `decor(g)` art, so players can repaint them. Outdoor rooms (`outdoor: true`) paint
 //   themselves with `draw(g)`. To add a room type: add an entry here.
 import { W, H } from '../config.js';
+import { paintOutdoor } from './decor.js';
 
 export const ROOMS = {
   kitchen: {
@@ -121,25 +122,7 @@ export const ROOMS = {
       { type: 'lamppost', x: 590, y: 434 },
       { type: 'petbasket', x: 160, y: 540 },
     ],
-    draw(g) {
-      g.fillStyle(0x9ad8ff, 1).fillRect(0, 0, W, 430);                     // sky
-      g.fillStyle(0xbfe9ff, 1).fillRect(0, 250, W, 180);
-      g.fillStyle(0xffe066, 1).fillCircle(840, 100, 46);                   // sun
-      g.fillStyle(0xfff3a0, 0.5).fillCircle(840, 100, 64);
-      g.fillStyle(0xffffff, 0.9);
-      [[220, 110, 90, 34], [270, 98, 70, 30], [520, 150, 110, 38], [570, 140, 70, 30]]
-        .forEach(([x, y, w, h]) => g.fillEllipse(x, y, w, h));              // clouds
-      g.fillStyle(0x8bd17c, 1).fillEllipse(220, 440, 560, 170).fillEllipse(760, 450, 640, 210);   // hills
-      for (let i = 0; i < 16; i++) {                                       // grass stripes
-        g.fillStyle(i % 2 ? 0x6fbf5a : 0x66b552, 1).fillRect(i * 60, 430, 60, 170);
-      }
-      for (const tx of [335, 640]) {                                       // trees
-        g.fillStyle(0x8a5e3b, 1).fillRect(tx - 12, 250, 24, 182);
-        g.fillStyle(0x3e9a4a, 1).fillCircle(tx, 225, 64).fillCircle(tx - 40, 255, 42).fillCircle(tx + 40, 255, 42);
-      }
-      g.fillStyle(0xff8fa3, 1);                                            // flowers
-      for (let i = 0; i < 18; i++) g.fillCircle(30 + ((i * 97) % 900), 455 + ((i * 53) % 120), 4);
-    },
+    draw(g) { paintOutdoor(g, 'park'); },
   },
   playground: {
     label: '🛝 Playground',
@@ -155,21 +138,7 @@ export const ROOMS = {
     props: [
       { type: 'lamppost', x: 480, y: 434 },
     ],
-    draw(g) {
-      g.fillStyle(0xa7e0ff, 1).fillRect(0, 0, W, 430);                     // sky
-      g.fillStyle(0xd3f0ff, 1).fillRect(0, 260, W, 170);
-      g.fillStyle(0xffffff, 0.9);
-      [[150, 100, 110, 36], [200, 90, 70, 30], [700, 130, 100, 34]].forEach(([x, y, w, h]) => g.fillEllipse(x, y, w, h));
-      g.fillStyle(0x8bd17c, 1).fillEllipse(480, 450, 1100, 200);           // hill
-      for (let i = 0; i < 16; i++) g.fillStyle(i % 2 ? 0x6fbf5a : 0x66b552, 1).fillRect(i * 60, 430, 60, 170);
-      g.fillStyle(0xf1d9a0, 1).fillRoundedRect(300, 440, 360, 90, 30);     // sandbox
-      g.fillStyle(0xe2c37f, 1).fillRoundedRect(316, 452, 328, 64, 24);
-      g.lineStyle(10, 0xd95f5f, 1).lineBetween(330, 250, 300, 436).lineBetween(430, 250, 460, 436).lineBetween(330, 250, 430, 250);   // swing frame
-      g.lineStyle(3, 0x555555, 1).lineBetween(350, 250, 350, 360).lineBetween(410, 250, 410, 360);
-      g.fillStyle(0xffd166, 1).fillRoundedRect(340, 358, 80, 12, 4);
-      g.fillStyle(0x6ec6ff, 1).fillTriangle(600, 250, 600, 436, 760, 436);  // slide
-      g.fillStyle(0x4da3d9, 1).fillRect(584, 250, 16, 186);
-    },
+    draw(g) { paintOutdoor(g, 'playground'); },
   },
   // A blank canvas for building from scratch.
   empty: {

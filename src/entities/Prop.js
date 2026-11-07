@@ -1,4 +1,5 @@
 import { PROP_TYPES } from '../data/props.js';
+import { penFor } from '../data/inkpen.js';
 
 // A piece of interactive furniture. The container's origin is the CENTRE of its
 // hit box; (x, groundY) places its bottom edge on the floor/wall point given.
@@ -26,7 +27,7 @@ export default class Prop extends Phaser.GameObjects.Container {
     this.redraw();
   }
 
-  redraw() { this.g.clear(); this.def.draw(this.g, this.state); }
+  redraw() { this.g.clear(); this.def.draw(penFor(this.g, this.type), this.state); }
 
   setState(v) {
     if (v === this.state) return;

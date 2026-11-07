@@ -1,15 +1,19 @@
-// The city map: an overlay over the paused game. Buildings stand on lots along the roads, each shown as a
-// little model of itself. Tap one to visit it or to build and decorate it; tap an empty lot to build there.
+// The city map: an overlay over the paused game, drawn as a bumpy hand-inked landscape (art/reference/).
+// Buildings stand on dirt plots along winding paths, each shown as a chubby little model of itself. Tap one
+// to visit it or to build and decorate it; tap an empty dashed plot (with its sign) to build there.
 import { W, H } from '../config.js';
 import { iconButton, touchable } from '../ui.js';
-import { BLUEPRINTS, BUILDABLE, SLOTS, ROAD, newBuilding } from '../data/buildings.js';
+import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, newBuilding } from '../data/buildings.js';
 import { paintBuildingMini } from '../data/exterior.js';
+import { INK, blob, inkFill, inkStroke, smoothPath } from '../data/ink.js';
+import { MAP_COLORS, paintPlot, paintScenery, paintSign, paintTerrain } from '../data/mapart.js';
 import { entryZone, whyNotBuild } from '../systems/world.js';
 import { floatText } from '../systems/interactions.js';
 
-const label = { color: '#4a3426', fontStyle: 'bold' };
-const LOT = { w: 124, h: 118 };
-const TREES = [[330, 60], [630, 560], [20, 300], [940, 300], [480, 300], [180, 300], [780, 300]];
+const HAND = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", cursive';
+const label = { fontFamily: HAND, color: '#3a2a22', fontStyle: 'bold' };
+const RIVER = [{ x: -20, y: 584 }, { x: 160, y: 566 }, { x: 330, y: 592 }, { x: 520, y: 570 }, { x: 700, y: 594 }, { x: 980, y: 572 }];
+const LOT = { w: 150, h: 130 };
 
 export default class HubScene extends Phaser.Scene {
   constructor() { super('Hub'); }
@@ -17,13 +21,16 @@ export default class HubScene extends Phaser.Scene {
   init(data) { this.room = data.room; this.popup = []; }
 
   create() {
-    this.add.rectangle(0, 0, W, H, 0x8fd481).setOrigin(0).setInteractive();                // grass (blocks what's beneath)
-    this.drawRoads();
+    this.add.rectangle(0, 0, W, H, MAP_COLORS.grass).setOrigin(0).setInteractive();      // blocks what's beneath
+    const land = this.add.graphics();
+    paintTerrain(land, W, H, PATHS, RIVER);
+    paintScenery(land);
     this.lots = this.add.container(0, 0);
     this.drawLots();
+    this.addWalkers();
 
-    this.add.text(W / 2, 28, 'The City', { ...label, fontSize: '34px', color: '#ffffff', stroke: '#3a7a3a', strokeThickness: 6 }).setOrigin(0.5);
-    this.coinText = this.add.text(70, 28, '', { ...label, fontSize: '24px', backgroundColor: '#fff4e0', padding: { x: 12, y: 6 } }).setOrigin(0.5);
+    this.add.text(W / 2, 30, 'The City', { ...label, fontSize: '40px', color: '#fff7e0', stroke: '#3a2a22', strokeThickness: 7 }).setOrigin(0.5);
+    this.coinText = this.add.text(78, 30, '', { ...label, fontSize: '26px', backgroundColor: '#f6e7b8', padding: { x: 12, y: 4 } }).setOrigin(0.5);
     this.refreshCoins();
     iconButton(this, W - 44, 30, '✖', () => this.close(), 0);
     this.input.keyboard.on('keydown-ESC', () => (this.popup.length ? this.closePopup() : this.close()));
@@ -31,45 +38,56 @@ export default class HubScene extends Phaser.Scene {
 
   refreshCoins() { this.coinText.setText(`🪙 ${this.room.coins}`); }
 
-  drawRoads() {
-    const g = this.add.graphics();
-    g.fillStyle(0xcfd3d8, 1).fillRect(0, ROAD.y - 24, W, 48);                                 // main road
-    for (const x of ROAD.cross) g.fillRect(x - 12, 0, 24, H);                                  // cross streets
-    g.fillStyle(0xe6e9ec, 1).fillRect(0, ROAD.y - 24, W, 4).fillRect(0, ROAD.y + 20, W, 4);   // kerbs
-    g.lineStyle(4, 0xffffff, 0.9);
-    for (let x = 10; x < W; x += 44) g.lineBetween(x, ROAD.y, x + 24, ROAD.y);
-    for (const [x, y] of TREES) if (Math.abs(y - ROAD.y) > 30 || !ROAD.cross.includes(x)) this.add.text(x, y, '🌳', { fontSize: '34px' }).setOrigin(0.5).setAlpha(0.9);
-    for (const [emoji, y, from, to, dur] of [['🚗', ROAD.y - 9, -40, W + 40, 9000], ['🚌', ROAD.y + 10, W + 40, -40, 12000]]) {   // a little traffic
-      const car = this.add.text(from, y, emoji, { fontSize: '30px' }).setOrigin(0.5).setFlipX(from > to);
-      this.tweens.add({ targets: car, x: to, duration: dur, repeat: -1 });
-    }
-  }
-
-  // One tile per lot: the building's model, or an empty plot with a "build" sign.
+  // One plot per lot: a model of the building on flat dirt, or an empty dashed plot with a sign.
   drawLots() {
     this.lots.removeAll(true);
     const here = this.room.zone && this.room.zone.slot;
+    const g = this.add.graphics();
+    this.lots.add(g);
     SLOTS.forEach((pos, i) => {
       const b = this.room.city[i];
-      const hit = this.add.rectangle(pos.x, pos.y, LOT.w, LOT.h, b ? 0xffffff : 0xeaf7df, b ? 0 : 0.8)
-        .setStrokeStyle(b ? 0 : 3, 0x6aa85a).setInteractive({ useHandCursor: true });
+      paintPlot(g, pos.x, pos.y + 38, b ? 78 : 66, b ? 26 : 24, i + 3, !b);
+      const hit = this.add.rectangle(pos.x, pos.y + 4, LOT.w, LOT.h, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       this.lots.add(hit);
       if (!b) {
-        this.lots.add(this.add.text(pos.x, pos.y - 8, '➕', { fontSize: '36px' }).setOrigin(0.5));
-        this.lots.add(this.add.text(pos.x, pos.y + 30, 'Build here', { ...label, fontSize: '16px' }).setOrigin(0.5));
+        const board = paintSign(g, pos.x + 22, pos.y + 56, 84, 36, i);
+        this.lots.add(this.add.text(board.x, board.y, 'BUILD\nHERE', { ...label, fontSize: '15px', align: 'center', lineSpacing: -2 }).setOrigin(0.5));
         hit.on('pointerdown', () => this.openBuildPicker(i));
         return;
       }
-      const g = this.add.graphics();
-      paintBuildingMini(g, b, pos.x, pos.y + 40, LOT.w - 8, LOT.h - 34);
-      this.lots.add(g);
-      this.lots.add(this.add.text(pos.x, pos.y + 52, b.name, { ...label, fontSize: '15px', backgroundColor: '#fff4e0', padding: { x: 6, y: 1 } }).setOrigin(0.5));
+      paintBuildingMini(g, b, pos.x, pos.y + 42, LOT.w - 14, LOT.h - 8, i * 13 + 5);
+      this.lots.add(this.add.text(pos.x, pos.y + 62, b.name, { ...label, fontSize: '17px', backgroundColor: '#f3e3b8', padding: { x: 7, y: 1 } }).setOrigin(0.5));
       if (i === here) {
-        const pin = this.add.text(pos.x, pos.y - 58, '📍', { fontSize: '24px' }).setOrigin(0.5);
-        this.tweens.add({ targets: pin, y: pin.y - 6, duration: 600, yoyo: true, repeat: -1 });
+        const pin = this.add.text(pos.x, pos.y - 70, '📍', { fontSize: '26px' }).setOrigin(0.5);
+        this.tweens.add({ targets: pin, y: pin.y - 7, duration: 600, yoyo: true, repeat: -1 });
         this.lots.add(pin);
       }
       hit.on('pointerdown', () => this.openBuildingMenu(i));
+    });
+  }
+
+  // Little people ambling along the paths (they're decoration — and they make it feel like a town).
+  addWalkers() {
+    const skins = [0xf1c27d, 0x8d5524, 0xffd9a8, 0xc68642], shirts = [0xff6b8b, 0x6ec6ff, 0xffd166, 0x7bd88f];
+    PATHS.slice(0, 2).forEach((path, pi) => {
+      const pts = smoothPath(path, 8);
+      [0, 1].forEach(j => {
+        const person = this.add.graphics().setDepth(5);
+        const sk = skins[(pi * 2 + j) % 4], sh = shirts[(pi * 2 + j + 1) % 4];
+        inkFill(person, blob(0, -12, 7, 9, { n: 10, amp: 0.1, seed: 3 + j }), sh, { w: 2.2, heavy: 0 });
+        inkFill(person, blob(0, -26, 8.5, 8, { n: 12, amp: 0.1, seed: 5 + j }), sk, { w: 2.4, heavy: 0 });
+        inkStroke(person, [{ x: -3, y: -4 }, { x: -4, y: 2 }], { w: 2.4, heavy: 0 });
+        inkStroke(person, [{ x: 3, y: -4 }, { x: 4, y: 2 }], { w: 2.4, heavy: 0 });
+        const t = { v: j * 0.5 };
+        this.tweens.addCounter({
+          from: 0, to: 1, duration: 26000 + pi * 6000 + j * 9000, repeat: -1, yoyo: true,
+          onUpdate: tw => {
+            const u = tw.getValue(), i = Math.min(pts.length - 2, Math.floor(((u + t.v) % 1) * (pts.length - 1)));
+            const a = pts[i], b = pts[i + 1];
+            person.setPosition(a.x, a.y + 4 + Math.abs(Math.sin(u * 300)) * -2).setScale(b.x >= a.x ? 1 : -1, 1);
+          },
+        });
+      });
     });
   }
 
@@ -79,14 +97,14 @@ export default class HubScene extends Phaser.Scene {
     const add = o => { o.setDepth(500); this.popup.push(o); return o; };
     add(this.add.rectangle(0, 0, W, H, 0x000000, 0.45).setOrigin(0).setInteractive().on('pointerdown', () => this.closePopup()));
     add(this.add.rectangle(W / 2, H / 2, w, h, 0xfff4e0).setStrokeStyle(6, 0xe3c9a0).setInteractive());
-    add(this.add.text(W / 2, H / 2 - h / 2 + 30, title, { ...label, fontSize: '26px' }).setOrigin(0.5));
+    add(this.add.text(W / 2, H / 2 - h / 2 + 30, title, { ...label, fontSize: '28px' }).setOrigin(0.5));
     return add;
   }
 
   closePopup() { this.popup.forEach(o => o.destroy()); this.popup = []; }
 
   button(add, x, y, text, color, onTap) {
-    const b = add(this.add.text(x, y, text, { fontSize: '22px', color: '#ffffff', backgroundColor: color, padding: { x: 18, y: 9 } }).setOrigin(0.5));
+    const b = add(this.add.text(x, y, text, { fontFamily: HAND, fontSize: '24px', color: '#ffffff', backgroundColor: color, padding: { x: 18, y: 8 } }).setOrigin(0.5));
     return touchable(b, 4).on('pointerdown', onTap);
   }
 
@@ -106,9 +124,9 @@ export default class HubScene extends Phaser.Scene {
       add(this.add.rectangle(x, y, 270, 170, 0xffffff).setStrokeStyle(3, 0xe0a030));
       const g = add(this.add.graphics());
       paintBuildingMini(g, bp, x - 70, y + 30, 100, 90);
-      add(this.add.text(x + 30, y - 52, bp.name, { ...label, fontSize: '20px' }));
+      add(this.add.text(x + 30, y - 52, bp.name, { ...label, fontSize: '22px' }));
       const rooms = bp.floors.reduce((n, f) => n + f.rooms.length, 0);
-      add(this.add.text(x + 30, y - 26, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}\n${rooms} room${rooms > 1 ? 's' : ''}`, { ...label, fontSize: '15px', fontStyle: 'normal' }));
+      add(this.add.text(x + 30, y - 26, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}\n${rooms} room${rooms > 1 ? 's' : ''}`, { ...label, fontSize: '17px', fontStyle: 'normal' }));
       const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
       const buy = this.button(add, x + 40, y + 52, `🪙 ${bp.cost}`, why && why !== '' && this.room.coins < bp.cost ? '#9a8a78' : '#3b8f5a', () => this.build(slot, key));
       if (why) buy.setAlpha(this.room.coins < bp.cost ? 0.6 : 1);

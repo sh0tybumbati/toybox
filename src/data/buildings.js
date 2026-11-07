@@ -58,13 +58,22 @@ export const BUILDABLE = Object.keys(BLUEPRINTS).filter(k => BLUEPRINTS[k].cost 
 // A fresh, independent copy of a blueprint (the city stores plain building data).
 export const newBuilding = key => JSON.parse(JSON.stringify(BLUEPRINTS[key]));
 
-// The city: lots along the roads (map coordinates on the 960x600 city map). Slot i holds a
-// building or null (an empty lot you can build on).
+// The city: lots on a hand-drawn landscape (map coordinates on the 960x600 city map), strung along
+// winding paths. `x, y` = the middle of the dirt plot; a building stands on it with its base ~40px lower.
+// Slot i holds a building or null (an empty plot you can build on).
 export const SLOTS = [
-  { x: 85,  y: 165 }, { x: 235, y: 165 }, { x: 405, y: 165 }, { x: 555, y: 165 }, { x: 715, y: 165 }, { x: 875, y: 165 },
-  { x: 85,  y: 435 }, { x: 235, y: 435 }, { x: 405, y: 435 }, { x: 555, y: 435 }, { x: 715, y: 435 }, { x: 875, y: 435 },
+  { x: 125, y: 190 }, { x: 340, y: 178 }, { x: 565, y: 192 }, { x: 790, y: 180 },
+  { x: 835, y: 362 }, { x: 610, y: 376 }, { x: 385, y: 356 }, { x: 150, y: 370 },
+  { x: 150, y: 520 }, { x: 375, y: 530 }, { x: 600, y: 522 }, { x: 825, y: 532 },
 ];
-export const ROAD = { y: 300, cross: [330, 630] };          // the main road and the two cross streets
+// Dirt paths: lists of waypoints that get smoothed into winding tracks.
+export const PATHS = [
+  [{ x: -20, y: 300 }, { x: 140, y: 268 }, { x: 290, y: 292 }, { x: 450, y: 266 }, { x: 610, y: 294 }, { x: 770, y: 266 }, { x: 980, y: 298 }],
+  [{ x: -20, y: 436 }, { x: 150, y: 458 }, { x: 300, y: 442 }, { x: 470, y: 464 }, { x: 620, y: 440 }, { x: 790, y: 460 }, { x: 980, y: 444 }],
+  [{ x: 450, y: 266 }, { x: 505, y: 330 }, { x: 482, y: 400 }, { x: 470, y: 464 }],
+  [{ x: 140, y: 268 }, { x: 70, y: 200 }, { x: 40, y: 110 }, { x: 60, y: 20 }],
+  [{ x: 770, y: 266 }, { x: 860, y: 205 }, { x: 905, y: 120 }, { x: 890, y: 20 }],
+];
 
 export const starterCity = () => [newBuilding('home'), newBuilding('park'), newBuilding('shop'), ...Array(SLOTS.length - 3).fill(null)];
 export const START_ZONE = '0.1';                              // the bedroom upstairs at home (floor id 1)

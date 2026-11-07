@@ -97,3 +97,56 @@ export function inkTube(g, center, width, fill, opts = {}) {
   const cap = (p, w) => blob(p.x, p.y, w / 2, w / 2, { n: 10, amp: 0.03, seed: opts.seed || 1 });
   inkStroke(g, cap(last, width(1)).slice(0, 7), { ...opts, heavy: 0, seed: (opts.seed || 1) + 2 });   // rounded tip
 }
+
+// --- Wonky straight things: walls, windows, planks ----------------------------------------------
+export const rectPoints = (x, y, w, h) => [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }];
+
+// Subdivide a polygon's edges and wobble them, so "straight" walls look drawn by hand.
+export function wobblyPoly(points, { amp = 1.6, seed = 1, step = 16 } = {}) {
+  const out = [], n = points.length;
+  for (let i = 0; i < n; i++) {
+    const a = points[i], b = points[(i + 1) % n], k = Math.max(1, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / step));
+    for (let j = 0; j < k; j++) {
+      const t = j / k, e = j === 0 ? 0.6 : 1;                         // corners stay a little crooked too
+      out.push({ x: a.x + (b.x - a.x) * t + amp * e * noise(i * 3 + j * 0.8, seed), y: a.y + (b.y - a.y) * t + amp * e * noise(i * 3 + j * 0.8 + 40, seed + 3) });
+    }
+  }
+  return out;
+}
+
+// A wobbly flat-filled rectangle with an ink outline.
+export function inkRect(g, x, y, w, h, fill, opts = {}) {
+  inkFill(g, wobblyPoly(rectPoints(x, y, w, h), { amp: opts.amp ?? 1.6, seed: opts.seed ?? 1, step: opts.step ?? 16 }), fill, opts);
+}
+
+// A wobbly stroked line between two points (a plank seam, a window bar, a fence rail).
+export function inkLine(g, a, b, opts = {}) {
+  const k = Math.max(2, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / (opts.step ?? 14))), amp = opts.amp ?? 1.2, seed = opts.seed ?? 1;
+  const pts = [...Array(k + 1)].map((_, i) => ({
+    x: a.x + (b.x - a.x) * (i / k) + (i && i < k ? amp * noise(i * 0.9, seed) : 0),
+    y: a.y + (b.y - a.y) * (i / k) + (i && i < k ? amp * noise(i * 0.9 + 40, seed + 3) : 0),
+  }));
+  inkStroke(g, pts, { heavy: 0, ...opts });
+}
+
+// Catmull-Rom through the given points (winding paths and rivers): `steps` samples per span.
+export function smoothPath(points, steps = 6) {
+  if (points.length < 3) return points.slice();
+  const p = [points[0], ...points, points[points.length - 1]], out = [];
+  for (let i = 1; i < p.length - 2; i++) {
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      out.push({ x: f(p[i - 1].x, p[i].x, p[i + 1].x, p[i + 2].x), y: f(p[i - 1].y, p[i].y, p[i + 1].y, p[i + 2].y) });
+    }
+  }
+  out.push(points[points.length - 1]);
+  return out;
+}
+
+// A dashed ink outline (for build plots): draws every other stretch of the polyline.
+export function inkDashed(g, pts, { color = INK, w = 3, on = 3, off = 2, seed = 1 } = {}) {
+  const path = [...pts, pts[0]];
+  g.lineStyle(w, color, 1);
+  for (let i = 0; i + on < path.length; i += on + off) g.strokePoints(path.slice(i, i + on + 1), false);
+}

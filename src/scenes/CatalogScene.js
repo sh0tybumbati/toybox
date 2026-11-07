@@ -1,6 +1,7 @@
 // The furniture catalogue: an overlay over the paused room. Tap a piece to add it.
 import { W, H } from '../config.js';
 import { iconButton } from '../ui.js';
+import { penFor } from '../data/inkpen.js';
 import { PROP_TYPES } from '../data/props.js';
 
 const ink = '#4a3426';
@@ -31,7 +32,7 @@ export default class CatalogScene extends Phaser.Scene {
       this.add.rectangle(cx, cy, CARD_W, CARD_H, 0xffffff).setStrokeStyle(3, 0xe0a030)
         .setInteractive({ useHandCursor: true }).on('pointerdown', () => this.close(type));
       const art = this.add.graphics().setPosition(cx, cy - 16);
-      def.draw(art, def.behaviour === 'switch');                      // the piece itself, as a preview
+      def.draw(penFor(art, type), def.behaviour === 'switch');                      // the piece itself, as a preview
       art.setScale(Math.min(1, 80 / def.w, 70 / def.h));
       this.add.text(cx, cy + 38, def.name, text(15, { fontStyle: 'bold' })).setOrigin(0.5);
       this.add.text(cx, cy + 55, BLURB[def.behaviour] || '', text(12)).setOrigin(0.5);
