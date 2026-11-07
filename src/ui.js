@@ -84,7 +84,7 @@ export function inkPanel(scene, x, y, w, h, { fill = PAPER, depth, seed = 3, rad
 
 // A squishy button: wobbly coloured pill with a label (emoji become drawn icons). Returns a Container you can
 // `.on('pointerdown', fn)` (or pass `onTap`); `.setLabel(str)` changes the words.
-export function inkButton(scene, x, y, label, { w, h = 44, fill = COLORS.green, color = TEXT, size = 22, onTap, depth = 10000, seed = 5 } = {}) {
+export function inkButton(scene, x, y, label, { w, h = 46, fill = COLORS.green, color = TEXT, size = 22, onTap, depth = 10000, seed = 5 } = {}) {
   const content = richText(scene, label, { fontSize: `${size}px`, color }, { iconPx: size + 8 });
   const g = scene.add.graphics();
   const c = scene.add.container(x, y, [g, content]).setDepth(depth);

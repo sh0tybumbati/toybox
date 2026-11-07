@@ -39,7 +39,7 @@ try {
     await g.drag(x, y, 640, 540, 400);                              // grab a shelf item
     await wait(1900);
     assert.equal(await g.room('return r.tipShown && r.tipShown.id;'), 'dress');
-    await g.room("r.tipsSeen = new Set(['grab','dress','walk','map','eat','cook','book','furniture','shop']); r.refreshTip();");   // out of the way for the rest
+    await g.room("r.tipsSeen = new Set(['grab','dress','walk','map','eat','cook','book','furniture','shop','build','play','decorate']); r.refreshTip();");   // out of the way for the rest
     await wait(300);
     assert.equal(await g.room('return r.tipShown;'), null);
   });
@@ -312,6 +312,22 @@ try {
     assert.equal(await g.room("return typeof __toybox.cache === 'object' || true;"), true);
   });
 
+  await step('demolishing: a mistaken building can be knocked down, giving a few coins back and clearing its post', async () => {
+    await g.room("r.coins = 50; r.goToZone('0.1');"); await wait(1500);
+    await g.room("r.openCityMap();"); await wait(1000);
+    await g.ev("(h => { h.build(8, 'pond'); })(__toybox.scene.getScene('Hub'))");
+    await g.room("r.parcels = [{ k: 'apple', to: 8 }];");
+    const before = await g.room('return { coins: r.coins, built: Boolean(r.city[8]) };');
+    assert.ok(before.built);
+    await g.ev("(h => { h.openBuildingMenu(8); })(__toybox.scene.getScene('Hub'))");
+    await wait(400);
+    await g.ev("(h => h.demolish(8))(__toybox.scene.getScene('Hub'))");
+    const after = await g.room('return { coins: r.coins, built: Boolean(r.city[8]), parcels: r.parcels.length, left: Object.keys(r.propState).filter(k => k.startsWith("8.")).length };');
+    assert.equal(after.built, false); assert.ok(after.coins > before.coins - 1, 'a refund'); assert.equal(after.parcels, 0, 'post to it is cleared'); assert.equal(after.left, 0);
+    await g.ev("(h => h.close())(__toybox.scene.getScene('Hub'))");
+    await wait(1500);
+  });
+
   await step('the post: an item dropped on a mailbox is addressed to a building and delivered when you get there', async () => {
     await g.room("r.goToZone('0.1');");
     await wait(1500);
@@ -363,6 +379,32 @@ try {
     assert.ok(await t.ev("__toybox.scene.isActive('Hub')"), 'map is open');
     await t.tap(910, 40, 700);                                     // ✖
     assert.ok(await t.ev("__toybox.scene.isActive('Room')"), 'back in the room');
+  });
+
+  await step('a tour of the new features by finger alone: build, decorate, play', async () => {
+    await t.room("r.tipsSeen = new Set(['grab','dress','walk','map','eat','cook','book','furniture','shop','build','play','decorate']); r.refreshTip(); r.coins = 120; r.updateNav();");
+    await t.tap(70, 30, 900);                                           // Map
+    assert.ok(await t.ev("__toybox.scene.isActive('Hub')"), 'the map opened');
+    await t.tap(610, 380, 700);                                         // an empty lot
+    assert.ok(await t.ev("__toybox.scene.getScene('Hub').popup.length > 0"), 'the build picker opened');
+    await t.tap(419, 212, 900);                                         // the Cottage's price
+    assert.ok(await t.room('return r.city.some(b => b && b.name === "Cottage");'), 'built a cottage');
+    await t.tap(916, 30, 1400);                                         // close the map
+    assert.ok(await t.ev("__toybox.scene.isActive('Room') && !__toybox.scene.isActive('Hub')"), 'back in the room');
+    await t.tap(718, 30, 700);                                          // furniture mode
+    await t.tap(480, 120, 700);                                         // Decorate
+    assert.ok(await t.room('return Boolean(r.decor);'), 'decorating');
+    await t.tap(118 + 6 * 108, 490, 500);                               // a wallpaper swatch
+    assert.ok((await t.room('return JSON.stringify(r.looks);')).includes('shells'), 'the wallpaper changed');
+    await t.tap(862, 444, 600);                                         // Done
+    await t.room("r.detached = true; r.cameras.main.scrollX = 0; window.__tv = r.addFurniture('tv'); window.__tv.setPosition(820, 470);");
+    await wait(400);
+    await t.tap(820, 470, 1000);
+    assert.ok(await t.ev("__toybox.scene.isActive('Arcade')"), 'the TV game opened');
+    await t.touchDrag(200, 480, 700, 480, 700);
+    assert.ok(Math.abs(await t.ev("Math.round(__toybox.scene.getScene('Arcade').bx)") - 700) < 40, 'the basket followed the finger');
+    await t.ev("(a => a.finish(null))(__toybox.scene.getScene('Arcade'))");
+    await wait(400);
   });
 
   await step('no errors during the touch run', async () => { assert.deepEqual(t.errors, []); });

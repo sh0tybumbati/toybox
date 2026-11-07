@@ -116,3 +116,20 @@ test('the function buildings are buildable and every room they use exists with i
     for (const p of props) assert.ok(PROP_TYPES[p], `${t}: ${p}`);
   }
 });
+
+import { whyNotDemolish, demolishRefund } from '../src/systems/world.js';
+
+test('demolishing: there must be a building, and the last one stays', () => {
+  const city = starterCity();
+  assert.equal(whyNotDemolish(city, 5), 'nothing there');
+  assert.equal(whyNotDemolish(city, 1), '');
+  const lone = city.map((b, i) => (i === 0 ? b : null));
+  assert.equal(whyNotDemolish(lone, 0), 'the last building stays');
+});
+
+test('the refund grows with the number of rooms but stays small', () => {
+  assert.ok(demolishRefund(newBuilding('blank')) < demolishRefund(newBuilding('apartments')));
+  const big = newBuilding('apartments');
+  for (let i = 0; i < 5; i++) big.floors.push({ id: 10 + i, rooms: [...Array(5)].map((_, j) => ({ id: 100 + i * 10 + j, type: 'empty', w: 960 })) });
+  assert.equal(demolishRefund(big), 30, 'capped');
+});

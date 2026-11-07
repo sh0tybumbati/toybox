@@ -92,6 +92,14 @@ export const worldMethods = {
     return first >= 0 ? entryZone(this.city, first) : this.zoneKey;
   },
 
+  // A building was knocked down: forget everything stored about its rooms, and any post addressed to it.
+  forgetBuilding(slot) {
+    const mine = id => id.startsWith(`${slot}.`);
+    for (const table of [this.propState, this.floorState, this.looks]) for (const id of Object.keys(table)) if (mine(id)) delete table[id];
+    this.parcels = this.parcels.filter(p => p.to !== slot);
+    this.dirty = true;
+  },
+
   // Remember the current zone's furniture and floor items, then tear its art down.
   leaveZone() {
     if (!this.zoneLive) return;                 // already torn down (the city map does that while it's open)

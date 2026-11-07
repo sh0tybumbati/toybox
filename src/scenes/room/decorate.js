@@ -14,6 +14,7 @@ export const decorateMethods = {
   enterDecorate() {
     if (this.switching || this.heldItem || this.characters.some(c => c.held)) return;
     if (this.editMode) this.exitEdit();
+    this.tipEvent('decorate');
     this.hideTip();
     this.decor = { tab: 'walls', sel: 0, ui: [], world: [] };
     this.sfx.click();
@@ -48,8 +49,8 @@ export const decorateMethods = {
     ui(inkChip(this, 178, H - 156, `🎨 ${type.label.split(' ').slice(1).join(' ')}`, { size: 23, depth: D + 1, h: 36, fill: CARD }));
     const tabs = [['walls', 'Walls'], ['floor', 'Floor'], ['windows', 'Windows']];
     tabs.forEach(([id, label], i) => ui(inkButton(this, 400 + i * 118, H - 156, label, {
-      w: 108, h: 36, size: 21, fill: d.tab === id ? COLORS.gold : CARD, depth: D + 1, seed: i + 3, onTap: () => { d.tab = id; d.sel = 0; this.sfx.click(); this.buildDecorUI(); } })));
-    ui(inkButton(this, W - 96, H - 156, '✔ Done', { w: 116, h: 38, size: 22, fill: COLORS.green, depth: D + 1, onTap: () => this.exitDecorate() }));
+      w: 108, h: 42, size: 21, fill: d.tab === id ? COLORS.gold : CARD, depth: D + 1, seed: i + 3, onTap: () => { d.tab = id; d.sel = 0; this.sfx.click(); this.buildDecorUI(); } })));
+    ui(inkButton(this, W - 96, H - 156, '✔ Done', { w: 120, h: 44, size: 22, fill: COLORS.green, depth: D + 1, onTap: () => this.exitDecorate() }));
 
     if (type.outdoor) { ui(this.add.text(W / 2, H - 80, 'Outdoors is already lovely — head inside to redecorate!', { fontSize: '24px', color: TEXT }).setOrigin(0.5)); return; }
     if (d.tab === 'windows') this.buildWindowTools(sec, ui);
@@ -80,7 +81,7 @@ export const decorateMethods = {
       inkDashed(g, wobblyPoly(rectPoints(sec.offset + w.x - 8, w.y - 8, w.w + 16, w.h + 16), { amp: 1, seed: 5, step: 18 }), { color: INK, w: 4, on: 3, off: 2 });
       d.world.push(g);
     }
-    const b = (x, y, label, fn, fill = COLORS.blue, w) => ui(inkButton(this, x, y, label, { w, h: 38, size: 20, fill, depth: D + 1, seed: Math.round(x), onTap: fn }));
+    const b = (x, y, label, fn, fill = COLORS.blue, w) => ui(inkButton(this, x, y, label, { w, h: 42, size: 20, fill, depth: D + 1, seed: Math.round(x), onTap: fn }));
     const edit = fn => this.setLook(sec, l => ({ ...l, windows: fn(l.windows) }));
     const sel = d.sel, mv = (dx, dy) => () => edit(ws => (ws[sel] ? moveWindow(ws, sel, dx, dy, sec.w) : ws));
     const rs = (dw, dh) => () => edit(ws => (ws[sel] ? resizeWindow(ws, sel, dw, dh, sec.w) : ws));

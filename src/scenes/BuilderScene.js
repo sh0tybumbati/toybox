@@ -60,7 +60,7 @@ export default class BuilderScene extends Phaser.Scene {
   }
 
   btn(add, x, y, text, fill, onTap, size = 19) {
-    return add(inkButton(this, x, y, text, { fill, onTap, size, depth: D, h: 38 }));
+    return add(inkButton(this, x, y, text, { fill, onTap, size, depth: D, h: 42 }));
   }
 
   // --- exterior ---------------------------------------------------------------------------

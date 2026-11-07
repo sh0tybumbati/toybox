@@ -78,6 +78,7 @@ export const SPRITE_ART = {
   sock: small(p => { poly(p, [[20, 6], [42, 6], [42, 34], [58, 44], [54, 58], [30, 54], [20, 38]], 0xe0605a); r(p, 18, 4, 28, 12, WHITE, 4); tiny(p, () => { ln(p, 26, 22, 40, 24, 2); ln(p, 26, 30, 40, 32, 2); }); }),
   marshmallow: small(p => { r(p, 12, 22, 40, 26, WHITE, 12); tiny(p, () => { ln(p, 26, 24, 26, 46, 2); ln(p, 40, 24, 40, 46, 2); }); }),
   star: small(p => poly(p, [[32, 4], [40, 24], [60, 24], [44, 38], [50, 58], [32, 46], [14, 58], [20, 38], [4, 24], [24, 24]], YELLOW)),
+  'icon-game': small(p => { r(p, 6, 18, 52, 30, 0x6b7a99, 14); r(p, 12, 26, 16, 6, WHITE, 2); r(p, 17, 21, 6, 16, WHITE, 2); c(p, 42, 26, 4, RED); c(p, 50, 33, 4, GREEN); }),
   'icon-mail': small(p => { r(p, 6, 14, 52, 38, WHITE, 6); tiny(p, () => { ln(p, 8, 16, 32, 36, 3); ln(p, 56, 16, 32, 36, 3); }); }),
   van: big(p => { poly(p, [[8, 90], [8, 50], [24, 28], [96, 28], [100, 50], [120, 58], [120, 90]], WHITE); r(p, 8, 74, 112, 12, 0xe0605a, 4); poly(p, [[32, 36], [60, 36], [60, 56], [24, 56]], 0xb9e0f2); poly(p, [[68, 36], [92, 36], [98, 56], [68, 56]], 0xb9e0f2); c(p, 36, 96, 14, 0x2f3340); c(p, 94, 96, 14, 0x2f3340); tiny(p, () => { c(p, 36, 96, 6, GREY); c(p, 94, 96, 6, GREY); }); }),
   moon: small(p => poly(p, [[40, 6], [26, 14], [18, 28], [20, 44], [32, 56], [48, 58], [58, 52], [44, 46], [36, 34], [38, 18]], 0xf7e27a)),
@@ -88,7 +89,7 @@ export const SPRITE_ART = {
 export const EMOJI_SPRITE = {
   '💖': 'heart', '💕': 'heart', '💞': 'heart', '❤️': 'heart', '💤': 'zzz', '✨': 'sparkle', '🔥': 'fire',
   '😄': 'laugh', '😋': 'yum', '😖': 'sour', '🥵': 'spicy', '🤢': 'yuck', '🪙': 'coin', '📖': 'icon-book', '🏗️': 'icon-hammer',
-  '🔻': 'marker', '📮': 'icon-mail', '✉️': 'icon-mail',
+  '🔻': 'marker', '📮': 'icon-mail', '🕹️': 'icon-game', '🎮': 'icon-game', '🎣': 'item:fish', '✉️': 'icon-mail',
   // menu and HUD emoji -> drawn icons ('item:x' = that item's drawing)
   '🗺️': 'icon-map', '🛋️': 'icon-furniture', '➕': 'icon-plus', '➖': 'icon-minus', '✔': 'icon-check', '✖': 'icon-close', '✕': 'icon-close',
   '🗑': 'icon-trash', '🎲': 'icon-dice', '🔒': 'icon-lock', '📍': 'icon-pin', '🚪': 'icon-door', '🔨': 'icon-hammer', '🪜': 'icon-ladder',

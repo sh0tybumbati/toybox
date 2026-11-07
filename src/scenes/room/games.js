@@ -10,6 +10,7 @@ export const gameMethods = {
   openGame(id, prop) {
     const def = MINIGAMES[id];
     if (!def || this.switching || this.decor) return;
+    this.tipEvent('play');
     this.hideTip();
     this.sfx.pop();
     if (prop) prop.setState(true);

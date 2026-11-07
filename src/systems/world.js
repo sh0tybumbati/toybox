@@ -89,4 +89,17 @@ export function whyNotBuild(city, slot, blueprint, coins) {
   return '';
 }
 
+// Can the building on lot `slot` be knocked down? '' if yes, else why not. The last building stays (somewhere has to be home).
+export function whyNotDemolish(city, slot) {
+  if (!city[slot]) return 'nothing there';
+  if (city.filter(Boolean).length <= 1) return 'the last building stays';
+  return '';
+}
+
+// Coins back for knocking a building down: a little for the bricks, a little for each room.
+export function demolishRefund(building) {
+  const rooms = building.floors.reduce((n, f) => n + f.rooms.length, 0);
+  return Math.min(30, 2 + 2 * rooms);
+}
+
 export const everyRoomTypeExists = () => Object.values(BLUEPRINTS).every(b => b.floors.every(f => f.rooms.every(r => ROOMS[r.type])));

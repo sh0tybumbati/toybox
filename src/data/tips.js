@@ -12,6 +12,9 @@ export const TIPS = [
   { id: 'book',      done: 'book',      text: '📖 Peek in the recipe book to see what you can make.' },
   { id: 'furniture', done: 'furniture', text: '🛋️ Try furniture mode to move things around.' },
   { id: 'shop',      done: 'shop',      text: '🪙 Collect coins in the park, then spend them at the shop!' },
+  { id: 'build',     done: 'build',     text: '🏗️ Build somewhere new: open the Map and tap an empty plot.' },
+  { id: 'play',      done: 'play',      text: '🕹️ Tap a game station — the fishing dock, the TV, the sewing machine…' },
+  { id: 'decorate',  done: 'decorate',  text: '🎨 Open furniture mode, then Decorate, to repaint walls and floors.' },
 ];
 
 export const ALL_TIP_IDS = TIPS.map(t => t.id);

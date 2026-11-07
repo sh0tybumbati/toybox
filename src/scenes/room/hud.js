@@ -10,7 +10,7 @@ export const hudMethods = {
     const fixed = pin;                                                 // the HUD stays put while the camera scrolls
     this.roomLabel = fixed(this.add.text(W / 2, 30, '', { fontSize: '28px', color: '#fff7e0',
       fontStyle: 'bold', stroke: '#3a2a22', strokeThickness: 6 }).setOrigin(0.5).setDepth(10000));
-    fixed(inkButton(this, 70, 30, '🗺️ Map', { w: 108, h: 42, fill: COLORS.gold, size: 22, onTap: () => this.openMap(), depth: 10000 }));
+    fixed(inkButton(this, 70, 30, '🗺️ Map', { w: 112, h: 46, fill: COLORS.gold, size: 22, onTap: () => this.openMap(), depth: 10000 }));
     this.coinText = fixed(inkChip(this, 196, 30, '', { size: 22, depth: 10000 }));
     this.updateNav();
 
@@ -22,7 +22,7 @@ export const hudMethods = {
       inkSwatch(disc, x, 30, 25, 0xf8eed8, false, 40 + n);
       fixed(disc);
       const t = fixed(spriteImage(this, key, x, 30, 36).setDepth(10000));
-      return touchable(t, 10).on('pointerdown', onTap);
+      return touchable(t, 34).on('pointerdown', onTap);                                // a fingertip-sized target (~55px) around a 36px icon
     };
     const show = (img, key) => img.setTexture(ensureSpriteTexture(this, key));
     const mute = icon(0, this.sfx.muted ? 'icon-mute' : 'icon-sound', () => {

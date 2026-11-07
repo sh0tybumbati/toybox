@@ -8,7 +8,7 @@ import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, newBuilding } from '../data/buildi
 import { paintBuildingMini } from '../data/exterior.js';
 import { INK, blob, inkFill, inkStroke, smoothPath } from '../data/ink.js';
 import { MAP_COLORS, paintPlot, paintScenery, paintSign, paintTerrain } from '../data/mapart.js';
-import { entryZone, whyNotBuild } from '../systems/world.js';
+import { demolishRefund, entryZone, whyNotBuild, whyNotDemolish } from '../systems/world.js';
 import { floatText } from '../systems/interactions.js';
 
 const HAND = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", cursive';
@@ -124,10 +124,21 @@ export default class HubScene extends Phaser.Scene {
 
   openBuildingMenu(slot) {
     const b = this.room.city[slot];
-    const add = this.openPopup(b.name, 400, 300);
-    this.button(add, W / 2, H / 2 - 24, '🚪 Visit', COLORS.green, () => this.visit(slot), 250);
-    this.button(add, W / 2, H / 2 + 44, '🔨 Build & decorate', COLORS.orange, () => { this.closePopup(); this.openBuilder(slot); }, 250);
-    this.button(add, W / 2, H / 2 + 112, 'Close', COLORS.grey, () => this.closePopup(), 250);
+    const add = this.openPopup(b.name, 400, 372);
+    this.button(add, W / 2, H / 2 - 40, '🚪 Visit', COLORS.green, () => this.visit(slot), 250);
+    this.button(add, W / 2, H / 2 + 26, '🔨 Build & decorate', COLORS.orange, () => { this.closePopup(); this.openBuilder(slot); }, 250);
+    const why = whyNotDemolish(this.room.city, slot);
+    const kill = this.button(add, W / 2, H / 2 + 92, why ? '🗑 Demolish' : `🗑 Demolish (+${demolishRefund(b)} 🪙)`, why ? COLORS.grey : COLORS.red, () => {
+      if (why) { this.room.sfx.nope(); floatText(this, W / 2, H / 2 + 150, why === 'the last building stays' ? 'You need at least one building' : why, 24); return; }
+      if (!this.armed) {                                                    // the first tap asks, the second one does it
+        this.armed = true; kill.setLabel('Tap again to demolish');
+        this.time.delayedCall(2200, () => { this.armed = false; if (kill.active) kill.setLabel(`🗑 Demolish (+${demolishRefund(b)} 🪙)`); });
+        return;
+      }
+      this.armed = false;
+      this.demolish(slot);
+    }, 250);
+    this.button(add, W / 2, H / 2 + 154, 'Close', COLORS.grey, () => this.closePopup(), 250);
   }
 
   openBuildPicker(slot) {
@@ -147,6 +158,18 @@ export default class HubScene extends Phaser.Scene {
     });
   }
 
+  demolish(slot) {
+    if (whyNotDemolish(this.room.city, slot)) return;
+    this.room.coins += demolishRefund(this.room.city[slot]);
+    this.room.city[slot] = null;
+    this.room.forgetBuilding(slot);
+    this.room.sfx.whoosh();
+    this.refreshCoins();
+    this.closePopup();
+    this.drawLots();
+    floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, 'Gone!', 30);
+  }
+
   build(slot, key) {
     const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
     if (why) {
@@ -156,6 +179,7 @@ export default class HubScene extends Phaser.Scene {
     }
     this.room.coins -= BLUEPRINTS[key].cost;
     this.room.city[slot] = newBuilding(key);
+    this.room.tipEvent('build');
     this.room.sfx.fanfare();
     this.room.dirty = true;
     this.refreshCoins();

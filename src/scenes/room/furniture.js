@@ -67,7 +67,7 @@ export const furnitureMethods = {
   },
 
   attachRemoveButton(prop) {
-    prop.removeBtn = touchable(spriteImage(this, 'icon-close', prop.x, prop.y, 34).setDepth(9500), 10).on('pointerdown', () => this.removeFurniture(prop));
+    prop.removeBtn = touchable(spriteImage(this, 'icon-close', prop.x, prop.y, 36).setDepth(9500), 44).on('pointerdown', () => this.removeFurniture(prop));
   },
 
   openCatalog() {
