@@ -1,6 +1,8 @@
 // Item art -> textures. Each item is drawn once (data/itemart.js, through the ink pen) into a 256px texture
 // at 2x resolution, then reused by every copy of the item, by the oven's ingredient list and by the recipe book.
 import { ART_BOX, drawItem } from '../data/itemart.js';
+import { LINE } from '../data/ink.js';
+import { CATALOG } from '../data/items.js';
 import { InkPen } from '../data/inkpen.js';
 import { SPRITE_ART } from '../data/spriteart.js';
 
@@ -15,7 +17,8 @@ export function ensureItemTexture(scene, key) {
   if (scene.textures.exists(tk)) return tk;
   const g = scene.make.graphics({ x: 0, y: 0, add: false });
   g.scaleCanvas(TEX_RES, TEX_RES);
-  drawItem(new InkPen(g, seedOf(key), { weight: 5.2 }), key);
+  const size = (CATALOG[key.replace(/_open$/, '')] || {}).size || 72;                    // the art is shown at `size` px: the pen is heavier so lines come out LINE wide
+  drawItem(new InkPen(g, seedOf(key), { weight: LINE * ART_BOX / size }), key);
   g.generateTexture(tk, TEX_SIZE, TEX_SIZE);
   g.destroy();
   return tk;

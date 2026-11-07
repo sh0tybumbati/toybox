@@ -37,7 +37,21 @@ export function bezier(p0, p1, p2, p3, n = 10) {
 
 // A wobbly closed blob (a squashed circle that isn't quite round): n points around an ellipse
 // with radii (rx, ry) whose radius drifts by `amp` (fraction) from place to place.
+// The house line: every main outline is LINE px wide on screen (art scaled down is drawn with a heavier pen so the
+// result is the same: see Character's ink gain and the item textures), edges wobble by WOBBLE of the raw amount
+// (1 = the old shaky look, 0 = ruler straight), and a pen's pressure only varies the width a little.
+export const LINE = 3.2;
+export const WOBBLE = 0.4;
+export const PRESSURE = 0.3;
+// A multiplier on every stroke width: a character drawn at 64% size sets this so its lines still come out LINE wide.
+export const inkGain = {
+  k: 1,
+  with(k, fn) { const prev = this.k; this.k = k; try { return fn(); } finally { this.k = prev; } },
+};
+
 export function blob(cx, cy, rx, ry, { n = 28, amp = 0.045, seed = 1, rot = 0 } = {}) {
+  amp *= WOBBLE;
+  n = Math.max(n, 12 + Math.round(Math.max(rx, ry) / 2.5));            // big round things need enough points to stay round
   const out = [], cos = Math.cos(rot), sin = Math.sin(rot);
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2, k = 1 + amp * noise(a * 1.7, seed);
@@ -49,6 +63,7 @@ export function blob(cx, cy, rx, ry, { n = 28, amp = 0.045, seed = 1, rot = 0 } 
 
 // Wobble a polyline: nudge each point sideways by up to `amp` px (deterministic).
 export function wobble(points, amp = 1.5, seed = 1) {
+  amp *= WOBBLE;
   return points.map((p, i) => ({ x: p.x + amp * noise(i * 0.9, seed), y: p.y + amp * noise(i * 0.9 + 40, seed + 3) }));
 }
 
@@ -72,11 +87,12 @@ export function tube(center, width) {
 export function inkStroke(g, pts, { color = INK, w = 4, seed = 1, closed = false, heavy = 2 } = {}) {
   if (pts.length < 2) return;
   const path = closed ? [...pts, pts[0]] : pts;
+  w *= inkGain.k;                                                        // (once: the pressure patches below build on this)
   g.lineStyle(w, color, 1).strokePoints(path, false);
   const r = rng(seed * 31 + 5);
   for (let k = 0; k < heavy; k++) {                                     // thicker patches, where the pen pressed harder
     const from = Math.floor(r() * Math.max(1, path.length - 5)), run = path.slice(from, from + 4 + Math.floor(r() * 4));
-    if (run.length > 1) g.lineStyle(w * (1.35 + r() * 0.4), color, 1).strokePoints(run, false);
+    if (run.length > 1) g.lineStyle(w * (1 + (0.35 + r() * 0.4) * PRESSURE), color, 1).strokePoints(run, false);
   }
 }
 
@@ -103,6 +119,7 @@ export const rectPoints = (x, y, w, h) => [{ x, y }, { x: x + w, y }, { x: x + w
 
 // Subdivide a polygon's edges and wobble them, so "straight" walls look drawn by hand.
 export function wobblyPoly(points, { amp = 1.6, seed = 1, step = 16 } = {}) {
+  amp *= WOBBLE;
   const out = [], n = points.length;
   for (let i = 0; i < n; i++) {
     const a = points[i], b = points[(i + 1) % n], k = Math.max(1, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / step));
@@ -121,7 +138,7 @@ export function inkRect(g, x, y, w, h, fill, opts = {}) {
 
 // A wobbly stroked line between two points (a plank seam, a window bar, a fence rail).
 export function inkLine(g, a, b, opts = {}) {
-  const k = Math.max(2, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / (opts.step ?? 14))), amp = opts.amp ?? 1.2, seed = opts.seed ?? 1;
+  const k = Math.max(2, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / (opts.step ?? 14))), amp = (opts.amp ?? 1.2) * WOBBLE, seed = opts.seed ?? 1;
   const pts = [...Array(k + 1)].map((_, i) => ({
     x: a.x + (b.x - a.x) * (i / k) + (i && i < k ? amp * noise(i * 0.9, seed) : 0),
     y: a.y + (b.y - a.y) * (i / k) + (i && i < k ? amp * noise(i * 0.9 + 40, seed + 3) : 0),

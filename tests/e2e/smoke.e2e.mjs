@@ -500,14 +500,14 @@ try {
   await step('containers: tap a box to open it, drop things in, carry it with its contents, tap to take one out, and it survives a reload', async () => {
     await g.room("r.goToZone('0.1');");
     await wait(2000);
-    await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.characters.forEach(c => { c.x = 820; c.lane = 520; }); window.__cb = r.createItem('box', 300, 540); window.__ca = r.createItem('apple', 420, 540); window.__cd = r.createItem('duck', 480, 540);");
+    await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.characters.forEach(c => { c.x = 820; c.lane = 520; }); r.pets.forEach(p => { p.x = 880; }); window.__cb = r.createItem('box', 300, 540); window.__ca = r.createItem('apple', 420, 540); window.__cd = r.createItem('duck', 480, 540);");
     await wait(900);
     const at = k => g.room(`const i = window.__${k}, s = r.cameras.main.scrollX; return [Math.round(i.x - s), Math.round(i.y)];`);
     let b = await at('cb');
     await g.click(b[0], b[1], 600);
     assert.equal(await g.room('return window.__cb.open;'), true, 'a tap opens it');
     for (const k of ['ca', 'cd']) { const a = await at(k); b = await at('cb'); await g.drag(a[0], a[1], b[0], b[1] - 20, 600); await wait(700); }
-    assert.equal(await g.room('return window.__cb.contents.join();'), 'apple,duck', `dropped things go inside ${JSON.stringify(await g.room('const b = window.__cb; return [b.x, b.y, b.open, b.z, window.__ca.x, window.__ca.y, window.__ca.dead, r.cameras.main.scrollX];'))}`);
+    assert.equal(await g.room('return window.__cb.contents.join();'), 'apple,duck', `dropped things go inside`);
     b = await at('cb');
     await g.drag(b[0], b[1], 700, 530, 700);
     await wait(1000);

@@ -1,7 +1,7 @@
 // A building's outside: wall colour, trim, roof — and the little hand-inked model of it used on the
 // city map and in the building-maker. Models are chubby and wonky on purpose (art/reference/): floors
 // lean and shift a bit, roofs slump, windows are crooked, every edge is wobbly ink. Pure data + painters.
-import { INK, blob, inkFill, inkLine, inkStroke, noise, wobblyPoly } from './ink.js';
+import { INK, LINE, blob, inkFill, inkLine, inkStroke, noise, wobblyPoly } from './ink.js';
 import { shade } from './style.js';
 import { ROOMS } from './rooms.js';
 
@@ -41,7 +41,7 @@ export function paintBuildingMini(g, building, cx, baseY, maxW, maxH, seedIn) {
   const roofH = ex.roofStyle === 'none' ? 0 : ex.roofStyle === 'flat' ? 40 : 190;
   const squash = 0.84;                                                      // chubby: squashed taller-than-wide proportions
   const k = Math.min(maxW / (fullW * 1.06), maxH / ((building.floors.length * FH + roofH) * squash));
-  const sx = k, sy = k * squash, lw = Math.max(2, Math.min(4.2, 2.6 + k * 4));    // ink weight follows the model's size
+  const sx = k, sy = k * squash, lw = LINE * 0.9;                                  // the house line, a touch lighter on the little models
   const outdoor = building.floors.every(f => f.rooms.every(r => ROOMS[r.type] && ROOMS[r.type].outdoor));
   const left = cx - (fullW * sx) / 2;
 

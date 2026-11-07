@@ -2,7 +2,7 @@
 // squishy buttons, chips, and text whose emoji are swapped for the drawn icons. Everything is flat matte colour.
 import { iconImage, spriteImage } from './systems/itemTextures.js';
 import { EMOJI_SPRITE } from './data/spriteart.js';
-import { INK, blob, inkFill, wobblyPoly } from './data/ink.js';
+import { INK, LINE, blob, inkFill, wobblyPoly } from './data/ink.js';
 import { roundedRectPoints } from './data/inkpen.js';
 
 export const PAPER = 0xf8eed8;
@@ -73,7 +73,7 @@ export function leftText(scene, x, y, str, style = {}) {
 
 // --- panels, buttons and chips -----------------------------------------------------------------
 // A wobbly paper panel centred at (x, y) with a soft offset shadow and a dark uneven outline. Returns the Graphics.
-export function inkPanel(scene, x, y, w, h, { fill = PAPER, depth, seed = 3, radius = 22, shadow = true, weight = 4.4 } = {}) {
+export function inkPanel(scene, x, y, w, h, { fill = PAPER, depth, seed = 3, radius = 22, shadow = true, weight = LINE } = {}) {
   const g = scene.add.graphics();
   if (depth !== undefined) g.setDepth(depth);
   const shape = (dx, dy) => wobblyPoly(roundedRectPoints(x - w / 2 + dx, y - h / 2 + dy, w, h, radius), { amp: 1.6, seed, step: 16 });
@@ -91,7 +91,7 @@ export function inkButton(scene, x, y, label, { w, h = 46, fill = COLORS.green, 
   const draw = () => {
     const bw = w ?? Math.max(56, content.textWidth + 38);
     g.clear();
-    inkFill(g, wobblyPoly(roundedRectPoints(-bw / 2, -h / 2, bw, h, h / 2.4), { amp: 1.2, seed, step: 14 }), fill, { w: 3.8, seed });
+    inkFill(g, wobblyPoly(roundedRectPoints(-bw / 2, -h / 2, bw, h, h / 2.4), { amp: 1.2, seed, step: 14 }), fill, { w: LINE, seed });
     c.setSize(bw, h);
     if (c.input) c.input.hitArea.setTo(0, 0, bw, h);
   };
@@ -112,7 +112,7 @@ export function inkChip(scene, x, y, label, { fill = PAPER, color = TEXT, size =
   const draw = () => {
     const bw = Math.max(56, content.textWidth + 34);
     g.clear();
-    inkFill(g, wobblyPoly(roundedRectPoints(-bw / 2, -h / 2, bw, h, h / 2.3), { amp: 1.1, seed, step: 14 }), fill, { w: 3.4, seed });
+    inkFill(g, wobblyPoly(roundedRectPoints(-bw / 2, -h / 2, bw, h, h / 2.3), { amp: 1.1, seed, step: 14 }), fill, { w: LINE, seed });
     c.setSize(bw, h);
   };
   draw();
@@ -123,6 +123,6 @@ export function inkChip(scene, x, y, label, { fill = PAPER, color = TEXT, size =
 
 // A round colour swatch with an ink outline (and a thicker one when selected), drawn into `g`.
 export function inkSwatch(g, x, y, r, color, selected, seed = 1) {
-  inkFill(g, blob(x, y, r, r, { n: 16, amp: 0.06, seed }), color, { w: selected ? 6 : 3, seed, heavy: 0 });
+  inkFill(g, blob(x, y, r, r, { n: 16, amp: 0.06, seed }), color, { w: selected ? LINE * 1.8 : LINE, seed, heavy: 0 });
 }
 export { INK };

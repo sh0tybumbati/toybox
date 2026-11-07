@@ -11,7 +11,7 @@ const t = (p, x1, y1, x2, y2, x3, y3, col) => p.fillStyle(col, 1).fillTriangle(x
 const poly = (p, pts, col) => p.fillStyle(col, 1).fillPoints(pts.map(([x, y]) => ({ x, y })), true);
 const ln = (p, x1, y1, x2, y2, w = 3) => p.lineStyle(w, 0).lineBetween(x1, y1, x2, y2);
 // tiny details (seeds, chips, eyes) get a thinner outline
-const tiny = (p, fn) => { const w = p.weight; p.weight = 1.8; fn(); p.weight = w; };
+const tiny = (p, fn) => { const w = p.weight; p.weight = w * 0.5; fn(); p.weight = w; };
 const dots = (p, pts, col, rad = 3) => tiny(p, () => pts.forEach(([x, y]) => c(p, x, y, rad, col)));
 const eyes = (p, x1, x2, y, rad = 3.4) => tiny(p, () => { c(p, x1, y, rad, 0x2a1f24); c(p, x2, y, rad, 0x2a1f24); });
 

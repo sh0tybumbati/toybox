@@ -4,7 +4,7 @@
 // Graphics in room-local coordinates (0..w). Flat matte colour, wobbly lines, uneven boards: nothing is straight.
 import { W, H } from '../config.js';
 import { sunbeamShapes, SUNBEAM_ALPHA, shade } from './style.js';
-import { INK, blob, inkFill, inkLine, inkStroke, noise, rectPoints, wobblyPoly } from './ink.js';
+import { INK, LINE, blob, inkFill, inkLine, inkStroke, noise, rectPoints, wobblyPoly } from './ink.js';
 import { InkPen } from './inkpen.js';
 import { MAP_COLORS, paintBush, paintHill, paintMountain, paintTree } from './mapart.js';
 
@@ -75,7 +75,7 @@ export const FLOORS = {
 // A window looking out on rolling hills: a wobbly white frame, a patch of sky, a hill, a cloud, crooked bars.
 // `w` = { x, y, w, h } in room-local coordinates.
 export function paintWindow(g, w) {
-  const pen = new InkPen(g, 40 + (w.x % 50), { weight: 3.6 });
+  const pen = new InkPen(g, 40 + (w.x % 50), { weight: LINE });
   pen.fillStyle(0xf4f1e8, 1).fillRoundedRect(w.x, w.y, w.w, w.h, 12);
   const gx = w.x + 11, gy = w.y + 11, gw = w.w - 22, gh = w.h - 22;
   g.fillStyle(0xa9d9f0, 1).fillPoints(wobblyPoly(rectPoints(gx, gy, gw, gh), { amp: 1.2, seed: 5, step: 24 }), true);
@@ -170,7 +170,7 @@ export function paintRoom(g, type, look, w = W) {
 // The doorway between two neighbouring rooms, at world x = `x` (the seam): a wobbly white frame pillar with
 // the next room's side wall receding beside it, as in the style guide.
 export function paintDivider(g, x) {
-  const P = 27, FOOT = 506, pen = new InkPen(g, 61, { weight: 3.6 });
+  const P = 27, FOOT = 506, pen = new InkPen(g, 61, { weight: LINE });
   const wedge = [{ x: x + P, y: -4 }, { x: x + 112, y: -4 }, { x: x + 112, y: WALL_H }, { x: x + P, y: FOOT - 6 }];
   pen.fillStyle(0xeae3d0, 1).fillPoints(wedge, true);                                            // the receding side wall
   g.fillStyle(0x000000, 0.06).fillPoints(wedge, true);

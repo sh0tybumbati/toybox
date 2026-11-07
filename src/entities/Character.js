@@ -2,7 +2,7 @@ import { clamp } from '../util.js';
 import { HAIR_STYLES, DEFAULT_LOOK } from '../data/look.js';
 import { EXPRESSIONS } from '../data/expressions.js';
 import { layoutFor, limbCurve, limbTargets, springTip } from '../data/body.js';
-import { INK, blob, inkFill, inkStroke, inkTube } from '../data/ink.js';
+import { INK, LINE, blob, inkFill, inkGain, inkStroke, inkTube } from '../data/ink.js';
 import { paintFace } from '../data/face.js';
 import { paintPattern, patternMarks } from '../data/patterns.js';
 import { walkPose } from '../systems/walk.js';
@@ -95,8 +95,13 @@ export default class Character extends Phaser.GameObjects.Container {
   headTopY() { return this.y + (this.layout.head.y - this.layout.head.ry) * this.scaleX; }
   mouthY() { return this.y + this.layout.mouthY * this.scaleX; }
 
+  // The pen's gain: the art is drawn with ~4.4px lines, so scaled-down people need a heavier pen to show LINE px.
+  get lineGain() { return LINE / (4.4 * Math.max(0.3, this.scaleX)); }
+
   // Switch to a (possibly different) body and (re)draw the parts that don't move: head, hair and the bean body.
-  applyLook(look) {
+  applyLook(look) { inkGain.with(this.lineGain, () => this.paintBody(look)); }
+
+  paintBody(look) {
     this.look = look;
     const L = layoutFor(look.age);
     if (L !== this.layout || !this.zones) this.useLayout(L);
@@ -170,7 +175,9 @@ export default class Character extends Phaser.GameObjects.Container {
 
   // Breathing + squash on the rig, boneless limbs springing toward where the pose wants them, the face
   // looking at (tx,ty) in world space.
-  animate(time, tx, ty) {
+  animate(time, tx, ty) { inkGain.with(this.lineGain, () => this.tick(time, tx, ty)); }
+
+  tick(time, tx, ty) {
     const dt = clamp((time - (this.lastT || time)) / 1000, 0, 0.05);
     this.lastT = time;
     const L = this.layout, t = time / 1000;

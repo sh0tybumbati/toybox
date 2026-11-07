@@ -10,6 +10,7 @@ export const partyMethods = {
   addCharacter(entry) {
     const c = new Character(this, { ...entry, x: entry.x ?? this.freeX(), lane: entry.lane ?? Phaser.Math.Between(480, 515) });
     c.setScale(entry.scale ?? CHAR_SCALE);
+    c.applyLook(c.look);                          // redraw the still parts now that the size is known (lines are drawn to suit it)
     c.setDepth(this.topDepth++);
     this.addShadow(c, 100, 18);
     c.y = c.lane - c.foot();

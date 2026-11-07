@@ -4,7 +4,7 @@
 //   * strokes that merely re-outline a fill (strokeRect, strokeRoundedRect, strokeCircle) are ignored: the fill already has ink
 //   * lineBetween draws a wobbly ink line; translucent fills (glows, shadows) stay plain and unoutlined
 // Seeded, so a drawing looks the same every time it is painted.
-import { INK, blob, inkFill, inkLine, inkStroke, wobblyPoly } from './ink.js';
+import { INK, LINE, blob, inkFill, inkLine, inkStroke, wobblyPoly } from './ink.js';
 
 // A rounded rectangle as a polygon (the radius is clamped to half the shorter side).
 export function roundedRectPoints(x, y, w, h, r, arcSteps = 4) {
@@ -16,7 +16,7 @@ export function roundedRectPoints(x, y, w, h, r, arcSteps = 4) {
 }
 
 export class InkPen {
-  constructor(g, seed = 1, { weight = 3.2 } = {}) {
+  constructor(g, seed = 1, { weight = LINE } = {}) {
     this.g = g; this.seed = seed; this.weight = weight;
     this.fill = 0xffffff; this.alpha = 1; this.lw = 2; this.n = 0;
   }
@@ -38,8 +38,8 @@ export class InkPen {
 
   fillRect(x, y, w, h) { return this.shape(wobblyPoly([{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }], { amp: this.amp(w, h), seed: this.seed + this.n, step: 14 })); }
   fillRoundedRect(x, y, w, h, r = 0) { return this.shape(wobblyPoly(roundedRectPoints(x, y, w, h, r), { amp: this.amp(w, h) * 0.7, seed: this.seed + this.n, step: 10 })); }
-  fillCircle(x, y, r) { return this.shape(blob(x, y, r, r, { n: Math.max(10, Math.round(8 + r / 2.5)), amp: 0.07, seed: this.seed + this.n })); }
-  fillEllipse(x, y, w, h) { return this.shape(blob(x, y, w / 2, h / 2, { n: Math.max(10, Math.round(8 + Math.max(w, h) / 5)), amp: 0.06, seed: this.seed + this.n })); }
+  fillCircle(x, y, r) { return this.shape(blob(x, y, r, r, { n: Math.max(18, Math.round(14 + r / 2)), amp: 0.07, seed: this.seed + this.n })); }
+  fillEllipse(x, y, w, h) { return this.shape(blob(x, y, w / 2, h / 2, { n: Math.max(18, Math.round(14 + Math.max(w, h) / 4)), amp: 0.06, seed: this.seed + this.n })); }
   fillTriangle(x1, y1, x2, y2, x3, y3) { return this.shape(wobblyPoly([{ x: x1, y: y1 }, { x: x2, y: y2 }, { x: x3, y: y3 }], { amp: 1, seed: this.seed + this.n, step: 14 })); }
   fillPoints(pts, close = true) { return this.shape(wobblyPoly(pts, { amp: 1, seed: this.seed + this.n, step: 14 })); }
 
