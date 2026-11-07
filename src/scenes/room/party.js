@@ -17,6 +17,7 @@ export const partyMethods = {
     c.px = c.x;
     this.characters.push(c);
     this.bodies.push(c);
+    if (this.hard) this.initPerson(c);
     c.onStep = () => this.sfx.step();
     this.scheduleBlink(c);
     return c;

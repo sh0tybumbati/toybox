@@ -9,6 +9,7 @@ import { spriteImage } from '../../systems/itemTextures.js';
 export const economyMethods = {
   // Pay out for something the player did (rules + cooldowns in data/economy.js).
   earn(rule, x, y) {
+    if (this.hard) return;                                  // no coin rewards in hard mode: money comes from work
     const n = earnAmount(rule, this.lastEarned[rule], this.time.now);
     if (!n) return;
     this.lastEarned[rule] = this.time.now;

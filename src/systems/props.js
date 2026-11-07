@@ -14,6 +14,7 @@ export function poolFor(scene, def) {
 // Pointer pressed on a prop.
 export function tapProp(scene, prop) {
   if (scene.editMode) return;                           // in furniture mode, props are for moving
+  if (scene.hard && prop.def.hardActions) { scene.openActionMenu(prop); return; }     // hard mode: choose what to do with it
   scene.lastActive = scene.time.now;
   prop.boing(prop.def.behaviour === 'bell' ? 0.7 : prop.def.behaviour === 'switch' ? 0.3 : 0.55);          // everything gives a little when you poke it
   switch (prop.def.behaviour) {
@@ -35,7 +36,7 @@ export function tapProp(scene, prop) {
       break;
     case 'switch':
       scene.sfx.click();
-      scene.setNight(!scene.night);
+      if (scene.hard) floatText(scene, prop.x, prop.y - 80, 'The lights follow the clock', 22); else scene.setNight(!scene.night);
       break;
     case 'mail':
       floatText(scene, prop.x, prop.y - 90, prop.def.fee ? 'Drop groceries in to have them delivered!' : 'Drop something in to post it!', 24);

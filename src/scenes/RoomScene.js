@@ -12,6 +12,7 @@ import Item from '../entities/Item.js';
 import { Sfx } from '../systems/sfx.js';
 import { stepBody, isMoving, inBin } from '../systems/physics.js';
 import { containerMethods } from './room/containers.js';
+import { hardMethods } from './room/hard.js';
 import { ALL_TIP_IDS } from '../data/tips.js';
 import { COIN_TO_CASH, toCoins } from '../systems/mode.js';
 import { storeFor } from '../systems/save.js';
@@ -83,7 +84,8 @@ export default class RoomScene extends Phaser.Scene {
     this.beams = [];                 // window sunbeams (hidden at night)
     this.props = [];                 // interactive furniture of the current zone
     this.skyObjs = [];               // the window's night sky
-    this.night = Boolean(this.initialSave && this.initialSave.night);
+    if (this.hard) this.initHardClock();
+    else this.night = Boolean(this.initialSave && this.initialSave.night);
     this._coins = this.initialSave && !this.hard ? this.initialSave.coins : 0;
     this.unlocked = new Set(this.initialSave ? this.initialSave.unlocked : []);
     this.tipsSeen = new Set(this.hard ? ALL_TIP_IDS : this.initialSave ? this.initialSave.tips : []);    // guided-start tips already done (the kid tips don't apply to hard mode)
@@ -117,6 +119,7 @@ export default class RoomScene extends Phaser.Scene {
     this.setupCamera();
     this.arrive('keep');
     this.createHud(Boolean(saved));
+    if (this.hard) this.createHardHud();
     if (this.hard && this.hard.fresh) this.time.delayedCall(900, () => { this.hard.fresh = false; this.dirty = true; this.openCreator(); });      // a new adult game starts by making your person
 
     // Autosave: periodically if anything changed, and when the tab goes away.
@@ -132,6 +135,7 @@ export default class RoomScene extends Phaser.Scene {
 
   update(time, delta) {
     const dt = Math.min(delta / 1000, 1 / 30);
+    if (this.hard) this.tickHard(dt);
     this.tickWalking(dt);
     this.tickCamera(dt);
     this.tickPets(dt, time);
@@ -176,7 +180,7 @@ export default class RoomScene extends Phaser.Scene {
 
       // Face: whatever the situation calls for (systems/expression.js).
       const now = this.time.now;
-      const sleepy = now - this.lastActive > SLEEP_MS || (this.night && now - this.nightSince > NIGHT_SLEEP_MS);
+      const sleepy = !this.hard && (now - this.lastActive > SLEEP_MS || (this.night && now - this.nightSince > NIGHT_SLEEP_MS));      // (hard mode: they sleep when they are tired, not when idle)
       c.setExpression(pickExpression({
         now, sleepy,
         grabbed: c.held && c.dragMoved,
@@ -236,4 +240,4 @@ export default class RoomScene extends Phaser.Scene {
   }
 }
 
-Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods, playMethods, containerMethods);
+Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods, playMethods, containerMethods, hardMethods);

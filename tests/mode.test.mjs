@@ -72,3 +72,22 @@ test('a damaged hard block is repaired', () => {
   const h = sanitize({ ...newHardSave({}), hard: { cash: -5, debt: 'lots', record: 1, setup: { scenario: 'nowhere' } } }).hard;
   assert.equal(h.cash, 0); assert.equal(h.debt, 0); assert.equal(h.record, true); assert.equal(h.setup.scenario, 'bench'); assert.equal(h.fresh, false);
 });
+
+test('the clock, needs and free-will switch are saved and repaired', () => {
+  const base = newHardSave({});
+  const good = sanitize({ ...base, hard: { ...base.hard, clock: { day: 3, minute: 600 }, needs: { adult1: { hunger: 12, energy: 150, hygiene: 'x', mood: 40 }, ghost: null }, autonomy: false } }).hard;
+  assert.deepEqual(good.clock, { day: 3, minute: 600 });
+  assert.equal(good.needs.adult1.hunger, 12); assert.equal(good.needs.adult1.energy, 100); assert.equal(good.needs.adult1.hygiene, 80);
+  assert.equal(good.autonomy, false);
+  const fresh = sanitize(base).hard;
+  assert.equal(fresh.clock.minute, 480); assert.equal(fresh.autonomy, true); assert.deepEqual(fresh.needs, {});
+});
+
+test('hard-mode scenarios put the right furniture in: a shower at home, a fountain in the park', () => {
+  for (const id of ['bench', 'flat', 'house', 'jail']) {
+    const save = newHardSave({ scenario: id });
+    const types = save.city.filter(Boolean).flatMap(b => b.floors.flatMap(f => f.rooms.flatMap(r => (r.extra || []).map(p => p.type))));
+    assert.ok(types.includes('fountain'), `${id}: a fountain to wash at`);
+    if (id === 'flat' || id === 'house') assert.ok(types.includes('shower'), `${id}: a shower`);
+  }
+});

@@ -104,6 +104,7 @@ export const worldMethods = {
   // Remember the current zone's furniture and floor items, then tear its art down.
   leaveZone() {
     if (!this.zoneLive) return;                 // already torn down (the city map does that while it's open)
+    if (this.hard) this.clearActions();         // orders refer to this room's furniture
     this.dismountAll(true);                     // riders get off, so they are saved standing on the ground
     Object.assign(this.propState, this.captureProps());     // (needs zoneLive: capture before clearing it)
     this.zoneLive = false;
@@ -214,7 +215,7 @@ export const worldMethods = {
     }
     this.syncSwitches();
     this.drawSky();
-    if (zone.sections.some(s => s.type === 'park')) {                          // coins appear now and then
+    if (!this.hard && zone.sections.some(s => s.type === 'park')) {            // coins appear now and then (not in hard mode)
       this.spawnCoin();
       this.parkEvent = this.time.addEvent({ delay: 4000, loop: true, callback: () => this.spawnCoin() });
     }

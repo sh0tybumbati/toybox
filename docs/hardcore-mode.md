@@ -171,7 +171,7 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 
 0. **Hard-mode shell (BUILT, 2026-11-08):** the flag, hidden unlock + PIN + setup (failure mode, content toggles, scenario), `hard` save block, adult-only creator,
    separate saves, coins <-> cash at 1:100.
-1. **Clock + needs:** 1 min = 1 hour clock driving day/night, pause + 3 speeds, hunger/energy/hygiene/mood, free-will autonomy and an action queue.
+1. **Clock + needs (BUILT, 2026-11-08):** 1 min = 1 hour clock driving day/night, pause + 3 speeds, hunger/energy/hygiene/mood, free-will autonomy and an action queue.
 2. **Survival home-less core:** the *Park bench* scenario: weather/seasons, places to sleep, being moved on, scavenging/begging, shelter, day labour.
 3. **Food, shops and bills:** finite shop stock and prices, pantry/fridge stock and spoilage, rent/bills in the mailbox, the phone.
 4. **Wear + maintenance** (paint, floors, furniture, clothes, cars) and the *Cheap flat* + *Inherited house* scenarios.
@@ -191,6 +191,14 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 - Money: hard mode shows cash; the old coin prices are paid in cash at 1 coin = 100 cash (a stand-in until slice 3). The Bank swaps kid-save coins <-> cash.
 - Settings in hard mode has "Back to kid mode" behind the PIN; wiping an adult game returns to the kid world.
 - Code: `systems/mode.js`, `data/hard/{scenarios,start}.js`, `scenes/hard/*`, `tests/mode.test.mjs`, `tests/e2e/hard.e2e.mjs`.
+
+### Slice 1 as built
+- Clock (`systems/hard/clock.js`): 1 real second = 1 game minute at speed 1 (1 real minute = 1 hour); pause + x1/x3/x6; night is 20:00-06:00 and drives the day/night overlay; the light switch is disabled ("the lights follow the clock").
+- Needs (`systems/hard/needs.js`, tuning in `data/hard/needs.js`): hunger -5/h, energy -4/h, hygiene -2.8/h, mood -2/h awake ("tight like the Sims": starving in ~20 h, exhausted in ~25 h); each need below 25 costs mood. Sleeping in a bed +14 energy/h; on the floor (collapse at 0 energy) +6/h with hygiene and mood loss.
+- Actions: eat (fridge/pantry; filling by food, `NUTRITION`), sleep (bed), wash (shower; fountain in parks), sit/relax (any seat). Each person has a queue (max 5) and a current action; tapping a piece of furniture opens its action menu; the queue bar of icons sits under the clock (tap an icon to cancel it).
+- Free will (`wantsToDo`): an idle person (no queue/goal) waits 10 game minutes, then does the most urgent thing they can (needs below 40/30/30/35). Switch in `hard.autonomy`.
+- No coin rewards, no park coins and no mini-game coins in hard mode (money comes from work, later).
+- Saved: `hard.clock`, `hard.needs` per person, `hard.autonomy`. Code: `scenes/room/hard.js`, tests `hardclock.test.mjs` and `hard.e2e.mjs`.
 
 ## 7. Still open
 Asked in conversation as we go: faction/territory mechanics on the map, weapons list and skill trees, the legal-career ladder vs crime balance,

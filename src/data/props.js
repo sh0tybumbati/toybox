@@ -23,6 +23,7 @@
 export const PROP_TYPES = {
   fridge: {
     name: 'Fridge', cat: 'home', mount: 'floor',
+    hardActions: ['eat'],
     surface: { top: -120 },
     behaviour: 'dispenser', w: 92, h: 240, sfx: 'creak',
     pool: ['egg', 'cheese', 'milk', 'apple', 'berry', 'carrot', 'icecream'],
@@ -116,6 +117,7 @@ export const PROP_TYPES = {
   },
   bed: {
     name: 'Bed', cat: 'home', mount: 'floor',
+    hardActions: ['sleep'],
     surface: { top: -4, people: false },
     behaviour: 'bed', w: 260, h: 100,
     draw(g) {
@@ -253,6 +255,7 @@ export const PROP_TYPES = {
   },
   sofa: {
     name: 'Sofa', cat: 'ikea', mount: 'floor', behaviour: 'play', w: 200, h: 100, blurb: 'Sit and chat',
+    hardActions: ['sit'],
     surface: { top: -10, people: false },
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: -50, y: 0 }, { x: 50, y: 0 }] }] },
     draw(g) {
@@ -296,6 +299,7 @@ export const PROP_TYPES = {
   },
   chair: {
     name: 'Chair', cat: 'home', mount: 'floor', behaviour: 'play', w: 84, h: 112, blurb: 'Take a seat',
+    hardActions: ['sit'],
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: 0, y: 0 }] }] },
     draw(g) {
       g.fillStyle(0x8a5e3b, 1).fillRect(-34, 12, 8, 44).fillRect(26, 12, 8, 44);                          // legs
@@ -306,6 +310,7 @@ export const PROP_TYPES = {
   },
   stool: {
     name: 'Stool', cat: 'home', mount: 'floor', behaviour: 'play', w: 64, h: 76, blurb: 'A little seat',
+    hardActions: ['sit'],
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: 0, y: 0 }] }] },
     draw(g) {
       g.fillStyle(0x8a5e3b, 1).fillRect(-24, 8, 7, 30).fillRect(17, 8, 7, 30).fillRect(-3, 8, 6, 30);
@@ -314,6 +319,7 @@ export const PROP_TYPES = {
   },
   armchair: {
     name: 'Armchair', cat: 'home', mount: 'floor', behaviour: 'play', w: 116, h: 112, blurb: 'Sink right in',
+    hardActions: ['sit'],
     surface: { top: -2, people: false },
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: 0, y: 0 }] }] },
     draw(g) {
@@ -330,6 +336,25 @@ export const PROP_TYPES = {
       g.fillStyle(0x8a5e3b, 1).fillRect(-86, 4, 10, 44).fillRect(76, 4, 10, 44);                          // legs
       g.fillStyle(0xb5835a, 1).fillRoundedRect(-84, 22, 168, 8, 3);                                       // a low rail
       g.fillStyle(0xd9aa72, 1).fillRoundedRect(-100, -8, 200, 16, 5);                                     // the top
+    },
+  },
+  shower: {
+    name: 'Shower', cat: 'home', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['wash'], w: 96, h: 220, blurb: 'Get clean',
+    draw(g) {
+      g.fillStyle(0xcfe8ee, 1).fillRoundedRect(-44, -106, 88, 212, 8);                       // the cubicle
+      g.fillStyle(0xe9f6f8, 1).fillRoundedRect(-36, -98, 72, 196, 6);
+      g.fillStyle(0xaab4c0, 1).fillRect(-4, -98, 8, 30).fillRoundedRect(-18, -72, 36, 10, 5);   // the pipe and the shower head
+      g.fillStyle(0x8cc4f4, 1).fillRect(-14, -58, 3, 22).fillRect(-1, -58, 3, 28).fillRect(12, -58, 3, 22);   // drops
+      g.fillStyle(0x6b7482, 1).fillRoundedRect(-44, 96, 88, 10, 4);                          // the tray
+    },
+  },
+  fountain: {
+    name: 'Water Fountain', cat: 'play', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['wash'], w: 70, h: 110, blurb: 'A quick wash',
+    draw(g) {
+      g.fillStyle(0x9aa4b0, 1).fillRoundedRect(-22, -4, 44, 58, 6);                          // the stone post
+      g.fillStyle(0xb7c0cc, 1).fillEllipse(0, -6, 66, 22);                                   // the basin
+      g.fillStyle(0x8cc4f4, 1).fillEllipse(0, -8, 48, 12);
+      g.fillStyle(0x8cc4f4, 1).fillRect(-3, -42, 6, 34).fillTriangle(-9, -42, 9, -42, 0, -56);   // the spout
     },
   },
   mailbox: {
@@ -408,6 +433,7 @@ export const PROP_TYPES = {
   },
   pantry: {
     name: 'Pantry Crate', cat: 'home', mount: 'floor',
+    hardActions: ['eat'],
     surface: { top: -4 },
     behaviour: 'dispenser', w: 112, h: 78, sfx: 'creak',
     pool: ['flour', 'tomato', 'potato', 'corn', 'meat', 'rice', 'fish', 'chocolate', 'egg', 'milk', 'broccoli', 'pepper', 'lemon', 'melon'],
@@ -512,6 +538,7 @@ export const PROP_TYPES = {
   // --- Playground gear ------------------------------------------------------------------------------------------
   bench: {
     name: 'Park Bench', cat: 'play', mount: 'floor', behaviour: 'play', w: 170, h: 86, blurb: 'Sit and chat',
+    hardActions: ['sit'],
     surface: { top: -4, people: false },
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: -40, y: 0 }, { x: 40, y: 0 }] }] },
     draw(g) {

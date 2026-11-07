@@ -121,7 +121,7 @@ function tryCombo(scene, item) {
   return true;
 }
 
-function eat(scene, item, c) {
+export function eat(scene, item, c) {
   scene.tipEvent('eat');
   const mouthY = c.mouthY();
   const name = CATALOG[item.key].reaction || 'yum', react = REACTIONS[name];
@@ -131,6 +131,7 @@ function eat(scene, item, c) {
   scene.sfx.crunch();
   puff(scene, c.x, mouthY, 0xc98f5a, 6);
   scene.earn('eat', c.x, c.headTopY() - 50);
+  if (scene.hard) scene.hardFed(c, item.key);                  // hard mode: it fills you up
   c.eatingUntil = scene.time.now + 700;
   c.reaction = name;
   c.reactUntil = c.eatingUntil + 1600;

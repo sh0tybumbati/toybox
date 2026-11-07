@@ -40,7 +40,7 @@ export default class CatalogScene extends Phaser.Scene {
     this.cards = [];
     TABS.forEach(([c], i) => this.tabs[i].setAlpha(c === cat ? 1 : 0.55));
     const keep = o => { this.cards.push(o); return o; };
-    Object.entries(PROP_TYPES).filter(([, d]) => d.cat === cat).slice(0, COLS * 3).forEach(([type, def], i) => {
+    Object.entries(PROP_TYPES).filter(([, d]) => d.cat === cat && (!d.hardOnly || this.room.hard)).slice(0, COLS * 3).forEach(([type, def], i) => {
       const col = i % COLS, row = Math.floor(i / COLS);
       const cx = 50 + CARD_W / 2 + col * (CARD_W + 8), cy = 148 + CARD_H / 2 + row * (CARD_H + 8);
       keep(inkPanel(this, cx, cy, CARD_W, CARD_H, { fill: CARD, radius: 14, shadow: false, weight: 3, seed: i + 40 }));

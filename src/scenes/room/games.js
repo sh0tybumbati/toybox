@@ -32,7 +32,7 @@ export const gameMethods = {
       this.updateNav();
       floatText(this, at.x, at.y - at.def.h / 2 - 20, `-${result.spend} 🪙`, 28);
     }
-    if (result.coins) {
+    if (result.coins && !this.hard) {
       this.coins += result.coins;
       this.updateNav();
       this.sfx.coin();

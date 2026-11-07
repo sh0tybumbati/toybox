@@ -60,6 +60,42 @@ try {
     await wait(300);
   });
 
+  await step('the clock and needs: time passes at three speeds, needs decay, nobody hungry stays hungry, you can queue orders', async () => {
+    const t0 = await g.room('return { day: r.clock.day, minute: r.clock.minute, hunger: r.characters[0].needs.hunger, speed: r.speed };');
+    assert.equal(t0.speed, 1);
+    await g.room('r.setSpeed(0);');
+    const frozen = await g.room('return r.clock.minute;');
+    await wait(1200);
+    assert.equal(await g.room('return r.clock.minute;'), frozen, 'paused');
+    await g.room('r.setSpeed(3);');
+    await wait(2000);
+    const fast = await g.room('return { m: r.clock.day * 1440 + r.clock.minute, h: r.characters[0].needs.hunger };');
+    assert.ok(fast.m - (t0.day * 1440 + t0.minute) > 8, `time moved (${fast.m - (t0.day * 1440 + t0.minute)} game minutes in 2s at speed 3)`);
+    assert.ok(fast.h < t0.hunger, 'and hunger fell');
+    // a hungry person with a fridge nearby looks after themselves
+    await g.room("r.characters.forEach(c => { c.needs.hunger = 8; c.needs.energy = 90; c.needs.hygiene = 90; c.needs.mood = 90; });");
+    const fed = await (async () => { for (let i = 0; i < 60; i++) { if (await g.room('return r.characters[0].needs.hunger > 30;')) return true; await wait(500); } return false; })();
+    assert.ok(fed, 'free will: the hungry person went and ate');
+    // orders: queue a sit on the chair and see it in the queue
+    await g.room("r.hard.autonomy = false; r.setSpeed(1); const c = r.characters[0]; r.cancelCurrent(c); c.queue = []; c.needs.mood = 90; const chair = r.props.find(p => p.type === 'chair' || p.type === 'armchair' || p.type === 'sofa' || p.type === 'bench'); window.__seat = chair ? chair.type : null; if (chair) r.queueAction(c, 'sit', chair);");
+    if (await g.room('return Boolean(window.__seat);')) {
+      assert.equal(await g.room('return r.characters[0].queue.length + (r.characters[0].current ? 1 : 0);'), 1, 'the order is queued');
+    }
+    await g.room('r.setSpeed(3);');
+    await wait(3000);
+    await g.room('r.setSpeed(1); r.hard.autonomy = true;');
+  });
+
+  await step('night follows the clock and the kid tips are off', async () => {
+    await g.room('r.clock.minute = 21 * 60;');
+    await wait(1200);
+    assert.equal(await g.room('return r.night;'), true, 'night at 21:00');
+    await g.room('r.clock.minute = 9 * 60;');
+    await wait(1200);
+    assert.equal(await g.room('return r.night;'), false, 'day at 09:00');
+    assert.equal(await g.room('return r.tipShown ? 1 : 0;'), 0);
+  });
+
   await step('the bank swaps kid-mode coins and cash at 1 coin = 100 cash, both ways', async () => {
     await g.room('r.openBank();');
     await wait(900);

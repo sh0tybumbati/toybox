@@ -30,6 +30,8 @@ import { PETS, MAX_PETS } from '../data/pets.js';
 import { PATTERNS } from '../data/patterns.js';
 import { SCENARIO_IDS } from '../data/hard/scenarios.js';
 import { cleanSetup } from './mode.js';
+import { cleanClock } from './hard/clock.js';
+import { cleanNeeds } from './hard/needs.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
 import { cleanParcels } from './mail.js';
 import { furnType } from './ikea.js';
@@ -107,6 +109,9 @@ export function sanitizeHard(raw) {
     debt: ok(raw.debt) ? clamp(Math.floor(raw.debt), 0, 1e9) : 0,
     record: Boolean(raw.record),                              // a criminal record
     fresh: Boolean(raw.fresh),                                // just started: the creator opens once
+    clock: cleanClock(raw.clock),
+    needs: Object.fromEntries(Object.entries(raw.needs && typeof raw.needs === 'object' ? raw.needs : {}).slice(0, MAX_PARTY).map(([id, n]) => [String(id).slice(0, 20), cleanNeeds(n)])),
+    autonomy: raw.autonomy !== false,                         // people act on their own needs when idle
   };
 }
 
