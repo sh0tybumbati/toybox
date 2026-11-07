@@ -8,8 +8,7 @@ export const PREMIUM = {
   elephant: 10, crystal: 12, helmet: 10, heels: 10,
 };
 
-// How coins are earned. `cooldown` (ms) stops a shelf of endless food from
-// becoming a coin fountain.
+// How coins are earned. `cooldown` (ms) stops the same thing being repeated for a coin fountain.
 export const COIN_RULES = {
   eat:    { n: 1, cooldown: 3000 },
   cook:   { n: 2, cooldown: 4000 },
@@ -17,6 +16,7 @@ export const COIN_RULES = {
   combo:  { n: 3, cooldown: 0 },
   hug:    { n: 1, cooldown: 6000 },
   mail:   { n: 1, cooldown: 3000 },     // posting something at a mailbox
+  play:   { n: 1, cooldown: 5000 },     // a trip down the slide
   pickup: { n: 1, cooldown: 0 },     // coins lying around in the park
 };
 

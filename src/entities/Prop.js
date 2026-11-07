@@ -24,6 +24,16 @@ export default class Prop extends Phaser.GameObjects.Container {
     this.lastX = null; this.lastY = null;
     this.g = scene.add.graphics();
     this.add(this.g);
+    this.riders = [];            // friends on this playground piece (systems/play.js)
+    this.rock = 0;               // how much its moving parts are rocking (0..1)
+    // Moving parts of playground gear (a swing seat, the seesaw plank): their own Graphics, rotated about the pivot every frame.
+    this.parts = ((def.ride && def.ride.parts) || []).map((part, i) => {
+      if (!part.draw) return null;
+      const pg = scene.add.graphics().setPosition(part.pivot.x, part.pivot.y);
+      part.draw(penFor(pg, `${type}${i}`));
+      this.add(pg);
+      return pg;
+    });
     this.setSize(def.w, def.h);
     this.setInteractive({ useHandCursor: true, draggable: true });
     scene.add.existing(this);
@@ -44,6 +54,8 @@ export default class Prop extends Phaser.GameObjects.Container {
     const j = jellyScale(this.jig), sx = j.x * this.vst.x, sy = j.y * this.vst.y;
     this.g.setScale(sx, sy);
     this.g.y = (this.def.h / 2) * (1 - sy);
+    const parts = (this.def.ride && this.def.ride.parts) || [];
+    this.parts.forEach((pg, i) => { if (pg) pg.setScale(sx, sy).setPosition(parts[i].pivot.x * sx, parts[i].pivot.y * sy + this.g.y); });
   }
 
   redraw() { this.g.clear(); this.def.draw(penFor(this.g, this.type), this.state); }

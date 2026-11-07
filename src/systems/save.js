@@ -1,19 +1,19 @@
 // Versioned saves. Pure helpers (migrate/sanitize) are separate from the
 // IndexedDB store so they can be unit-tested without a browser.
 //
-// Schema v11 (the world is a city of buildings; a zone is one floor of one, see systems/world.js):
-//   { v: 11, shirts: [{ color, pattern }], toys: [toy design (data/toys.js)], zone: "slot.floor", city: [buildingKey | null], looks: { sectionId: { wall, floor, windows } },
+// Schema v12 (the world is a city of buildings; a zone is one floor of one, see systems/world.js):
+//   { v: 12, shirts: [{ color, pattern }], toys: [toy design (data/toys.js)], zone: "slot.floor", city: [buildingKey | null], looks: { sectionId: { wall, floor, windows } },
 //     pets: [petKind], tips: [seenTipId], furniture: { sectionId: [{ type, x, y, items: [{ s: slot, k: itemKey }] }] | null },
 //     night: bool, coins: int, unlocked: [premiumKey], recipes: [recipeId], floors: { sectionId: [{ k, x, l }] },
 //     characters: [{ id, name, look, x, lane, scale, worn: { slot: itemKey } }] }
 // Furniture and floor items are stored per room (section) in that room's own 0..960 coordinates;
 // characters use zone (world) x.
 //
-// v10 had no shirt/toy designs; v9 had a flat list of rooms (kitchen, bedroom, park, shop) instead of a city; v8 had no pets; v7 had no tips (migrated players have seen them all); v6 had no furniture (null = the room's default layout); v5 had no recipes; v4 had no coins/unlocked; v3 had no `night`; v2 had no name/look; v1 had a single `char` + top-level `worn`. migrate()
+// v11 still had endless wall shelves in homes and parks (now stocked furniture); v10 had no shirt/toy designs; v9 had a flat list of rooms (kitchen, bedroom, park, shop) instead of a city; v8 had no pets; v7 had no tips (migrated players have seen them all); v6 had no furniture (null = the room's default layout); v5 had no recipes; v4 had no coins/unlocked; v3 had no `night`; v2 had no name/look; v1 had a single `char` + top-level `worn`. migrate()
 // upgrades them step by step.
 import { SAVE_VERSION, FLOOR_TOP, FLOOR_BOTTOM } from '../config.js';
 import { CATALOG, SLOTS_FOR } from '../data/items.js';
-import { ROOMS } from '../data/rooms.js';
+import { ROOMS, defaultFurniture } from '../data/rooms.js';
 import { WALLPAPERS, FLOORS } from '../data/decor.js';
 import { ROOM_W, MAX_FLOORS, MAX_ROOMS, SLOTS, starterCity } from '../data/buildings.js';
 import { EXTERIOR_WALLS, TRIMS, ROOF_STYLES, ROOF_COLORS, defaultExterior } from '../data/exterior.js';
@@ -60,7 +60,22 @@ export function migrate(d) {
   if (d.v === 9) d = migrateRoomsToCity(d);
   if (!d) return null;
   if (d.v === 10) d = { ...d, v: 11, shirts: [], toys: [] };
+  if (d.v === 11) d = migrateStock(d);
   return d.v === SAVE_VERSION ? d : null;
+}
+
+// v11 -> v12: homes and parks traded their endless wall shelves for stocked furniture and playground gear. Rooms the
+// player had already arranged get the new pieces added (they can move or remove them); untouched rooms use the new defaults.
+export const STOCKED_TYPES = ['shelf', 'sandbox', 'picnictable', 'tree', 'bench', 'swing', 'slide', 'seesaw', 'springhorse'];
+function migrateStock(d) {
+  const furniture = { ...(d.furniture && typeof d.furniture === 'object' ? d.furniture : {}) };
+  for (const sec of allSections(sanitizeCity(d.city))) {
+    const list = furniture[sec.id];
+    if (!Array.isArray(list)) continue;
+    const have = new Set(list.map(f => f && f.type));
+    furniture[sec.id] = [...list, ...defaultFurniture(sec.type, sec.w).filter(p => STOCKED_TYPES.includes(p.type) && !have.has(p.type))];
+  }
+  return { ...d, v: 12, furniture };
 }
 
 // v9 -> v10: the four old rooms become rooms of the starter city's buildings.

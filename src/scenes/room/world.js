@@ -104,6 +104,7 @@ export const worldMethods = {
   // Remember the current zone's furniture and floor items, then tear its art down.
   leaveZone() {
     if (!this.zoneLive) return;                 // already torn down (the city map does that while it's open)
+    this.dismountAll(true);                     // riders get off, so they are saved standing on the ground
     Object.assign(this.propState, this.captureProps());     // (needs zoneLive: capture before clearing it)
     this.zoneLive = false;
     this.stashZone();

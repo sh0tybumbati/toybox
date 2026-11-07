@@ -92,7 +92,7 @@ test('stretching a room spreads its furniture out and keeps shelves on their wal
   const narrow = defaultFurniture('kitchen', 720), wide = defaultFurniture('kitchen', 1920);
   const fridge = t => t.find(p => p.type === 'fridge').x, oven = t => t.find(p => p.type === 'oven').x;
   assert.ok(oven(wide) - fridge(wide) > oven(narrow) - fridge(narrow));
-  const sh = shelvesFor('kitchen', 1920);
+  const sh = shelvesFor('shop', 1920);
   assert.equal(Math.min(...sh.map(s => s.x)), 15, 'left shelves stay left');
   assert.equal(Math.max(...sh.map(s => s.x)), 645 + 960, 'right shelves move with the right wall');
   assert.equal(ROOM_W.def, 960);

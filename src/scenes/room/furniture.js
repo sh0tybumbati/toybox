@@ -39,6 +39,7 @@ export const furnitureMethods = {
   enterEdit() {
     if (this.switching || this.heldItem || this.characters.some(c => c.held)) return;
     this.editMode = true;
+    this.dismountAll(true);                                 // gear is for moving now, not riding
     this.tipEvent('furniture');
     for (const b of this.bodies) if (b.input) b.input.enabled = false;     // only furniture can be grabbed
     for (const p of this.pets) p.input.enabled = false;
@@ -91,6 +92,7 @@ export const furnitureMethods = {
 
   removeFurniture(prop) {
     if (prop.sleeper) this.wakeUp(prop.sleeper, true);
+    this.dismountProp(prop, true);
     releaseAll(this, prop);                                  // anything stored tumbles out
     if (prop.def.behaviour === 'oven') flushOven(this, prop);
     this.props = this.props.filter(p => p !== prop);

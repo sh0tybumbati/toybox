@@ -14,8 +14,9 @@ async function step(name, fn) {
 
 const g = await launch();
 console.log('e2e smoke (mouse):');
-const pos = (key) => g.room(`const i = r.bodies.find(b => b.key === '${key}' && b.onShelf); return i && [Math.round(i.x), Math.round(i.y)];`);
+const pos = (key) => g.room(`const i = r.bodies.find(b => b.key === '${key}' && (b.onShelf || b.storedIn)); return i && [Math.round(i.x), Math.round(i.y)];`);   // off a shelf or out of a stocked piece
 const state = () => g.room('return { room: r.zoneKey, coins: r.coins, recipes: [...r.discovered], night: r.night, chars: r.characters.length, props: r.props.map(p => p.type), floor: r.bodies.filter(b => b.key && !b.onShelf && !b.worn && !b.storedIn && !b.dead).map(b => b.key) };');
+const until = async (js, ms = 9000) => { for (let t = 0; t < ms; t += 250) { if (await g.room(js)) return true; await wait(250); } return false; };   // poll the game for something that takes a walk
 const mouth = () => g.room('const c = r.characters[0]; return [Math.round(c.x), Math.round(c.mouthY())];');
 
 try {
@@ -23,10 +24,11 @@ try {
   await g.clearSave();
   await g.open();
 
-  await step('boots with a character, shelves and a clean console', async () => {
-    const s = await g.room('return { chars: r.characters.length, shelf: r.bodies.filter(b => b.onShelf).length, room: r.zoneKey };');
+  await step('boots with a character, a stocked home and a clean console', async () => {
+    const s = await g.room('return { chars: r.characters.length, shelf: r.bodies.filter(b => b.onShelf).length, stocked: r.bodies.filter(b => b.storedIn).length, room: r.zoneKey };');
     assert.equal(s.chars, 1);
-    assert.ok(s.shelf >= 12, `shelf items: ${s.shelf}`);
+    assert.equal(s.shelf, 0, 'a home has no endless shelves');
+    assert.ok(s.stocked >= 6, `stocked items: ${s.stocked}`);
     assert.equal(s.room, '0.1', 'upstairs at home');
     assert.deepEqual(g.errors, []);
   });
@@ -178,6 +180,41 @@ try {
     await g.room("r.removeCharacter(r.characters[1]);");
   });
 
+  await step('limited supply: taking from the picnic table does not restock it, and friends ride the playground gear', async () => {
+    await g.room("r.goToZone('1.0'); r.coins = 0; r.lastEarned = {};");
+    await wait(1500);
+    const s = await g.room("return { shelf: r.bodies.filter(b => b.onShelf).length, stored: r.props.filter(p => p.def.behaviour === 'storage').flatMap(p => p.stored.filter(Boolean).map(i => i.key)) };");
+    assert.equal(s.shelf, 0, 'the park has no endless shelves');
+    assert.ok(s.stored.includes('apple') && s.stored.includes('ball'), `picnic food and sandbox toys: ${s.stored}`);
+    const apple = await g.room("const i = r.props.find(p => p.type === 'picnictable').stored.find(i => i && i.key === 'apple'), sx = r.cameras.main.scrollX; return [Math.round(i.x - sx), Math.round(i.y)];");
+    await g.drag(apple[0], apple[1], 300, 545, 700);
+    await wait(900);
+    const after = await g.room("return { table: r.props.find(p => p.type === 'picnictable').stored.filter(Boolean).map(i => i.key), loose: r.bodies.filter(b => b.key === 'apple' && !b.storedIn && !b.dead).length };");
+    assert.deepEqual(after.table, ['banana', 'cookie', 'milk'], 'the apple left the table and nothing took its place');
+    assert.equal(after.loose, 1);
+    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/park.png');
+    // sit on the bench, get off; whizz down the slide
+    await g.room("r.detached = true; r.tapPlay(r.props.find(p => p.type === 'bench'));");
+    assert.ok(await until('return Boolean(r.characters[0].riding);'), 'the friend sat on the bench');
+    await wait(500);
+    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/bench.png');
+    await g.room('r.dismount(r.characters[0]);');
+    assert.ok(!(await g.room('return Boolean(r.characters[0].riding);')));
+    await g.room("r.selected = r.characters[0]; r.tapPlay(r.props.find(p => p.type === 'swing'));");
+    assert.ok(await until('return Boolean(r.characters[0].riding);', 12000), 'and on the swing');
+    await g.room('r.detached = true; r.cameras.main.scrollX = 960;');
+    await wait(1800);
+    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/swing.png');
+    await g.room("r.dismount(r.characters[0]); r.tapPlay(r.props.find(p => p.type === 'slide'));");
+    assert.ok(await until('return r.characters[0].riding && r.characters[0].riding.u > 0.55;', 12000), 'up the ladder and onto the chute');
+    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/slide.png');
+    assert.ok(await until('return !r.characters[0].riding;'), 'back on the ground after the slide');
+    assert.ok(await g.room('return r.coins >= 1;'), 'a trip down the slide earns a coin');
+    await g.room("for (const b of r.bodies.filter(b => b.key === 'apple' && !b.dead)) r.discard(b, { alpha: 0 });");   // tidy the loose apple away for the next step
+    await g.room("r.goToZone('0.1');");
+    await wait(1500);
+  });
+
   await step('pets: the basket hands out pets that wander, can be petted and fed, and are saved', async () => {
     await g.room("r.goToZone('1.0');");
     await wait(1500);
@@ -215,9 +252,9 @@ try {
     assert.equal(await g.room('return r.worldW;'), 1920, 'two bedrooms side by side');
     await g.room("r.detached = true; r.cameras.main.scrollX = 960; r.createItem('ball', 1260, 520);");
     await wait(700);
-    const at = await g.room("const i = r.bodies.find(b => b.key === 'ball' && !b.onShelf && !b.worn && b.x > 1000); return [Math.round(i.x - r.cameras.main.scrollX), Math.round(i.y)];");
+    const at = await g.room("const i = r.bodies.find(b => b.key === 'ball' && !b.onShelf && !b.worn && !b.storedIn && b.x > 1000); return [Math.round(i.x - r.cameras.main.scrollX), Math.round(i.y)];");
     await g.drag(at[0], at[1], at[0] + 200, at[1], 900);
-    const x = await g.room("const i = r.bodies.find(b => b.key === 'ball' && !b.onShelf && !b.worn && b.x > 1000); return Math.round(i.x);");
+    const x = await g.room("const i = r.bodies.find(b => b.key === 'ball' && !b.onShelf && !b.worn && !b.storedIn && b.x > 1000); return Math.round(i.x);");
     assert.ok(Math.abs(x - 1460) < 120, `the ball followed the pointer in world space (x=${x})`);
     await g.room('r.panDir = 1;');
     await wait(500);

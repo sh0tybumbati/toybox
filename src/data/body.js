@@ -51,11 +51,11 @@ export function limbCurve(a, b, bow, side = 1, n = 10) {
 }
 
 // Where the hands and feet want to be, given the pose. pose = { phase, amt (0..1 how much walking),
-// lift (0..1 arms raised), reach (-1..1 arms stretched toward someone), vx (px/s), t (seconds) }.
+// lift (0..1 arms raised), sit (0..1 legs folded up and dangling), reach (-1..1 arms stretched toward someone), vx (px/s), t (seconds) }.
 // Returns { handL, handR, footL, footR }; the character springs its real limbs toward these so
 // they lag and overshoot like rubber.
 export function limbTargets(L, pose) {
-  const { phase = 0, amt = 0, lift = 0, reach = 0, vx = 0, t = 0 } = pose;
+  const { phase = 0, amt = 0, lift = 0, reach = 0, vx = 0, t = 0, sit = 0 } = pose;
   const s = Math.sin(phase), c = Math.cos(phase);
   const trail = clamp(-vx * 0.035, -22, 22);                                    // arms trail behind when moving
   const hand = side => {
@@ -66,10 +66,14 @@ export function limbTargets(L, pose) {
   };
   const foot = side => {
     const dir = side;                                                          // the feet are in antiphase
-    return {
+    const stand = {
       x: side * L.footRest.x + dir * s * L.stride * amt,
       y: L.footRest.y - Math.max(0, dir * c) * 11 * amt,
     };
+    if (!sit) return stand;
+    // Sitting: the legs fold up and dangle, kicking a little.
+    const down = { x: side * (L.footRest.x + 10) + Math.sin(t * 3.1 + side) * 3 * sit, y: L.hip.y + (L.footRest.y - L.hip.y) * 0.6 + Math.sin(t * 3.1 + side * 2) * 4 * sit };
+    return { x: stand.x + (down.x - stand.x) * sit, y: stand.y + (down.y - stand.y) * sit };
   };
   return { handL: hand(-1), handR: hand(1), footL: foot(-1), footR: foot(1) };
 }

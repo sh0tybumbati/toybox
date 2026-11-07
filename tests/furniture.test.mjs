@@ -4,13 +4,15 @@ import { clampPlacement, nearestFreeSlot, accepts, MAX_FURNITURE, SLOT_SCALE } f
 import { PROP_TYPES } from '../src/data/props.js';
 import { ROOMS, defaultFurniture } from '../src/data/rooms.js';
 import { W } from '../src/config.js';
+import { CATALOG } from '../src/data/items.js';
 
-const behaviours = new Set(['dispenser', 'oven', 'switch', 'bell', 'storage', 'bed', 'pets', 'connector', 'station', 'mail']);
+const behaviours = new Set(['dispenser', 'oven', 'switch', 'bell', 'storage', 'bed', 'pets', 'connector', 'station', 'mail', 'play', 'none']);
 
 test('every furniture type is catalogue-ready', () => {
   for (const [id, def] of Object.entries(PROP_TYPES)) {
     assert.ok(def.name, `${id} name`);
     assert.ok(['floor', 'wall'].includes(def.mount), `${id} mount`);
+    assert.ok(['home', 'storage', 'play', 'town'].includes(def.cat), `${id} catalogue tab`);
     assert.ok(behaviours.has(def.behaviour), `${id} behaviour`);
     assert.ok(def.w > 0 && def.h > 0 && typeof def.draw === 'function', id);
   }
@@ -66,7 +68,8 @@ test('default furniture is valid and fits the placement rules', () => {
       assert.ok(def, `${room}: ${f.type}`);
       const c = clampPlacement(def, f.x, f.y);
       assert.ok(Math.abs(c.x - f.x) <= 10 && Math.abs(c.y - f.y) <= 10, `${room}: ${f.type} sits where the rules allow`);
-      assert.deepEqual(f.items, []);
+      assert.ok(f.items.length <= (def.slots || []).length, `${room}: ${f.type} starts with no more than it can hold`);
+      assert.ok(f.items.every(it => CATALOG[it.k]), `${room}: ${f.type} stock is real`);
     }
   }
 });

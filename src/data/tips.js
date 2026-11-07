@@ -3,7 +3,7 @@
 // (optional) limits where it is shown. Any event completes its tip even out of
 // order, so nobody is taught what they already know.
 export const TIPS = [
-  { id: 'grab',      done: 'grab',      text: '👆 Drag something off a shelf!' },
+  { id: 'grab',      done: 'grab',      text: '👆 Drag something off a shelf or table!' },
   { id: 'dress',     done: 'dress',     text: '🧢 Drop it on your friend — hats on the head, toys in their hands!' },
   { id: 'walk',      done: 'walk',      text: '👣 Tap the floor and your friend walks over. Tap a friend to pick who walks!' },
   { id: 'map',       done: 'map',       text: '🗺️ Open the Map to visit other places.' },

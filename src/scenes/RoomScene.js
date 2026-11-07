@@ -28,6 +28,7 @@ import { walkingMethods } from './room/walking.js';
 import { socialMethods } from './room/social.js';
 import { petMethods } from './room/pets.js';
 import { decorateMethods } from './room/decorate.js';
+import { playMethods } from './room/play.js';
 import { gameMethods } from './room/games.js';
 import { mailMethods } from './room/mail.js';
 import { cameraMethods } from './room/camera.js';
@@ -140,7 +141,7 @@ export default class RoomScene extends Phaser.Scene {
         const z = b.held ? Math.max(0, b.lane - (b.y + b.foot())) : b.z;
         const k = 1 / (1 + z / 220);
         const grow = b instanceof Character ? b.scaleX : 1;
-        b.shadow.setVisible(!b.worn && !b.onShelf && !b.dead && !b.storedIn && !b.sleeping);
+        b.shadow.setVisible(!b.worn && !b.onShelf && !b.dead && !b.storedIn && !b.sleeping && !b.riding);
         b.shadow.setPosition(b.x, b.lane - 1).setScale(k * grow).setAlpha(0.28 * k);
       }
     }
@@ -177,6 +178,7 @@ export default class RoomScene extends Phaser.Scene {
     }
 
     this.tickSleepers(time);
+    this.tickPlay(dt, time);
     this.drawZoneHint();
     tickProps(this, this.time.now);
     for (const p of this.props) p.tickSquash(dt);
@@ -209,4 +211,4 @@ export default class RoomScene extends Phaser.Scene {
   }
 }
 
-Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods);
+Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods, playMethods);

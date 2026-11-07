@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { migrate, sanitize } from '../src/systems/save.js';
+import { starterCity } from '../src/data/buildings.js';
 
 const v1 = {
   v: 1, room: 'kitchen',
@@ -9,9 +10,9 @@ const v1 = {
   floors: { kitchen: [{ k: 'apple', x: 421, l: 552 }], bedroom: [{ k: 'car', x: 301, l: 552 }] },
 };
 
-test('v1 saves migrate to a one-character v11 save with a look', () => {
+test('v1 saves migrate to a one-character v12 save with a look', () => {
   const d = migrate(v1);
-  assert.equal(d.v, 11);
+  assert.equal(d.v, 12);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.deepEqual(d.furniture, {});                // nothing saved yet: rooms use their default layout
@@ -48,7 +49,7 @@ test('sanitize rejects junk and clamps numbers', () => {
   assert.deepEqual(d.floors['0.0'], []);
 });
 
-test('a v11 save round-trips through sanitize', () => {
+test('a v12 save round-trips through sanitize', () => {
   const d = sanitize(v1);
   assert.deepEqual(sanitize(JSON.parse(JSON.stringify(d))), d);
 });
@@ -66,7 +67,7 @@ test('party is capped at 4, junk looks are repaired, an empty party gets the def
 
 test('v3 saves gain night=false; night survives sanitize', () => {
   const d = sanitize({ v: 3, room: 'bedroom', characters: [], floors: {} });
-  assert.equal(d.v, 11);
+  assert.equal(d.v, 12);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.equal(d.furniture['0.0'], null);          // nothing saved yet: the room uses its default layout
@@ -107,13 +108,14 @@ test('furniture saves: valid pieces kept and clamped, junk dropped, rooms withou
         { type: 'fridge', x: 'a', y: 500 },                             // bad coordinates
         { type: 'fridge', x: 300, y: 500, items: [{ s: 0, k: 'apple' }] }, // no slots: items ignored
       ],
-      bedroom: [],                                                      // an empty room is valid (everything removed)
+      bedroom: [],                                                      // an empty room is valid (everything removed), though v12 hands back the stocked shelves
     },
   });
   assert.equal(d.furniture['1.0'], null);
-  assert.deepEqual(d.furniture['0.2'], []);
-  assert.equal(d.furniture['0.0'].length, 2);
-  const [cabinet, fridge] = d.furniture['0.0'];
+  assert.deepEqual(d.furniture['0.2'].map(f => f.type), ['shelf', 'shelf']);
+  const kept = d.furniture['0.0'].filter(f => f.type !== 'shelf');          // (the v12 shelves are added after the player's own pieces)
+  assert.equal(kept.length, 2);
+  const [cabinet, fridge] = kept;
   assert.ok(cabinet.x < 960 && cabinet.y <= 540);
   assert.deepEqual(cabinet.items, [{ s: 0, k: 'apple' }]);              // dup slot, bad slot and unknown item dropped
   assert.deepEqual(fridge.items, []);
@@ -182,4 +184,18 @@ test('toys on the floor survive loading because the toy is registered first', ()
   const d = sanitize({ v: 11, zone: '0.1', characters: [], floors: { '0.2': [{ k: 'toy:zz1', x: 100, l: 500 }, { k: 'toy:ghost', x: 100, l: 500 }] },
     toys: [{ id: 'zz1', name: 'Zed', body: 'egg', color: 5, partColor: 6, parts: [], face: 'wow' }] });
   assert.deepEqual(d.floors['0.2'].map(f => f.k), ['toy:zz1']);
+});
+
+test('v11 -> v12: arranged homes and parks gain the stocked shelves and playground gear; untouched rooms stay on the defaults', () => {
+  const d = sanitize({ v: 11, zone: '0.0', characters: [], floors: {}, city: starterCity(),
+    furniture: { '0.0': [{ type: 'fridge', x: 300, y: 434, items: [] }], '1.0': [{ type: 'lamppost', x: 400, y: 434, items: [] }, { type: 'bench', x: 700, y: 480, items: [] }] } });
+  const kitchen = d.furniture['0.0'].map(f => f.type);
+  assert.deepEqual(kitchen.filter(t => t === 'shelf'), ['shelf', 'shelf'], 'the kitchen gets its two wall shelves');
+  assert.ok(kitchen.includes('fridge'), 'and keeps what it had');
+  const shelf = d.furniture['0.0'].find(f => f.type === 'shelf');
+  assert.ok(shelf.items.length >= 3, 'the new shelf comes stocked');
+  const park = d.furniture['1.0'].map(f => f.type);
+  assert.ok(['tree', 'picnictable', 'sandbox'].every(t => park.includes(t)), 'the park gets its table, sandbox and tree');
+  assert.equal(park.filter(t => t === 'bench').length, 1, 'but not a second bench');
+  assert.equal(d.furniture['0.1'], null, 'rooms the player never arranged use the new defaults');
 });

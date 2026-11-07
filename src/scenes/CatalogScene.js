@@ -1,8 +1,9 @@
 // The furniture catalogue: an overlay over the paused room. Tap a piece to add it.
 import { W, H } from '../config.js';
-import { CARD, hitZone, iconButton, inkPanel, leftText } from '../ui.js';
+import { CARD, hitZone, iconButton, inkButton, inkPanel, leftText } from '../ui.js';
 import { penFor } from '../data/inkpen.js';
 import { PROP_TYPES } from '../data/props.js';
+import { ROOMS } from '../data/rooms.js';
 
 const ink = '#4a3426';
 const text = (size, extra = {}) => ({ fontSize: `${size}px`, color: ink, ...extra });
@@ -10,6 +11,7 @@ const BLURB = {
   storage: 'Holds your things', dispenser: 'Hands out surprises', oven: 'Cooks recipes',
   switch: 'Day / night', bell: 'Ding!', connector: 'Go to another floor', station: 'A game to play', mail: 'Post things away', bed: 'Sleepy time', pets: 'Pets live here',
 };
+export const TABS = [['home', '🏠 Home'], ['storage', '🧺 Storage'], ['play', '🛝 Park & play'], ['town', '🏙️ Town']];
 const COLS = 6, CARD_W = 138, CARD_H = 124;
 
 export default class CatalogScene extends Phaser.Scene {
@@ -26,16 +28,28 @@ export default class CatalogScene extends Phaser.Scene {
     iconButton(this, W - 70, 62, '✖', () => this.close(null), 0);
     this.input.keyboard.on('keydown-ESC', () => this.close(null));
 
-    Object.entries(PROP_TYPES).forEach(([type, def], i) => {
+    this.cards = [];
+    this.tabs = TABS.map(([cat, label], i) => inkButton(this, 150 + i * 200, 106, label, { w: 184, h: 38, size: 19, depth: 1, seed: 20 + i, onTap: () => this.showTab(cat) }));
+    const outdoor = ROOMS[this.room.currentRoomType()]?.outdoor;
+    this.showTab(outdoor ? 'play' : 'home');
+  }
+
+  // One tab of the catalogue: three rows of pieces.
+  showTab(cat) {
+    this.cards.forEach(o => o.destroy());
+    this.cards = [];
+    TABS.forEach(([c], i) => this.tabs[i].setAlpha(c === cat ? 1 : 0.55));
+    const keep = o => { this.cards.push(o); return o; };
+    Object.entries(PROP_TYPES).filter(([, d]) => d.cat === cat).slice(0, COLS * 3).forEach(([type, def], i) => {
       const col = i % COLS, row = Math.floor(i / COLS);
-      const cx = 50 + CARD_W / 2 + col * (CARD_W + 8), cy = 104 + CARD_H / 2 + row * (CARD_H + 8);
-      inkPanel(this, cx, cy, CARD_W, CARD_H, { fill: CARD, radius: 14, shadow: false, weight: 3, seed: i + 40 });
-      hitZone(this, cx, cy, CARD_W, CARD_H, () => this.close(type));
-      const art = this.add.graphics().setPosition(cx, cy - 16);
+      const cx = 50 + CARD_W / 2 + col * (CARD_W + 8), cy = 148 + CARD_H / 2 + row * (CARD_H + 8);
+      keep(inkPanel(this, cx, cy, CARD_W, CARD_H, { fill: CARD, radius: 14, shadow: false, weight: 3, seed: i + 40 }));
+      keep(hitZone(this, cx, cy, CARD_W, CARD_H, () => this.close(type)));
+      const art = keep(this.add.graphics().setPosition(cx, cy - 16));
       def.draw(penFor(art, type), def.behaviour === 'switch');                      // the piece itself, as a preview
       art.setScale(Math.min(1, 74 / def.w, 66 / def.h));
-      this.add.text(cx, cy + 34, def.name, text(16, { fontStyle: 'bold' })).setOrigin(0.5);
-      this.add.text(cx, cy + 51, BLURB[def.behaviour] || '', text(13)).setOrigin(0.5);
+      keep(this.add.text(cx, cy + 34, def.name, text(16, { fontStyle: 'bold' })).setOrigin(0.5));
+      keep(this.add.text(cx, cy + 51, def.blurb || BLURB[def.behaviour] || '', text(13)).setOrigin(0.5));
     });
   }
 

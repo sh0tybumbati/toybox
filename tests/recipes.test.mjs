@@ -44,6 +44,7 @@ test('combos work in either order and reject unknown pairs', () => {
 // Everything you can get your hands on without cooking: shelves and prop pools.
 const basics = () => new Set([
   ...Object.values(ROOMS).flatMap(r => r.shelves.flatMap(s => s.items)),
+  ...Object.values(ROOMS).flatMap(r => r.props.flatMap(p => p.stock || [])),
   ...Object.values(PROP_TYPES).flatMap(p => p.pool || []),
 ]);
 

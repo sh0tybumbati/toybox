@@ -1,7 +1,10 @@
 // Room types. A room is one screen (960px) wide; buildings (data/buildings.js) line rooms up
-// side by side to make a floor. Shelf items are an endless supply — grabbing one leaves a
-// fresh copy behind. `y` is the top surface of the board. All coordinates here are local to
-// the room (0..960); the world places the room at its offset.
+// side by side to make a floor. Homes and parks have no endless supply: what they hold is
+// furniture (a wall shelf, a picnic table…) that starts with a few `stock` items, which you can
+// carry off, put back, or move around in furniture mode. Only the shops and the function rooms
+// keep `shelves`: a shelf item is an endless supply — grabbing one leaves a fresh copy behind.
+// `y` is the top surface of the board. All coordinates here are local to the room (0..960); the
+// world places the room at its offset.
 //   Indoor rooms are `style` ({ wall, floor } ids from data/decor.js) + `windows` + optional
 //   fixed `decor(g)` art, so players can repaint them. Outdoor rooms (`outdoor: true`) paint
 //   themselves with `draw(g)`. To add a room type: add an entry here.
@@ -13,14 +16,11 @@ export const ROOMS = {
     label: '🍳 Kitchen',
     buildable: true,
     style: { wall: 'mintTiles', floor: 'checker' },
-    shelves: [
-      { x: 15,  y: 295, items: ['apple', 'banana', 'cookie', 'pizza'] },
-      { x: 15,  y: 385, items: ['donut', 'melon', 'carrot', 'cupcake'] },
-      { x: 645, y: 295, items: ['burger', 'taco', 'icecream', 'grapes'] },
-      { x: 645, y: 385, items: ['lemon', 'pepper', 'berry', 'broccoli'] },
-    ],
-    // Props stand on `y` (their bottom edge); `x` is their centre.
+    shelves: [],
+    // Props stand on `y` (their bottom edge); `x` is their centre. `stock` fills a storage piece's slots.
     props: [
+      { type: 'shelf', x: 165, y: 309, stock: ['apple', 'banana', 'cookie', 'pizza'] },
+      { type: 'shelf', x: 795, y: 309, stock: ['burger', 'taco', 'donut'] },
       { type: 'fridge', x: 372, y: 434 },
       { type: 'oven', x: 590, y: 434 },
       { type: 'pantry', x: 200, y: 520 },
@@ -40,13 +40,10 @@ export const ROOMS = {
     label: '🛏️ Bedroom',
     buildable: true,
     style: { wall: 'cream', floor: 'honey' },
-    shelves: [
-      { x: 15,  y: 295, items: ['teddy', 'ball', 'car', 'balloon'] },
-      { x: 15,  y: 385, items: ['duck', 'guitar', 'rocket', 'puzzle'] },
-      { x: 645, y: 295, items: ['cap', 'tophat', 'crown', 'bow'] },
-      { x: 645, y: 385, items: ['shades', 'specs', 'sneakers', 'boots'] },
-    ],
+    shelves: [],
     props: [
+      { type: 'shelf', x: 165, y: 309, stock: ['teddy', 'ball', 'car'] },
+      { type: 'shelf', x: 795, y: 309, stock: ['cap', 'crown', 'shades'] },
       { type: 'wardrobe', x: 372, y: 434 },
       { type: 'chest', x: 590, y: 434 },
       { type: 'bed', x: 480, y: 540 },
@@ -85,13 +82,10 @@ export const ROOMS = {
     label: '🛋️ Living room',
     buildable: true,
     style: { wall: 'sage', floor: 'warm' },
-    shelves: [
-      { x: 15,  y: 295, items: ['teddy', 'puzzle', 'guitar', 'robot'] },
-      { x: 15,  y: 385, items: ['cookie', 'popcorn', 'cocoa', 'donut'] },
-      { x: 645, y: 295, items: ['gradcap', 'sunhat', 'goggles', 'bow'] },
-      { x: 645, y: 385, items: ['ball', 'car', 'duck', 'kite'] },
-    ],
+    shelves: [],
     props: [
+      { type: 'shelf', x: 165, y: 309, stock: ['puzzle', 'guitar', 'popcorn'] },
+      { type: 'shelf', x: 795, y: 309, stock: ['ball', 'duck', 'kite'] },
       { type: 'bookcase', x: 372, y: 434 },
       { type: 'lightswitch', x: 890, y: 168 },
     ],
@@ -109,34 +103,29 @@ export const ROOMS = {
   park: {
     label: '🌳 Park',
     outdoor: true,
-    shelfStyle: 'stand',                               // market stands instead of wall shelves
     openSky: true,                                      // stars + moon at night, no window
-    shelves: [
-      { x: 15,  y: 295, items: ['ball', 'kite', 'balloon', 'duck'] },
-      { x: 15,  y: 385, items: ['apple', 'banana', 'cookie', 'milk'] },
-      { x: 645, y: 295, items: ['car', 'teddy', 'rocket', 'puzzle'] },
-      { x: 645, y: 385, items: ['berry', 'grapes', 'cheese', 'cupcake'] },
-    ],
+    shelves: [],
     props: [
-      { type: 'basket', x: 372, y: 434 },
-      { type: 'lamppost', x: 590, y: 434 },
-      { type: 'petbasket', x: 160, y: 540 },
+      { type: 'tree', x: 90, y: 480 },
+      { type: 'bench', x: 260, y: 484 },
+      { type: 'lamppost', x: 430, y: 434 },
+      { type: 'picnictable', x: 620, y: 490, stock: ['apple', 'banana', 'cookie', 'milk'] },
+      { type: 'sandbox', x: 840, y: 490, stock: ['ball', 'duck'] },
+      { type: 'petbasket', x: 380, y: 540 },
     ],
     draw(g) { paintOutdoor(g, 'park'); },
   },
   playground: {
     label: '🛝 Playground',
     outdoor: true,
-    shelfStyle: 'stand',
     openSky: true,
-    shelves: [
-      { x: 15,  y: 295, items: ['ball', 'kite', 'balloon', 'rocket'] },
-      { x: 15,  y: 385, items: ['icecream', 'cupcake', 'lemon', 'melon'] },
-      { x: 645, y: 295, items: ['car', 'duck', 'teddy', 'robot'] },
-      { x: 645, y: 385, items: ['cap', 'shades', 'sneakers', 'sunhat'] },
-    ],
+    shelves: [],
     props: [
-      { type: 'lamppost', x: 480, y: 434 },
+      { type: 'swing', x: 140, y: 490 },
+      { type: 'slide', x: 390, y: 490 },
+      { type: 'lamppost', x: 560, y: 434 },
+      { type: 'seesaw', x: 710, y: 500 },
+      { type: 'springhorse', x: 890, y: 500 },
     ],
     draw(g) { paintOutdoor(g, 'playground'); },
   },
@@ -267,10 +256,10 @@ export const ROOMS = {
 // Positions in the room types are for a 960px room; a stretched room spreads them out in proportion.
 export const scaleX = (x, w) => Math.round(x * w / W / 10) * 10;
 
-// A room's furniture as it starts out: its type's pieces plus `extra` (stairs, elevator…). The player
-// moves/adds/removes it; saves hold the result.
+// A room's furniture as it starts out: its type's pieces (with their starting `stock`) plus `extra`
+// (stairs, elevator…). The player moves/adds/removes it; saves hold the result.
 export const defaultFurniture = (type, w = W, extra = []) =>
-  [...(ROOMS[type].props || []), ...extra].map(p => ({ type: p.type, x: scaleX(p.x, w), y: p.y, items: [] }));
+  [...(ROOMS[type].props || []), ...extra].map(p => ({ type: p.type, x: scaleX(p.x, w), y: p.y, items: (p.stock || []).map((k, s) => ({ s, k })) }));
 
 // Shelves hug the left or right wall of a stretched room (the right-hand ones move with the right wall).
 export const shelvesFor = (type, w = W) => (ROOMS[type].shelves || []).map(sh => ({ ...sh, x: sh.x < W / 2 ? sh.x : sh.x + (w - W) }));

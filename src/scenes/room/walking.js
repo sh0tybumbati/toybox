@@ -25,6 +25,7 @@ export const walkingMethods = {
 
   walkTo(c, x, lane) {
     if (c.sleeping) this.wakeUp(c);
+    if (c.riding) this.dismount(c);
     c.goal = { x, lane };
     c.z = 0;                                                // hovering where they were dropped? they hop down first
     c.onArrive = null;
@@ -50,7 +51,7 @@ export const walkingMethods = {
   // Every frame: advance walks, animate steps, keep the selection marker on its head.
   tickWalking(dt) {
     for (const c of this.characters) {
-      if (c.held || c.sleeping || c.z > 0) { c.walking = false; if (c.held) c.goal = null; continue; }
+      if (c.held || c.sleeping || c.riding || c.z > 0) { c.walking = false; if (c.held) c.goal = null; continue; }
       c.y = c.lane - c.foot();                // feet follow the floor lane (walking, hugging and waking tweens move it)
       if (c.hugging) { c.walking = false; continue; }
       const r = stepWalk(c, dt);

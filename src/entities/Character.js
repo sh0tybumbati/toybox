@@ -58,6 +58,9 @@ export default class Character extends Phaser.GameObjects.Container {
     this.walkPhase = 0; this.walkAmt = 0;     // step cycle position / how much of the walk pose is showing
     this.onStep = null;          // called when a foot lands
     this.sleeping = null;        // the bed (Prop) we're tucked into
+    this.riding = null;          // the playground piece we're on (systems/play.js)
+    this.sitting = false;        // legs folded up (on a bench or swing)
+    this.sit = 0;                // how much, eased
     this.hugging = false; this.hugSide = 0; this.hugUntil = 0;
     this.lift = 0;               // how far the arms are raised (0..1), eased
     this.lastT = 0;
@@ -184,7 +187,9 @@ export default class Character extends Phaser.GameObjects.Container {
     const surprised = this.expr === 'surprised' || this.expr === 'hungry';
     const liftTo = this.held && this.dragMoved ? 1 : this.hugging ? 0.8 : surprised ? 0.45 : 0;
     this.lift += (liftTo - this.lift) * Math.min(1, dt * 9);
-    const want = limbTargets(L, { phase: this.walkPhase, amt: this.walkAmt, lift: this.lift, reach: this.hugging ? this.hugSide : 0, vx: this.vxs, t });
+    this.sit += ((this.sitting ? 1 : 0) - this.sit) * Math.min(1, dt * 10);
+    if (this.sit < 0.01) this.sit = 0;
+    const want = limbTargets(L, { phase: this.walkPhase, amt: this.walkAmt, lift: this.lift, reach: this.hugging ? this.hugSide : 0, vx: this.vxs, t, sit: this.sit });
     for (const k of Object.keys(want)) springTip(this.tips[k], want[k], dt, k.startsWith('hand') ? 130 : 220, k.startsWith('hand') ? 9 : 16);
 
     this.paintLimbs();

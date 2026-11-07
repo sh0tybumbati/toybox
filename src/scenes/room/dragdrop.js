@@ -32,6 +32,7 @@ export const dragMethods = {
         this.select(obj);
         obj.goal = null; obj.onArrive = null;
         if (obj.sleeping) this.wakeUp(obj);
+        if (obj.riding) this.dismount(obj, true);
         obj.dragStart = { x: obj.x, y: obj.y, t: performance.now() };
         obj.dragMoved = false;                    // a press with no movement is a tap (see dragend)
         squashTo(this, obj, 0.94, 1.05, 100);
@@ -110,7 +111,7 @@ export const dragMethods = {
         if (!obj.dragMoved && performance.now() - obj.dragStart.t < 500) this.poke(obj);
         else {
           if (obj.z <= 0) land(this, obj, 220);
-          if (!this.tryBed(obj)) this.tryHug(obj);                // dropped on a bed: sleep; next to a friend: hug
+          if (!this.tryBed(obj) && !this.tryPlay(obj)) this.tryHug(obj);   // dropped on a bed: sleep; on playground gear: ride; next to a friend: hug
         }
         return;
       }
