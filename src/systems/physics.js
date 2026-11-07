@@ -4,6 +4,7 @@
 // the lane), plus vx, vz, ly velocities. The caller turns that into a screen y.
 import { W, FLOOR_TOP, FLOOR_BOTTOM, GRAVITY, BIN } from '../config.js';
 import { clamp } from '../util.js';
+import { restOn } from './support.js';
 
 const WALL_MARGIN = 30;
 
@@ -30,15 +31,18 @@ export function laneForFeet(lane, feetY) {
 
 // Advance one body by dt seconds. Returns the impact speed (px/s) if it just
 // hit the floor hard enough to bounce, otherwise 0.
-export function stepBody(b, dt, worldW = W) {
+// `surfaces` (systems/support.js) are things it can land on and rest on; none = just the floor.
+export function stepBody(b, dt, worldW = W, surfaces = []) {
   let impact = 0;
+  const rest = b.dropping || !surfaces.length ? { h: 0, owner: null } : restOn(b, surfaces);
+  const floorZ = rest.h;
 
-  if (b.z > 0 || b.vz !== 0) {
+  if (b.z > floorZ || b.vz !== 0) {
     b.vz -= GRAVITY * (b.gscale || 1) * dt;
     b.z += b.vz * dt;
-    if (b.z <= 0) {
+    if (b.z <= floorZ) {
       const hit = -b.vz;
-      b.z = 0;
+      b.z = floorZ;
       if (hit > 160) {
         impact = hit;
         b.vz = hit * (b.bounce || 0.38);       // bounce, losing energy
@@ -49,8 +53,12 @@ export function stepBody(b, dt, worldW = W) {
     }
   }
 
+  b.floorZ = floorZ;
+  b.base = b.z <= floorZ + 0.5 ? rest.owner : null;
+  if (b.z <= 0) b.dropping = false;
+
   if (b.throwable) {
-    const airborne = b.z > 0;
+    const airborne = b.z > floorZ + 0.5;
     b.x += b.vx * dt;
     b.vx *= Math.pow(airborne ? 0.6 : 0.04, dt);        // air drag vs floor friction
     if (b.x < WALL_MARGIN)     { b.x = WALL_MARGIN;     b.vx = Math.abs(b.vx) * 0.6; }
@@ -61,7 +69,7 @@ export function stepBody(b, dt, worldW = W) {
   return impact;
 }
 
-export const isMoving = b => b.z > 0 || Math.abs(b.vx) > 1;
+export const isMoving = b => b.z > (b.floorZ || 0) + 0.5 || Math.abs(b.vx) > 1;
 
 // `bins` = the x of every bin in the zone (each room has one).
 export const inBin = (b, bins = [BIN.x]) => b.lane >= BIN.minLane && bins.some(x => Math.abs(b.x - x) < BIN.halfW);

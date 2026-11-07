@@ -68,3 +68,51 @@ test('inBin and isMoving', () => {
   assert.ok(!inBin({ x: BIN.x - BIN.halfW - 1, lane: BIN.lane }));
   assert.ok(isMoving({ z: 5, vx: 0 }) && isMoving({ z: 0, vx: 50 }) && !isMoving({ z: 0, vx: 0 }));
 });
+
+import { propSurface, itemSurface, restOn, adopt } from '../src/systems/support.js';
+
+const table = { x: 400, y: 450, def: { w: 200, h: 100, mount: 'floor', surface: { top: -10 } } };       // base lane 500, top 60 above it
+const thing = (o = {}) => ({ x: 400, lane: 500, z: 0, vx: 0, vz: 0, ly: 0, throwable: true, ...o });
+
+test('a furniture top is a surface at the right height and place', () => {
+  const s = propSurface(table);
+  assert.equal(s.h, 60); assert.equal(s.lane, 500); assert.ok(s.x0 > 300 && s.x1 < 500);
+  assert.equal(propSurface({ ...table, def: { ...table.def, surface: undefined } }), null);
+  assert.equal(propSurface({ ...table, def: { ...table.def, mount: 'wall' } }), null);
+});
+
+test('something dropped over a table lands on it and stays; away from it, it falls to the floor', () => {
+  const s = [propSurface(table)], a = thing({ z: 200 }), b = thing({ x: 700, z: 200 });
+  for (let i = 0; i < 120; i++) { stepBody(a, 1 / 60, 960, s); stepBody(b, 1 / 60, 960, s); }
+  assert.equal(a.z, 60, 'rests on the tabletop'); assert.equal(a.base, table);
+  assert.equal(b.z, 0); assert.equal(b.base, null);
+  assert.ok(!isMoving(a), 'resting on a table is not moving');
+});
+
+test('walking into a table from the side does not lift you onto it; losing the table drops what was on it', () => {
+  const s = [propSurface(table)], low = thing({ z: 0 });
+  stepBody(low, 1 / 60, 960, s);
+  assert.equal(low.z, 0);
+  const on = thing({ z: 60 }); stepBody(on, 1 / 60, 960, s);
+  assert.equal(on.z, 60);
+  for (let i = 0; i < 120; i++) stepBody(on, 1 / 60, 960, []);          // the table is gone
+  assert.equal(on.z, 0);
+});
+
+test('items stack: one lands on another, and nothing rests on what rests on it', () => {
+  const bottom = { ...thing(), stackW: 40, stackH: 40, z: 0 }, top = { ...thing({ z: 150 }), stackW: 40, stackH: 40 };
+  for (let i = 0; i < 120; i++) stepBody(top, 1 / 60, 960, [itemSurface(bottom)]);
+  assert.equal(top.z, 40); assert.equal(top.base, bottom);
+  top.base = bottom; bottom.base = null;
+  assert.equal(restOn(bottom, [itemSurface(top)], 100).owner, null, 'the bottom one cannot land on the one above it');
+});
+
+test('letting go above a tabletop picks the tabletop; people ignore beds and sofas', () => {
+  const s = [propSurface(table)], b = thing({ lane: 540 });
+  assert.equal(adopt(b, 400, s).owner, table, 'feet above the top: lands on it');
+  assert.equal(adopt(b, 480, s), null, 'feet below the top edge: the floor in front');
+  assert.equal(adopt(b, 100, s), null, 'far above: not snapped');
+  const sofa = propSurface({ ...table, def: { ...table.def, surface: { top: -10, people: false } } });
+  assert.ok(adopt(b, 400, [sofa]));
+  assert.equal(adopt({ ...b, person: true }, 400, [sofa]), null);
+});

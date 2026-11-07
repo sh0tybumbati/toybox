@@ -152,7 +152,7 @@ export const worldMethods = {
     for (const b of this.bodies) {
       if (b instanceof Character || b.worn || b.onShelf || b.dead || b.storedIn || !b.key) continue;
       const { section, local } = sectionAt(this.zone, b.x);
-      out[section.id].push({ k: b.key, x: Math.round(local), l: Math.round(b.lane) });
+      out[section.id].push({ k: b.key, x: Math.round(local), l: Math.round(b.lane), ...(b.base ? { z: Math.round(b.z) } : {}) });
     }
     return out;
   },
@@ -207,7 +207,7 @@ export const worldMethods = {
         });
       }
 
-      for (const f of this.floorList(sec.id)) this.createItem(f.k, sec.offset + f.x, f.l);
+      for (const f of this.floorList(sec.id)) { const it = this.createItem(f.k, sec.offset + f.x, f.l); if (f.z) { it.z = f.z; it.y = it.lane - it.foot() - it.z; } }
       this.floorState[sec.id] = [];
 
       if (type.bin !== false) this.addBin(sec.offset + BIN.x);

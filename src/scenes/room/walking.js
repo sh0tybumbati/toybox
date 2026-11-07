@@ -51,6 +51,7 @@ export const walkingMethods = {
   // Every frame: advance walks, animate steps, keep the selection marker on its head.
   tickWalking(dt) {
     for (const c of this.characters) {
+      if (c.goal && c.z > 0 && !c.held && c.vz === 0 && c.floorZ > 0) c.dropping = true;       // told to walk from a tabletop: hop down first
       if (c.held || c.sleeping || c.riding || c.z > 0) { c.walking = false; if (c.held) c.goal = null; continue; }
       c.y = c.lane - c.foot();                // feet follow the floor lane (walking, hugging and waking tweens move it)
       if (c.hugging) { c.walking = false; continue; }

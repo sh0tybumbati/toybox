@@ -21,6 +21,8 @@ export default class Item extends Phaser.GameObjects.Container {
     this.key = key;
     this.kind = def.kind;
     this.footBase = footBase;
+    this.stackW = size * 0.55;         // the footprint and height other things stand on (systems/support.js)
+    this.stackH = size * 0.55;
     this.bounce = def.bounce || 0.38;
     this.gscale = def.gscale || 1;
     this.throwable = true;

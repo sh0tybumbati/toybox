@@ -11,6 +11,7 @@ import Character from '../entities/Character.js';
 import Item from '../entities/Item.js';
 import { Sfx } from '../systems/sfx.js';
 import { stepBody, isMoving, inBin } from '../systems/physics.js';
+import { itemSurface, propSurface } from '../systems/support.js';
 import { land, trash, floatText } from '../systems/interactions.js';
 import { tickProps } from '../systems/props.js';
 import { easeStretch, flightStretch } from '../systems/squash.js';
@@ -121,6 +122,7 @@ export default class RoomScene extends Phaser.Scene {
     this.tickCamera(dt);
     this.tickPets(dt, time);
 
+    this.frameSurfaces = this.surfaces();
     for (const b of this.bodies) {
       if (!b.held && !b.dead && !b.worn && !b.onShelf && !b.storedIn && !b.sleeping) this.stepBody(b, dt);
 
@@ -138,11 +140,11 @@ export default class RoomScene extends Phaser.Scene {
 
       // Shadow shrinks and fades with height above the floor.
       if (b.shadow) {
-        const z = b.held ? Math.max(0, b.lane - (b.y + b.foot())) : b.z;
+        const z = b.held ? Math.max(0, b.lane - (b.y + b.foot())) : b.z - (b.floorZ || 0);
         const k = 1 / (1 + z / 220);
         const grow = b instanceof Character ? b.scaleX : 1;
         b.shadow.setVisible(!b.worn && !b.onShelf && !b.dead && !b.storedIn && !b.sleeping && !b.riding);
-        b.shadow.setPosition(b.x, b.lane - 1).setScale(k * grow).setAlpha(0.28 * k);
+        b.shadow.setPosition(b.x, b.lane - (b.held ? 0 : b.floorZ || 0) - 1).setScale(k * grow).setAlpha(0.28 * k);
       }
     }
 
@@ -197,8 +199,16 @@ export default class RoomScene extends Phaser.Scene {
   }
 
   // Advance one body's physics and place it on screen.
+  // Everything bodies can stand on right now: furniture tops, and still items (so things pile up).
+  surfaces() {
+    const out = [];
+    for (const p of this.props) { const s = propSurface(p); if (s && p.active) out.push(s); }
+    for (const b of this.bodies) if (b.stackH && !b.held && !b.dead && !b.worn && !b.onShelf && !b.storedIn && !isMoving(b)) out.push(itemSurface(b));
+    return out;
+  }
+
   stepBody(b, dt) {
-    const impact = stepBody(b, dt, this.worldW);
+    const impact = stepBody(b, dt, this.worldW, this.frameSurfaces);
     if (impact) land(this, b, impact);
     if (b.throwable) {
       // Lean into the motion in flight, settle upright on the ground.
@@ -207,6 +217,7 @@ export default class RoomScene extends Phaser.Scene {
       if (b.z === 0 && !b.dead && inBin(b, this.binXs())) trash(this, b);
     }
     if (isMoving(b)) this.dirty = true;       // still moving: keep saving
+    if (b.base && b.base.depth !== undefined && b.depth <= b.base.depth) b.setDepth(b.base.depth + 0.01);      // a stacked thing draws in front of what it stands on
     b.y = b.lane - b.foot() - b.z;
   }
 }

@@ -7,6 +7,7 @@ import Prop from '../../entities/Prop.js';
 import { canAccept } from '../../systems/cooking.js';
 import { comboPartner, handleDrop, land, squashTo, trash } from '../../systems/interactions.js';
 import { inBin, laneForFeet, throwVelocity } from '../../systems/physics.js';
+import { adopt } from '../../systems/support.js';
 import { clampPlacement } from '../../systems/slots.js';
 import { slotWorld, storageFor, takeOut } from '../../systems/storage.js';
 import { clamp } from '../../util.js';
@@ -50,6 +51,7 @@ export const dragMethods = {
         obj.snapping = false;
       }
       if (obj.storedIn) takeOut(obj);           // taking something out of a cabinet
+      this.pickUpStack(obj);                    // anything piled on top of it comes along
       // Grabbing from a shelf leaves a fresh copy behind.
       if (obj.onShelf) {
         obj.onShelf = false;
@@ -82,6 +84,7 @@ export const dragMethods = {
       obj.x = clamp(dragX, mx, this.worldW - mx);
       obj.y = clamp(dragY, isChar ? 190 : 30, FLOOR_BOTTOM - obj.foot());
       obj.lane = laneForFeet(obj.lane, obj.y + obj.foot());
+      this.carryStack(obj);
 
       if (isChar && !obj.dragMoved && Math.hypot(obj.x - obj.dragStart.x, obj.y - obj.dragStart.y) > 6) {
         obj.dragMoved = true;
@@ -104,7 +107,9 @@ export const dragMethods = {
         return;
       }
       obj.held = false;
-      obj.z = Math.max(0, obj.lane - (obj.y + obj.foot()));
+      const feet = obj.y + obj.foot(), top = adopt(obj, feet, this.surfaces());
+      if (top) obj.lane = top.lane;                // let go above a table (or a pile): it lands on it
+      obj.z = Math.max(top ? top.h : 0, obj.lane - feet);
 
       if (obj instanceof Character) {
         obj.vz = 0;
@@ -119,6 +124,7 @@ export const dragMethods = {
       this.heldItem = null;
       this.tweens.add({ targets: obj, lift: 0, duration: 120 });
       Object.assign(obj, throwVelocity(obj.samples, performance.now()));
+      this.dropStack(obj);
       if (obj.z <= 0) obj.vz = Math.max(0, obj.vz);
 
       handleDrop(this, obj);                      // may override velocity / consume item
@@ -128,6 +134,34 @@ export const dragMethods = {
       if (!obj.dead && !obj.worn && obj.z <= 0 && obj.vz <= 0) land(this, obj, 220);
       this.trimFloor();
     });
+  },
+
+  // Lifting something that has things piled on it: they come along, keeping their places in the pile.
+  pickUpStack(obj) {
+    obj.pile = [];
+    if (!obj.stackH) return;
+    const on = b => { for (let o = b.base, n = 0; o && n < 12; o = o.base, n++) if (o === obj) return true; return false; };
+    for (const b of this.bodies) {
+      if (b === obj || !b.stackH || b.dead || b.worn || b.held || !on(b)) continue;
+      b.held = true; b.vx = 0; b.vz = 0; b.base = null;
+      b.setDepth(obj.depth + 0.01 * (obj.pile.length + 1));
+      obj.pile.push({ b, dx: b.x - obj.x, dy: b.y - obj.y });
+    }
+  },
+
+  carryStack(obj) {
+    for (const { b, dx, dy } of obj.pile || []) { b.x = obj.x + dx; b.y = obj.y + dy; b.lane = obj.lane; }
+  },
+
+  // Let go: the pile is released with the same throw as the item under it, and settles on it again.
+  dropStack(obj) {
+    for (const { b, dy } of obj.pile || []) {
+      b.held = false;
+      b.lane = obj.lane;
+      b.z = Math.max(0, obj.z + obj.foot() - dy - b.foot());           // the same height above the one it was piled on
+      b.vx = obj.vx; b.vz = obj.vz; b.ly = obj.ly;
+    }
+    obj.pile = [];
   },
 
   // Redraw the valid drop zones for the held item; brighter when hovering one.

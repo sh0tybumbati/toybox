@@ -23,6 +23,7 @@ export default class Character extends Phaser.GameObjects.Container {
     this.name = entry.name || 'Kid';
     this.layout = layoutFor(entry.look && entry.look.age);
     this.F = this.layout.foot;
+    this.person = true;          // physics: people can't stand on every surface (systems/support.js)
 
     this.rig = scene.add.container(0, this.F);
     // Rig children are positioned relative to the character origin, so the graphics shift by -F to

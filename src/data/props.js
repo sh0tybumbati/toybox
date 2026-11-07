@@ -23,6 +23,7 @@
 export const PROP_TYPES = {
   fridge: {
     name: 'Fridge', cat: 'home', mount: 'floor',
+    surface: { top: -120 },
     behaviour: 'dispenser', w: 92, h: 240, sfx: 'creak',
     pool: ['egg', 'cheese', 'milk', 'apple', 'berry', 'carrot', 'icecream'],
     draw(g, open) {
@@ -56,6 +57,7 @@ export const PROP_TYPES = {
   },
   wardrobe: {
     name: 'Surprise Wardrobe', cat: 'home', mount: 'floor',
+    surface: { top: -112 },
     behaviour: 'dispenser', w: 96, h: 224, sfx: 'creak',
     pool: ['gradcap', 'sunhat', 'goggles', 'dressshoes', 'cap', 'crown', 'shades', 'sneakers'],
     kinds: ['hat', 'glasses', 'shoes'],
@@ -82,6 +84,7 @@ export const PROP_TYPES = {
   },
   chest: {
     name: 'Surprise Toy Chest', cat: 'home', mount: 'floor',
+    surface: { top: -6 },
     behaviour: 'dispenser', w: 112, h: 76, sfx: 'creak',
     pool: ['teddy', 'ball', 'car', 'balloon', 'duck', 'guitar', 'rocket', 'puzzle', 'robot', 'kite'],
     kinds: ['toy'],
@@ -113,6 +116,7 @@ export const PROP_TYPES = {
   },
   bed: {
     name: 'Bed', cat: 'home', mount: 'floor',
+    surface: { top: -4, people: false },
     behaviour: 'bed', w: 260, h: 100,
     draw(g) {
       g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-130, -50, 22, 100, 6);                 // headboard
@@ -193,6 +197,7 @@ export const PROP_TYPES = {
   },
   sewing: {
     name: 'Sewing Machine', cat: 'town', mount: 'floor', behaviour: 'station', game: 'shirt', w: 140, h: 112,
+    surface: { top: 14 },
     draw(g, busy) {
       g.fillStyle(0xb98657, 1).fillRoundedRect(-62, 14, 124, 30, 6);                  // the table
       g.fillStyle(0x8a5e3b, 1).fillRect(-54, 42, 10, 14).fillRect(44, 42, 10, 14);
@@ -206,6 +211,7 @@ export const PROP_TYPES = {
   },
   claytable: {
     name: 'Clay Table', cat: 'town', mount: 'floor', behaviour: 'station', game: 'sculpt', w: 150, h: 104,
+    surface: { top: 12 },
     draw(g, busy) {
       g.fillStyle(0xb98657, 1).fillRoundedRect(-66, 12, 132, 30, 6);
       g.fillStyle(0x8a5e3b, 1).fillRect(-58, 40, 10, 18).fillRect(48, 40, 10, 18);
@@ -247,6 +253,7 @@ export const PROP_TYPES = {
   },
   sofa: {
     name: 'Sofa', cat: 'ikea', mount: 'floor', behaviour: 'play', w: 200, h: 100, blurb: 'Sit and chat',
+    surface: { top: -10, people: false },
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: -50, y: 0 }, { x: 50, y: 0 }] }] },
     draw(g) {
       g.fillStyle(0x4a7fd0, 1).fillRoundedRect(-100, -44, 200, 62, 12);               // the back
@@ -258,6 +265,7 @@ export const PROP_TYPES = {
   },
   dresser: {
     name: 'Dresser', cat: 'ikea', mount: 'floor', behaviour: 'storage', w: 150, h: 130, accepts: null,
+    surface: { top: -65 },
     slots: [{ x: -40, y: -34 }, { x: 0, y: -34 }, { x: 40, y: -34 }, { x: -40, y: 22 }, { x: 0, y: 22 }, { x: 40, y: 22 }],
     draw(g) {
       g.fillStyle(0xf3e0c2, 1).fillRoundedRect(-75, -65, 150, 130, 8);
@@ -269,6 +277,7 @@ export const PROP_TYPES = {
   },
   desk: {
     name: 'Desk', cat: 'ikea', mount: 'floor', behaviour: 'storage', w: 180, h: 110, accepts: null,
+    surface: { top: -14 },
     slots: [{ x: -56, y: -34 }, { x: -18, y: -34 }, { x: 20, y: -34 }, { x: 58, y: -34 }],
     draw(g) {
       g.fillStyle(0xd9aa72, 1).fillRoundedRect(-90, -14, 180, 14, 5);                  // the top
@@ -350,6 +359,7 @@ export const PROP_TYPES = {
   },
   register: {
     name: 'Shop Register', cat: 'town', mount: 'floor',
+    surface: { top: -6 },
     behaviour: 'bell', w: 100, h: 76,
     draw(g) {
       g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-50, -6, 100, 44, 6);                 // counter
@@ -360,6 +370,7 @@ export const PROP_TYPES = {
   },
   pantry: {
     name: 'Pantry Crate', cat: 'home', mount: 'floor',
+    surface: { top: -4 },
     behaviour: 'dispenser', w: 112, h: 78, sfx: 'creak',
     pool: ['flour', 'tomato', 'potato', 'corn', 'meat', 'rice', 'fish', 'chocolate', 'egg', 'milk', 'broccoli', 'pepper', 'lemon', 'melon'],
     draw(g, open) {
@@ -380,6 +391,7 @@ export const PROP_TYPES = {
   // --- Storage furniture: open-front, so whatever is inside stays in view ---------
   cabinet: {
     name: 'Cabinet', cat: 'storage', mount: 'floor', behaviour: 'storage', w: 136, h: 200, accepts: null,
+    surface: { top: -100 },
     slots: [{ x: -42, y: -62 }, { x: 0, y: -62 }, { x: 42, y: -62 }, { x: -42, y: -2 }, { x: 0, y: -2 }, { x: 42, y: -2 }, { x: -42, y: 58 }, { x: 0, y: 58 }, { x: 42, y: 58 }],
     draw(g) {
       g.fillStyle(0xc99466, 1).fillRoundedRect(-68, -100, 136, 200, 8);
@@ -392,6 +404,7 @@ export const PROP_TYPES = {
   },
   closet: {
     name: 'Closet', cat: 'storage', mount: 'floor', behaviour: 'storage', w: 132, h: 224, accepts: ['hat', 'glasses', 'shoes'],
+    surface: { top: -112 },
     slots: [{ x: -40, y: -70 }, { x: 0, y: -70 }, { x: 40, y: -70 }, { x: -40, y: -6 }, { x: 0, y: -6 }, { x: 40, y: -6 }, { x: -40, y: 58 }, { x: 0, y: 58 }, { x: 40, y: 58 }],
     draw(g) {
       g.fillStyle(0x8a6a4f, 1).fillRoundedRect(-66, -112, 132, 224, 8);
@@ -405,6 +418,7 @@ export const PROP_TYPES = {
   },
   bookcase: {
     name: 'Bookcase', cat: 'storage', mount: 'floor', behaviour: 'storage', w: 160, h: 190, accepts: null,
+    surface: { top: -95 },
     slots: [{ x: -54, y: -58 }, { x: -18, y: -58 }, { x: 18, y: -58 }, { x: 54, y: -58 }, { x: -54, y: 2 }, { x: -18, y: 2 }, { x: 18, y: 2 }, { x: 54, y: 2 }, { x: -54, y: 62 }, { x: -18, y: 62 }, { x: 18, y: 62 }, { x: 54, y: 62 }],
     draw(g) {
       g.fillStyle(0xa86f47, 1).fillRoundedRect(-80, -95, 160, 190, 6);
@@ -447,6 +461,7 @@ export const PROP_TYPES = {
   },
   picnictable: {
     name: 'Picnic Table', cat: 'storage', mount: 'floor', behaviour: 'storage', w: 220, h: 96, accepts: ['food'],
+    surface: { top: -8 },
     slots: [{ x: -66, y: -26 }, { x: -22, y: -26 }, { x: 22, y: -26 }, { x: 66, y: -26 }],
     draw(g) {
       g.fillStyle(0x8a5e3b, 1).fillTriangle(-80, -2, -50, -2, -90, 44).fillTriangle(80, -2, 50, -2, 90, 44);     // legs
@@ -459,6 +474,7 @@ export const PROP_TYPES = {
   // --- Playground gear ------------------------------------------------------------------------------------------
   bench: {
     name: 'Park Bench', cat: 'play', mount: 'floor', behaviour: 'play', w: 170, h: 86, blurb: 'Sit and chat',
+    surface: { top: -4, people: false },
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: -40, y: 0 }, { x: 40, y: 0 }] }] },
     draw(g) {
       g.fillStyle(0x8a5e3b, 1).fillRect(-72, 10, 10, 34).fillRect(62, 10, 10, 34);             // legs
