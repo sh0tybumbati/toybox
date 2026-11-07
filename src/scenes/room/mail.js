@@ -3,6 +3,7 @@
 import { H, W } from '../../config.js';
 import { addParcel, destinations, takeParcels } from '../../systems/mail.js';
 import { deliveryFee } from '../../systems/market.js';
+import { furnType } from '../../systems/ikea.js';
 import { floatText } from '../../systems/interactions.js';
 import { spawnFront } from '../../systems/spawn.js';
 import { COLORS, inkButton, inkPanel, pin, richText } from '../../ui.js';
@@ -21,7 +22,7 @@ export const mailMethods = {
     this.closeMailPicker();
     const fee = box.def.fee, dests = destinations(this.city).filter(d => !fee || d.slot !== this.zone.slot), ui = (this.mailUI = []);
     const add = o => { pin(o).setDepth(9700); ui.push(o); return o; };
-    const back = () => { this.closeMailPicker(); spawnFront(this, key, box, 60); };          // changed your mind: it pops back out
+    const back = () => { this.closeMailPicker(); this.letOut(key, box); };          // changed your mind: it pops back out (flat-packs get built right here)
     add(this.add.rectangle(0, 0, W, H, 0x000000, 0.35).setOrigin(0).setInteractive().on('pointerdown', back));
     const rows = Math.ceil(dests.length / 2), h = 130 + rows * 56;
     add(inkPanel(this, W / 2, H / 2, 560, h, { depth: 9700, seed: 14 })).setInteractive(new Phaser.Geom.Rectangle(W / 2 - 280, H / 2 - h / 2, 560, h), Phaser.Geom.Rectangle.Contains);
@@ -30,7 +31,13 @@ export const mailMethods = {
       const x = W / 2 + (i % 2 ? 130 : -130), y = H / 2 - h / 2 + 90 + Math.floor(i / 2) * 56;
       add(inkButton(this, x, y, fee ? `${d.name} · ${deliveryFee(this.zone.slot, d.slot)} 🪙` : d.name, { w: 230, h: 44, size: 22, fill: COLORS.green, depth: 9700, onTap: () => this.sendParcel(key, d.slot, box) }));
     });
-    add(inkButton(this, W / 2, H / 2 + h / 2 - 34, 'Never mind', { w: 180, h: 38, size: 20, fill: COLORS.grey, depth: 9700, onTap: back }));
+    add(inkButton(this, W / 2, H / 2 + h / 2 - 34, furnType(key) ? 'Keep it here' : 'Never mind', { w: 180, h: 38, size: 20, fill: COLORS.grey, depth: 9700, onTap: back }));
+  },
+
+  // Something that was going on the van stays: an item pops out of the box; a flat-pack is built here and now.
+  letOut(key, box) {
+    const type = furnType(key);
+    if (type) this.addFurniture(type); else spawnFront(this, key, box, 60);
   },
 
   closeMailPicker() { (this.mailUI || []).forEach(o => o.destroy()); this.mailUI = []; },
@@ -39,9 +46,9 @@ export const mailMethods = {
   sendParcel(key, slot, box) {
     const fee = box.def.fee ? deliveryFee(this.zone.slot, slot) : 0;
     this.closeMailPicker();
-    if (fee > this.coins) { this.sfx.nope(); floatText(this, box.x, box.y - 90, `${fee - this.coins} more 🪙 for the van`, 24); spawnFront(this, key, box, 60); return; }
+    if (fee > this.coins) { this.sfx.nope(); floatText(this, box.x, box.y - 90, `${fee - this.coins} more 🪙 for the van`, 24); this.letOut(key, box); return; }
     const next = addParcel(this.parcels, key, slot, box.def.fee ? this.zone.slot : undefined);
-    if (!next) { this.sfx.nope(); floatText(this, box.x, box.y - 90, 'The van is full!', 24); spawnFront(this, key, box, 60); return; }
+    if (!next) { this.sfx.nope(); floatText(this, box.x, box.y - 90, 'The van is full!', 24); this.letOut(key, box); return; }
     this.parcels = next;
     this.sfx.ding();
     if (fee) { this.coins -= fee; this.updateNav(); }
@@ -62,7 +69,7 @@ export const mailMethods = {
     this.time.delayedCall(700, () => {
       floatText(this, at.x, 330, "📮 You've got mail!", 32);
       this.sfx.fanfare();
-      delivered.forEach((key, i) => this.time.delayedCall(i * 260, () => spawnFront(this, key, at, 140)));
+      delivered.forEach((key, i) => this.time.delayedCall(i * 260, () => { const type = furnType(key); if (type) this.addFurniture(type); else spawnFront(this, key, at, 140); }));
     });
     this.dirty = true;
   },

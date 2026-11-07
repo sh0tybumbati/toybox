@@ -104,7 +104,7 @@ test('furniture saves: valid pieces kept and clamped, junk dropped, rooms withou
     furniture: {
       kitchen: [
         { type: 'cabinet', x: 9999, y: 9999, items: [{ s: 0, k: 'apple' }, { s: 0, k: 'ball' }, { s: 99, k: 'apple' }, { s: 1, k: 'ghost' }, null] },
-        { type: 'sofa', x: 100, y: 500 },                               // unknown type
+        { type: 'hovercraft', x: 100, y: 500 },                               // unknown type
         { type: 'fridge', x: 'a', y: 500 },                             // bad coordinates
         { type: 'fridge', x: 300, y: 500, items: [{ s: 0, k: 'apple' }] }, // no slots: items ignored
       ],
@@ -142,7 +142,7 @@ test('city saves: custom buildings survive, junk is repaired, a ruined city fall
     name: 'My place', exterior: { wall: 'mint', trim: 'navy', roofStyle: 'dome', roofColor: 'plum' },
     floors: [
       { id: 0, rooms: [{ id: 0, type: 'empty', w: 1250 }, { id: 1, type: 'ghost', w: 960 }, { id: 0, type: 'kitchen', w: 960 }] },
-      { id: 4, rooms: [{ id: 7, type: 'bedroom', w: 99999, extra: [{ type: 'ladder', x: 100, y: 500 }, { type: 'sofa', x: 1, y: 1 }] }] },
+      { id: 4, rooms: [{ id: 7, type: 'bedroom', w: 99999, extra: [{ type: 'ladder', x: 100, y: 500 }, { type: 'hovercraft', x: 1, y: 1 }] }] },
       { id: 4, rooms: [{ id: 8, type: 'living', w: 960 }] },
       { id: 9, rooms: [] },
     ],

@@ -417,6 +417,54 @@ try {
     await wait(1500);
   });
 
+  await step('cashier: scan the basket, give the right change for coins; furniture store: build a flat-pack, a van takes it home', async () => {
+    await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.coins = 0; window.__till = r.addFurniture('till'); window.__till.setPosition(700, 470);");
+    await wait(500);
+    await g.room("r.openGame('cashier', window.__till);");
+    await wait(800);
+    const C = "__toybox.scene.getScene('Cashier')";
+    for (let n = 0; n < 5; n++) {
+      await g.ev(`(c => c.live.filter(o => o.type === 'Rectangle' && o.input && o.input.enabled).forEach(z => z.emit('pointerdown')))(${C})`);
+      await wait(900);
+      assert.equal(await g.ev(`${C}.stage`), 'change', 'all scanned: time for change');
+      await g.ev(`(c => { c.given = c.order.change + 1; c.showTray(); c.give(); })(${C})`);          // one slip
+      assert.equal(await g.ev(`${C}.stage`), 'change', 'too much change is refused');
+      await g.ev(`(c => { c.given = c.order.change; c.showTray(); c.give(); })(${C})`);
+      await wait(1300);
+    }
+    await wait(400);
+    assert.ok(await g.ev(`${C}.over === false && ${C}.earned === 5`), 'one slip each: a coin per customer');
+    await g.ev(`(c => c.finish({ coins: c.earned }))(${C})`);
+    await wait(500);
+    assert.equal(await g.room('return r.coins;'), 5);
+    await g.room("r.removeFurniture(window.__till); r.coins = 20; window.__stand = r.addFurniture('flatpack'); window.__stand.setPosition(700, 470);");
+    await g.room("r.openGame('ikea', window.__stand);");
+    await wait(800);
+    const I = "__toybox.scene.getScene('Ikea')";
+    await g.ev(`${I}.startBuild('floorlamp')`);
+    await wait(400);
+    await g.ev(`(s => { const wrong = s.a.layout.findIndex(n => n !== 1); s.tap(s.a.layout[wrong], s.parts[wrong]); })(${I})`);      // a part out of order
+    assert.equal(await g.ev(`${I}.a.mistakes`), 1);
+    await g.ev(`(s => { for (let n = 1; n <= 3; n++) { const slot = s.a.layout.indexOf(n); s.tap(n, s.parts[slot]); } })(${I})`);
+    await wait(1900);
+    await g.ev(`(s => s.finish({ coins: 1, spend: 3, furniture: 'floorlamp' }))(${I})`);
+    await wait(700);
+    assert.ok(await g.room('return r.mailUI && r.mailUI.length > 0;'), 'where should the van take it?');
+    assert.equal(await g.room('return r.coins;'), 18, 'paid 3, bonus 1');
+    await g.room('r.sendParcel("furn:floorlamp", 0, window.__stand);');
+    const sent = await g.room('return { coins: r.coins, parcels: r.parcels };');
+    assert.ok(sent.coins < 18, 'the van costs coins');
+    assert.equal(sent.parcels[0].k, 'furn:floorlamp');
+    await g.room("r.removeFurniture(window.__stand); r.goToZone('1.0'); ");
+    await wait(2000);
+    await g.room("r.goToZone('0.0');");
+    await wait(3500);
+    assert.ok(await g.room("return r.props.some(p => p.type === 'floorlamp');"), 'the lamp arrived at home, assembled');
+    assert.deepEqual(await g.room('return r.parcels;'), []);
+    await g.room("r.goToZone('0.1');");
+    await wait(1500);
+  });
+
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });
 } finally {
   await g.close();

@@ -12,7 +12,7 @@ test('every furniture type is catalogue-ready', () => {
   for (const [id, def] of Object.entries(PROP_TYPES)) {
     assert.ok(def.name, `${id} name`);
     assert.ok(['floor', 'wall'].includes(def.mount), `${id} mount`);
-    assert.ok(['home', 'storage', 'play', 'town'].includes(def.cat), `${id} catalogue tab`);
+    assert.ok(['home', 'storage', 'play', 'town', 'ikea'].includes(def.cat), `${id} catalogue tab`);
     assert.ok(behaviours.has(def.behaviour), `${id} behaviour`);
     assert.ok(def.w > 0 && def.h > 0 && typeof def.draw === 'function', id);
   }

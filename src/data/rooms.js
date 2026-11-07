@@ -199,8 +199,20 @@ export const ROOMS = {
       { x: 645, y: 295, items: ['egg', 'cheese', 'milk', 'bread'] },
       { x: 645, y: 385, items: ['jam', 'fries', 'popcorn', 'cocoa'] },
     ],
-    props: [{ type: 'cart', x: 480, y: 470 }, { type: 'lightswitch', x: 890, y: 168 }],
+    props: [{ type: 'cart', x: 360, y: 470 }, { type: 'till', x: 600, y: 480 }, { type: 'lightswitch', x: 890, y: 168 }],
     windows: [],
+  },
+  ikea: {
+    label: '🪑 Furniture store',
+    style: { wall: 'blush', floor: 'oak' },
+    shelves: [],
+    props: [
+      { type: 'sofa', x: 150, y: 490 }, { type: 'floorlamp', x: 290, y: 500 },
+      { type: 'flatpack', x: 480, y: 500 },
+      { type: 'dresser', x: 650, y: 500 }, { type: 'desk', x: 820, y: 500 },
+      { type: 'lightswitch', x: 890, y: 168 },
+    ],
+    windows: [{ x: 380, y: 60, w: 200, h: 110 }],
   },
   pond: {
     label: '🎣 Fishing pond',

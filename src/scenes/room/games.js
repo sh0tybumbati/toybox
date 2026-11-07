@@ -4,6 +4,7 @@ import { MINIGAMES } from '../../data/minigames.js';
 import { floatText } from '../../systems/interactions.js';
 import { spawnFront } from '../../systems/spawn.js';
 import { registerToy } from '../../data/toys.js';
+import { furnKey } from '../../systems/ikea.js';
 
 export const gameMethods = {
   // Tap on a station: pause the room and run the game as an overlay.
@@ -25,6 +26,11 @@ export const gameMethods = {
     this.refreshTip();
     if (!result) return;
     const at = prop && prop.active ? prop : { x: this.cameras.main.scrollX + 480, y: 440, def: { h: 100 } };
+    if (result.spend) {                                       // paid for something (a flat-pack)
+      this.coins -= result.spend;
+      this.updateNav();
+      floatText(this, at.x, at.y - at.def.h / 2 - 20, `-${result.spend} 🪙`, 28);
+    }
     if (result.coins) {
       this.coins += result.coins;
       this.updateNav();
@@ -32,12 +38,12 @@ export const gameMethods = {
       floatText(this, at.x, at.y - at.def.h / 2 - 50, `+${result.coins} 🪙`, 30);
     }
     (result.items || []).forEach((key, i) => this.time.delayedCall(250 + i * 220, () => { if (this.zone && at.active !== false) spawnFront(this, key, at, 80); }));
-    this.applyGameResult(id, result);
+    this.applyGameResult(id, result, prop);
     this.dirty = true;
   },
 
   // Games that hand back more than coins and items: a shirt design, a sculpted toy.
-  applyGameResult(id, result) {
+  applyGameResult(id, result, prop) {
     if (result.game && Number.isFinite(result.score)) this.scores[result.game] = Math.max(this.scores[result.game] || 0, Math.floor(result.score));     // arcade high scores
     if (result.shirt) {
       const kid = this.selected || this.characters[0], design = result.shirt;
@@ -46,6 +52,7 @@ export const gameMethods = {
       this.shirtDesigns = [design, ...this.shirtDesigns.filter(s => !same(s))].slice(0, 8);
       floatText(this, kid.x, kid.headTopY() + 60, '✨', 56);
     }
+    if (result.furniture && this.zone) this.openMailPicker(this.props.includes(prop) ? prop : this.props.find(p => p.def.fee), furnKey(result.furniture));     // built: now where should the van take it?
     if (result.toy) {
       registerToy(result.toy);
       this.toyDesigns = [...this.toyDesigns, result.toy].slice(-12);

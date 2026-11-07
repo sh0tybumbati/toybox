@@ -72,6 +72,11 @@ export const BLUEPRINTS = {
     exterior: { wall: 'butter', trim: 'white', roofStyle: 'flat', roofColor: 'forest' },
     floors: [{ id: 0, rooms: [room(0, 'market'), room(1, 'market')] }],
   },
+  ikea: {
+    name: 'Furniture Store', cost: 30,
+    exterior: { wall: 'sky', trim: 'butter', roofStyle: 'flat', roofColor: 'butter' },
+    floors: [{ id: 0, rooms: [room(0, 'ikea')] }],
+  },
   pond: {
     name: 'Fishing Pond', cost: 15,
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },

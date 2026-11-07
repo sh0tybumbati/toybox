@@ -225,6 +225,66 @@ export const PROP_TYPES = {
       if (lit) g.fillStyle(0xffffff, 0.35).fillCircle(0, -4, 44);
     },
   },
+  till: {
+    name: 'Checkout Till', cat: 'town', mount: 'floor', behaviour: 'station', game: 'cashier', w: 150, h: 120, blurb: 'Scan and give change',
+    draw(g, busy) {
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-75, 0, 150, 56, 6);                    // the counter
+      g.fillStyle(0x6b7482, 1).fillRoundedRect(-70, -10, 80, 14, 5);                   // the belt
+      g.fillStyle(0xdddddd, 1).fillRoundedRect(20, -48, 46, 42, 6);                    // the till
+      g.fillStyle(busy ? 0xffe066 : 0x4a8f5a, 1).fillRoundedRect(26, -42, 34, 14, 3);  // its screen
+      g.fillStyle(0xffd166, 1).fillCircle(32, -16, 4).fillCircle(46, -16, 4).fillCircle(60, -16, 4);
+    },
+  },
+  flatpack: {
+    name: 'Flat-pack Stand', cat: 'town', mount: 'floor', behaviour: 'station', game: 'ikea', fee: true, w: 170, h: 130, blurb: 'Build it, send it home',
+    draw(g, busy) {
+      g.fillStyle(0x4a7fd0, 1).fillRoundedRect(-80, -62, 160, 124, 8);                 // a big blue sign board
+      g.fillStyle(0xffd23f, 1).fillRoundedRect(-66, -48, 132, 30, 6);
+      g.fillStyle(0xc99466, 1).fillRoundedRect(-62, 0, 56, 40, 4).fillRoundedRect(4, 8, 58, 32, 4);   // flat boxes
+      g.lineStyle(3, 0x8a5e3b, 1).lineBetween(-62, 20, -6, 20).lineBetween(4, 24, 62, 24);
+      if (busy) g.fillStyle(0xffffff, 0.3).fillRoundedRect(-80, -62, 160, 124, 8);
+    },
+  },
+  sofa: {
+    name: 'Sofa', cat: 'ikea', mount: 'floor', behaviour: 'play', w: 200, h: 100, blurb: 'Sit and chat',
+    ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: -50, y: 0 }, { x: 50, y: 0 }] }] },
+    draw(g) {
+      g.fillStyle(0x4a7fd0, 1).fillRoundedRect(-100, -44, 200, 62, 12);               // the back
+      g.fillStyle(0x5f93e0, 1).fillRoundedRect(-84, -10, 168, 44, 10);                // the cushions
+      g.fillStyle(0x3c68b0, 1).fillRoundedRect(-108, -20, 30, 58, 12).fillRoundedRect(78, -20, 30, 58, 12);   // the arms
+      g.fillStyle(0x8a5e3b, 1).fillRect(-90, 36, 10, 14).fillRect(80, 36, 10, 14);
+      g.lineStyle(3, 0x3c68b0, 1).lineBetween(0, -10, 0, 34);
+    },
+  },
+  dresser: {
+    name: 'Dresser', cat: 'ikea', mount: 'floor', behaviour: 'storage', w: 150, h: 130, accepts: null,
+    slots: [{ x: -40, y: -34 }, { x: 0, y: -34 }, { x: 40, y: -34 }, { x: -40, y: 22 }, { x: 0, y: 22 }, { x: 40, y: 22 }],
+    draw(g) {
+      g.fillStyle(0xf3e0c2, 1).fillRoundedRect(-75, -65, 150, 130, 8);
+      g.lineStyle(4, 0x8a5e3b, 1).strokeRoundedRect(-75, -65, 150, 130, 8);
+      g.fillStyle(0xffd23f, 1).fillRect(-67, -4, 134, 8);                              // a yellow drawer stripe
+      g.fillStyle(0xb5835a, 1).fillRect(-67, 52, 134, 7).fillRect(-67, -58, 134, 7);
+      g.fillStyle(0x4a3426, 1).fillCircle(-18, 30, 4).fillCircle(18, 30, 4);
+    },
+  },
+  desk: {
+    name: 'Desk', cat: 'ikea', mount: 'floor', behaviour: 'storage', w: 180, h: 110, accepts: null,
+    slots: [{ x: -56, y: -34 }, { x: -18, y: -34 }, { x: 20, y: -34 }, { x: 58, y: -34 }],
+    draw(g) {
+      g.fillStyle(0xd9aa72, 1).fillRoundedRect(-90, -14, 180, 14, 5);                  // the top
+      g.fillStyle(0x8a5e3b, 1).fillRect(-82, 0, 10, 54).fillRect(72, 0, 10, 54);       // legs
+      g.fillStyle(0xc99466, 1).fillRoundedRect(20, 0, 56, 36, 4);                      // a drawer unit
+      g.fillStyle(0x4a3426, 1).fillCircle(48, 18, 3);
+    },
+  },
+  floorlamp: {
+    name: 'Floor Lamp', cat: 'ikea', mount: 'floor', behaviour: 'none', w: 70, h: 230, blurb: 'A cosy glow',
+    draw(g) {
+      g.fillStyle(0x3b3f4a, 1).fillRoundedRect(-24, 100, 48, 12, 5).fillRect(-4, -84, 8, 190);   // base + pole
+      g.fillStyle(0xffd23f, 1).fillTriangle(-34, -50, 34, -50, 20, -114).fillTriangle(-34, -50, 20, -114, -20, -114);   // the shade
+      g.fillStyle(0xfff3a0, 0.5).fillCircle(0, -60, 44);
+    },
+  },
   mailbox: {
     name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', w: 84, h: 136,
     draw(g, flag) {
