@@ -331,7 +331,7 @@ try {
     await g.room("for (const k of ['__dock', '__tv']) if (window[k] && window[k].active) r.removeFurniture(window[k]);");
     await g.room("r.detached = true; r.cameras.main.scrollX = 0; window.__sew = r.addFurniture('sewing'); window.__clay = r.addFurniture('claytable'); window.__sew.setPosition(140, 470); window.__clay.setPosition(830, 470);");
     await wait(400);
-    await g.room('r.characters[0].x = 800; r.characters[0].lane = 520;');          // friends and pets gather by the kid, away from the machine
+    await g.room("r.bodies.filter(b => b.key && !b.worn && !b.onShelf && !b.storedIn && !b.dead).forEach(b => r.discard(b, { alpha: 0, duration: 10 })); r.characters[0].x = 800; r.characters[0].lane = 520;");          // clear stray items (a fish now rests on the machine), friends and pets gather away from it
     await wait(500);
     const sew = await g.room('const p = window.__sew; return [Math.round(p.x), Math.round(p.y)];');
     for (let attempt = 0; attempt < 3 && !(await g.ev("__toybox.scene.isActive('ShirtShop')")); attempt++) await g.click(sew[0], sew[1], 1000);     // tap again if the first didn't take
