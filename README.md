@@ -8,7 +8,7 @@ npm start        # python -m http.server 8000, then open http://localhost:8000
 npm test         # node --test: physics, walking, social, pets, saves, recipes, furniture, tips, import check (no browser)
 npm run e2e      # plays the real game in headless Chromium (mouse + touch emulation); needs Chrome/Chromium
 ```
-Tap 🎨 in the room to open the character creator. Tap the floor to walk, drop a friend next to another to hug, tuck them into a bed, and adopt pets from the basket in the park.
+Tap 🎨 in the room to open the character creator. Tap the floor to walk, drop a friend next to another to hug, tuck them into a bed, and adopt pets from the basket in the park. Build a city (🗺️ Map → empty lot), then fill it: arcade, shirt factory, toy workshop, post office, supermarket, fishing pond, campsite. Furniture mode → Decorate repaints rooms and moves windows.
 
 ## Layout
 ```
@@ -28,6 +28,10 @@ src/scenes/              BootScene (loads save + emoji font) -> RoomScene (lifec
                          CatalogScene (furniture) — all overlays on a paused RoomScene
 tests/                   node:test suites; tests/e2e/ = the headless-browser smoke test
 ```
+
+## Mini-games
+A *station* (furniture with `behaviour: 'station'` and a `game`) launches a mini-game as an overlay (`src/scenes/minigames/`); its result (coins, items, a shirt design, a sculpted toy) comes back to `RoomScene.onGameResult`. Register a game in `data/minigames.js` and `main.js` (a test checks every game has a scene). Rules live in pure modules (`systems/fishing.js`, `arcade.js`, `camp.js`) so they're unit-tested; the scenes only draw.
+Games: Fishing (dock), Star Catcher (TV), Shirt Factory (sewing machine), Toy Workshop (clay table), Marshmallows (campfire). The Post Office's mailboxes post any item to another building (`systems/mail.js`).
 
 ## Adding things
 - **Item:** add an entry to `CATALOG` in `data/items.js`, draw it in `data/itemart.js` (a function of the ink pen, 128px box, standing on y≈118), then list its key on a shelf in `data/rooms.js`. A test checks every item has art.

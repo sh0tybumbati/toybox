@@ -29,6 +29,7 @@ import { socialMethods } from './room/social.js';
 import { petMethods } from './room/pets.js';
 import { decorateMethods } from './room/decorate.js';
 import { gameMethods } from './room/games.js';
+import { mailMethods } from './room/mail.js';
 import { cameraMethods } from './room/camera.js';
 import { connectorMethods } from './room/connectors.js';
 
@@ -57,6 +58,7 @@ export default class RoomScene extends Phaser.Scene {
     this.zoneKey = initial ? initial.zone : START_ZONE;       // "lot.floor": the floor of the building we're in
     this.zone = zoneInfo(this.city, this.zoneKey);
     this.worldW = this.zone.width;
+    this.parcels = initial ? [...initial.parcels] : [];            // posted items waiting for their building: { k, to }
     this.shirtDesigns = initial ? [...initial.shirts] : [];     // shirts made at the factory (up to 8)
     this.toyDesigns = initial ? [...initial.toys] : [];         // toys sculpted at the workshop (up to 12)
     this.looks = initial ? { ...initial.looks } : {};         // repainted rooms: sectionId -> { wall, floor, windows }
@@ -206,4 +208,4 @@ export default class RoomScene extends Phaser.Scene {
   }
 }
 
-Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods);
+Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods);

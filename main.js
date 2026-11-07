@@ -12,6 +12,7 @@ import FishingScene from './src/scenes/minigames/FishingScene.js';
 import ArcadeScene from './src/scenes/minigames/ArcadeScene.js';
 import ShirtShopScene from './src/scenes/minigames/ShirtShopScene.js';
 import SculptScene from './src/scenes/minigames/SculptScene.js';
+import CampScene from './src/scenes/minigames/CampScene.js';
 
 // Every `add.text` without its own font gets the emoji-friendly stack.
 const addText = Phaser.GameObjects.GameObjectFactory.prototype.text;
@@ -27,6 +28,6 @@ window.__toybox = new Phaser.Game({   // handy for poking at the game from the c
   parent: 'game',
   backgroundColor: '#2b2233',
   input: { touch: true, activePointers: 1 },        // one finger at a time — a toy, not a two-handed game
-  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene],
+  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene, CampScene],
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
 });

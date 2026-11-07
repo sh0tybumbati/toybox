@@ -312,6 +312,26 @@ try {
     assert.equal(await g.room("return typeof __toybox.cache === 'object' || true;"), true);
   });
 
+  await step('the post: an item dropped on a mailbox is addressed to a building and delivered when you get there', async () => {
+    await g.room("r.goToZone('0.1');");
+    await wait(1500);
+    await g.room("for (const k of ['__sew', '__clay', '__dock', '__tv']) if (window[k] && window[k].active) r.removeFurniture(window[k]); r.detached = true; r.cameras.main.scrollX = 0; window.__box = r.addFurniture('mailbox'); window.__box.setPosition(830, 470); r.createItem('apple', 700, 540);");
+    await wait(700);
+    const from = await g.room("const i = r.bodies.find(b => b.key === 'apple' && !b.onShelf); return [Math.round(i.x), Math.round(i.y)];");
+    const box = await g.room('const p = window.__box; return [Math.round(p.x), Math.round(p.y - 20)];');
+    await g.drag(from[0], from[1], box[0], box[1], 900);
+    assert.ok(await g.room('return r.mailUI && r.mailUI.length > 0;'), 'the destination picker opened');
+    await g.room('r.sendParcel("apple", 1, window.__box);');
+    assert.deepEqual(await g.room('return r.parcels;'), [{ k: 'apple', to: 1 }]);
+    assert.equal(await g.room("return r.bodies.some(b => b.key === 'apple' && !b.onShelf && !b.dead);"), false, 'the apple went into the box');
+    await g.room("r.goToZone('1.0');");                              // the park: where it was sent
+    await wait(3200);
+    assert.deepEqual(await g.room('return r.parcels;'), [], 'delivered');
+    assert.ok(await g.room("return r.bodies.some(b => b.key === 'apple' && !b.onShelf && !b.dead);"), 'the apple turned up in the park');
+    await g.room("r.goToZone('0.1');");
+    await wait(1500);
+  });
+
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });
 } finally {
   await g.close();

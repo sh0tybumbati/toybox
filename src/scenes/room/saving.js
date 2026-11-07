@@ -25,7 +25,7 @@ export const savingMethods = {
     const floors = { ...this.floorState, ...this.captureFloors() };
     const furniture = { ...this.propState, ...this.captureProps() };
     saveStore.save({
-      v: SAVE_VERSION, shirts: this.shirtDesigns, toys: this.toyDesigns, zone: this.zoneKey, city: this.city, looks: this.looks, pets: this.pets.map(p => p.kind), night: this.night, coins: this.coins,
+      v: SAVE_VERSION, shirts: this.shirtDesigns, toys: this.toyDesigns, parcels: this.parcels, zone: this.zoneKey, city: this.city, looks: this.looks, pets: this.pets.map(p => p.kind), night: this.night, coins: this.coins,
       unlocked: [...this.unlocked], recipes: [...this.discovered], tips: [...this.tipsSeen], furniture, floors,
       characters: this.characters.map(c => ({
         id: c.id, name: c.name, look: c.look, x: Math.round(c.x), lane: Math.round(c.lane), scale: c.scaleX,

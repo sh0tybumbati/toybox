@@ -29,6 +29,7 @@ import { MAX_PARTY, defaultParty } from '../data/characters.js';
 import { PETS, MAX_PETS } from '../data/pets.js';
 import { PATTERNS } from '../data/patterns.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
+import { cleanParcels } from './mail.js';
 
 const ok = Number.isFinite;
 const isColor = v => Number.isInteger(v) && v >= 0 && v <= 0xffffff;
@@ -131,7 +132,8 @@ export function sanitize(raw) {
   const pets = (Array.isArray(d.pets) ? d.pets.filter(k => Object.prototype.hasOwnProperty.call(PETS, k)) : []).slice(0, MAX_PETS);
   const shirts = (Array.isArray(d.shirts) ? d.shirts : []).filter(s => s && isColor(s.color)).slice(0, 8)
     .map(s => ({ color: s.color, pattern: s.pattern && PATTERNS[s.pattern.id] && isColor(s.pattern.color) ? { id: s.pattern.id, color: s.pattern.color } : null }));
-  return { v: SAVE_VERSION, zone, city, looks, pets, shirts, toys, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
+  const parcels = cleanParcels(d.parcels, k => Boolean(CATALOG[k]), city);
+  return { v: SAVE_VERSION, zone, city, looks, pets, shirts, toys, parcels, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
 }
 
 // A room's furniture list, or null (= use the room's default layout).

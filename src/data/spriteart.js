@@ -78,6 +78,8 @@ export const SPRITE_ART = {
   sock: small(p => { poly(p, [[20, 6], [42, 6], [42, 34], [58, 44], [54, 58], [30, 54], [20, 38]], 0xe0605a); r(p, 18, 4, 28, 12, WHITE, 4); tiny(p, () => { ln(p, 26, 22, 40, 24, 2); ln(p, 26, 30, 40, 32, 2); }); }),
   marshmallow: small(p => { r(p, 12, 22, 40, 26, WHITE, 12); tiny(p, () => { ln(p, 26, 24, 26, 46, 2); ln(p, 40, 24, 40, 46, 2); }); }),
   star: small(p => poly(p, [[32, 4], [40, 24], [60, 24], [44, 38], [50, 58], [32, 46], [14, 58], [20, 38], [4, 24], [24, 24]], YELLOW)),
+  'icon-mail': small(p => { r(p, 6, 14, 52, 38, WHITE, 6); tiny(p, () => { ln(p, 8, 16, 32, 36, 3); ln(p, 56, 16, 32, 36, 3); }); }),
+  van: big(p => { poly(p, [[8, 90], [8, 50], [24, 28], [96, 28], [100, 50], [120, 58], [120, 90]], WHITE); r(p, 8, 74, 112, 12, 0xe0605a, 4); poly(p, [[32, 36], [60, 36], [60, 56], [24, 56]], 0xb9e0f2); poly(p, [[68, 36], [92, 36], [98, 56], [68, 56]], 0xb9e0f2); c(p, 36, 96, 14, 0x2f3340); c(p, 94, 96, 14, 0x2f3340); tiny(p, () => { c(p, 36, 96, 6, GREY); c(p, 94, 96, 6, GREY); }); }),
   moon: small(p => poly(p, [[40, 6], [26, 14], [18, 28], [20, 44], [32, 56], [48, 58], [58, 52], [44, 46], [36, 34], [38, 18]], 0xf7e27a)),
   'icon-trash': small(p => { poly(p, [[14, 18], [50, 18], [44, 58], [20, 58]], 0xa9c6d6); r(p, 10, 12, 44, 8, 0x8fb0c4, 4); r(p, 26, 6, 12, 8, 0x8fb0c4, 3); tiny(p, () => { ln(p, 26, 24, 26, 54, 2); ln(p, 38, 24, 38, 54, 2); }); }),
 };
@@ -86,7 +88,7 @@ export const SPRITE_ART = {
 export const EMOJI_SPRITE = {
   '💖': 'heart', '💕': 'heart', '💞': 'heart', '❤️': 'heart', '💤': 'zzz', '✨': 'sparkle', '🔥': 'fire',
   '😄': 'laugh', '😋': 'yum', '😖': 'sour', '🥵': 'spicy', '🤢': 'yuck', '🪙': 'coin', '📖': 'icon-book', '🏗️': 'icon-hammer',
-  '🔻': 'marker',
+  '🔻': 'marker', '📮': 'icon-mail', '✉️': 'icon-mail',
   // menu and HUD emoji -> drawn icons ('item:x' = that item's drawing)
   '🗺️': 'icon-map', '🛋️': 'icon-furniture', '➕': 'icon-plus', '➖': 'icon-minus', '✔': 'icon-check', '✖': 'icon-close', '✕': 'icon-close',
   '🗑': 'icon-trash', '🎲': 'icon-dice', '🔒': 'icon-lock', '📍': 'icon-pin', '🚪': 'icon-door', '🔨': 'icon-hammer', '🪜': 'icon-ladder',

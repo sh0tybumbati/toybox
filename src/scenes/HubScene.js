@@ -29,6 +29,7 @@ export default class HubScene extends Phaser.Scene {
     this.lots = this.add.container(0, 0);
     this.drawLots();
     this.addWalkers();
+    this.addVans();
 
     this.add.text(W / 2, 30, 'The City', { ...label, fontSize: '40px', color: '#fff7e0', stroke: '#3a2a22', strokeThickness: 7 }).setOrigin(0.5);
     this.coinText = inkChip(this, 84, 32, '', { size: 26, depth: 20, h: 42 });
@@ -65,6 +66,19 @@ export default class HubScene extends Phaser.Scene {
       }
       hit.on('pointerdown', () => this.openBuildingMenu(i));
     });
+  }
+
+  // A delivery van drives from the post office to every building that has post waiting.
+  addVans() {
+    const from = Math.max(0, this.room.city.findIndex(b => b && b.name === 'Post Office')), a = SLOTS[from];
+    for (const slot of new Set(this.room.parcels.map(p => p.to))) {
+      const b = SLOTS[slot], van = spriteImage(this, 'van', a.x, a.y + 70, 56).setDepth(6);
+      this.tweens.add({
+        targets: van, x: b.x, y: b.y + 70, duration: 5200, yoyo: true, repeat: -1, hold: 600, ease: 'Sine.easeInOut',
+        onUpdate: (tw, t) => van.setFlipX(b.x < a.x ? tw.progress > 0.5 : tw.progress < 0.5 ? b.x < a.x : false),
+      });
+      this.add.text(b.x, b.y - 74, '📮', { fontSize: '20px' }).setOrigin(0.5);
+    }
   }
 
   // Little people ambling along the paths (they're decoration — and they make it feel like a town).

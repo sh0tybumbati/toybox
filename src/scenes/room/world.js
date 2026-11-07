@@ -53,6 +53,7 @@ export const worldMethods = {
       this.buildZone();
       this.arrive(arrive, connector);
       this.updateNav();
+      this.deliverParcels();
       if (this.zone.sections.some(s => s.type === 'shop')) this.tipEvent('shop'); else this.refreshTip();
       this.save();
       cam.fadeIn(180, 43, 34, 51);

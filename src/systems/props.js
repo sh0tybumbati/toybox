@@ -37,6 +37,9 @@ export function tapProp(scene, prop) {
       scene.sfx.click();
       scene.setNight(!scene.night);
       break;
+    case 'mail':
+      floatText(scene, prop.x, prop.y - 90, 'Drop something in to post it!', 24);
+      break;
     case 'station':
       scene.openGame(prop.def.game, prop);
       break;
@@ -60,6 +63,8 @@ export function tapProp(scene, prop) {
 
 // An item was released: does a prop want it? Returns true if consumed.
 export function dropOnProps(scene, item) {
+  const box = scene.props.find(p => p.def.behaviour === 'mail' && p.zone().contains(item.x, item.y));
+  if (box) { scene.postItem(box, item); return true; }
   if (item.kind !== 'food') return false;
   const oven = scene.props.find(p => p.def.behaviour === 'oven' && canAccept(p) && p.zone().contains(item.x, item.y));
   if (!oven) return false;

@@ -39,3 +39,13 @@ test('every relative import resolves, and every named import is exported', () =>
   }
   assert.deepEqual(problems, []);
 });
+
+test('every mini-game in the registry has a scene registered in main.js', () => {
+  const main = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
+  const reg = fs.readFileSync(path.join(root, 'src/data/minigames.js'), 'utf8');
+  for (const m of reg.matchAll(/scene:\s*'(\w+)'/g)) {
+    const file = fs.readdirSync(path.join(root, 'src/scenes/minigames')).find(f => fs.readFileSync(path.join(root, 'src/scenes/minigames', f), 'utf8').includes(`super('${m[1]}')`));
+    assert.ok(file, `a scene class for '${m[1]}' exists`);
+    assert.ok(main.includes(file.replace('.js', '')), `${file} is registered in main.js`);
+  }
+});
