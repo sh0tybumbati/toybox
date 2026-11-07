@@ -4,6 +4,7 @@ import { EXPRESSIONS } from '../data/expressions.js';
 import { layoutFor, limbCurve, limbTargets, springTip } from '../data/body.js';
 import { INK, blob, inkFill, inkStroke, inkTube } from '../data/ink.js';
 import { paintFace } from '../data/face.js';
+import { paintPattern, patternMarks } from '../data/patterns.js';
 import { walkPose } from '../systems/walk.js';
 
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -105,6 +106,10 @@ export default class Character extends Phaser.GameObjects.Container {
     inkFill(g, blob(0, L.hip.y + 6, L.hip.x + 16, 17, { n: 16, amp: 0.05, seed: 21 }), pants, { w: 4.2, seed: 21 });   // trousers showing under the sweater
     const torso = blob(b.x, b.y, b.w / 2, b.h / 2, { n: 26, amp: 0.055, seed: 3, rot: 0.04 });
     inkFill(g, torso, shirt, { w: 4.6, seed: 3 });
+    if (look.pattern) {                                                            // a printed pattern, then the outline again on top
+      paintPattern(g, patternMarks(look.pattern.id, torso), look.pattern.color);
+      inkStroke(g, torso, { w: 4.6, seed: 3, closed: true });
+    }
     inkStroke(g, [{ x: -18, y: b.y - b.h / 2 + 12 }, { x: -6, y: b.y - b.h / 2 + 18 }, { x: 8, y: b.y - b.h / 2 + 17 }, { x: 19, y: b.y - b.h / 2 + 11 }], { w: 3, seed: 4, heavy: 0 });   // collar
     inkStroke(g, [{ x: -b.w * 0.3, y: b.y + b.h * 0.2 }, { x: -b.w * 0.05, y: b.y + b.h * 0.27 }, { x: b.w * 0.25, y: b.y + b.h * 0.22 }], { w: 2.6, seed: 8, heavy: 0 });   // a slouchy fold in the belly
 

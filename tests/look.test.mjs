@@ -23,7 +23,7 @@ test('sanitizeLook repairs bad input and keeps good input', () => {
   assert.deepEqual(sanitizeLook(null), DEFAULT_LOOK);
   const bad = sanitizeLook({ age: 'elder', skin: -1, hair: { style: 'nope', color: 'x' }, shirt: 1.5, pants: 'blue', shoe: 0x1000000 });
   assert.deepEqual(bad, DEFAULT_LOOK);
-  const good = { age: 'adult', skin: 0x8d5524, hair: { style: 'curly', color: 0xe667a8 }, shirt: 0x7bd88f, pants: 0x4a4e69, shoe: 0x222222 };
+  const good = { age: 'adult', skin: 0x8d5524, hair: { style: 'curly', color: 0xe667a8 }, shirt: 0x7bd88f, pattern: { id: 'stars', color: 0xffd166 }, pants: 0x4a4e69, shoe: 0x222222 };
   assert.deepEqual(sanitizeLook(good), good);
 });
 
@@ -54,4 +54,12 @@ test('old saves without an age or trousers become kids with default trousers', (
   assert.equal(l.age, 'kid');
   assert.equal(l.pants, DEFAULT_LOOK.pants);
   assert.equal(l.skin, 0x8d5524);
+});
+
+test('shirt patterns: valid ones are kept, junk becomes no pattern', () => {
+  const base = { skin: 0xffd9a8, hair: { style: 'short', color: 0x6b4226 }, shirt: 0x6ec6ff, shoe: 0x3b5b8c };
+  assert.deepEqual(sanitizeLook({ ...base, pattern: { id: 'dots', color: 0xff0000 } }).pattern, { id: 'dots', color: 0xff0000 });
+  assert.equal(sanitizeLook({ ...base, pattern: { id: 'plaid', color: 0xff0000 } }).pattern, null);
+  assert.equal(sanitizeLook({ ...base, pattern: { id: 'dots', color: 'red' } }).pattern, null);
+  assert.equal(sanitizeLook(base).pattern, null, 'old looks have none');
 });

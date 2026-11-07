@@ -9,9 +9,9 @@ const v1 = {
   floors: { kitchen: [{ k: 'apple', x: 421, l: 552 }], bedroom: [{ k: 'car', x: 301, l: 552 }] },
 };
 
-test('v1 saves migrate to a one-character v10 save with a look', () => {
+test('v1 saves migrate to a one-character v11 save with a look', () => {
   const d = migrate(v1);
-  assert.equal(d.v, 10);
+  assert.equal(d.v, 11);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.deepEqual(d.furniture, {});                // nothing saved yet: rooms use their default layout
@@ -48,7 +48,7 @@ test('sanitize rejects junk and clamps numbers', () => {
   assert.deepEqual(d.floors['0.0'], []);
 });
 
-test('a v10 save round-trips through sanitize', () => {
+test('a v11 save round-trips through sanitize', () => {
   const d = sanitize(v1);
   assert.deepEqual(sanitize(JSON.parse(JSON.stringify(d))), d);
 });
@@ -66,7 +66,7 @@ test('party is capped at 4, junk looks are repaired, an empty party gets the def
 
 test('v3 saves gain night=false; night survives sanitize', () => {
   const d = sanitize({ v: 3, room: 'bedroom', characters: [], floors: {} });
-  assert.equal(d.v, 10);
+  assert.equal(d.v, 11);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.equal(d.furniture['0.0'], null);          // nothing saved yet: the room uses its default layout
@@ -164,4 +164,22 @@ test('city saves: custom buildings survive, junk is repaired, a ruined city fall
   const ruined = sanitize({ v: 10, zone: '3.3', city: ['x', 7, {}], characters: [], floors: {} });
   assert.equal(ruined.city[0].name, 'Home');
   assert.equal(ruined.zone, '0.0', 'an unknown zone falls back to the first building');
+});
+
+test('v10 -> v11: designs start empty; shirt and toy designs are validated and capped', () => {
+  const old = sanitize({ v: 10, zone: '0.1', city: null, characters: [], floors: {} });
+  assert.deepEqual(old.shirts, []); assert.deepEqual(old.toys, []);
+  const d = sanitize({ v: 11, zone: '0.1', characters: [], floors: {},
+    shirts: [{ color: 0xff0000, pattern: { id: 'stars', color: 0xffff00 } }, { color: 'x' }, { color: 0x00ff00, pattern: { id: 'plaid', color: 1 } }, ...Array(12).fill({ color: 1, pattern: null })],
+    toys: [{ id: 'abc', name: 'Blob', body: 'bean', color: 1, partColor: 2, parts: ['ears'], face: 'smile' }, { id: 'abc', body: 'ball' }, { id: '??' }] });
+  assert.equal(d.shirts.length, 8);
+  assert.deepEqual(d.shirts[0], { color: 0xff0000, pattern: { id: 'stars', color: 0xffff00 } });
+  assert.equal(d.shirts[1].pattern, null, 'a junk pattern is dropped, the shirt kept');
+  assert.deepEqual(d.toys.map(t => t.id), ['abc'], 'duplicates and junk dropped');
+});
+
+test('toys on the floor survive loading because the toy is registered first', () => {
+  const d = sanitize({ v: 11, zone: '0.1', characters: [], floors: { '0.2': [{ k: 'toy:zz1', x: 100, l: 500 }, { k: 'toy:ghost', x: 100, l: 500 }] },
+    toys: [{ id: 'zz1', name: 'Zed', body: 'egg', color: 5, partColor: 6, parts: [], face: 'wow' }] });
+  assert.deepEqual(d.floors['0.2'].map(f => f.k), ['toy:zz1']);
 });

@@ -1,15 +1,15 @@
 // Versioned saves. Pure helpers (migrate/sanitize) are separate from the
 // IndexedDB store so they can be unit-tested without a browser.
 //
-// Schema v10 (the world is a city of buildings; a zone is one floor of one, see systems/world.js):
-//   { v: 10, zone: "slot.floor", city: [buildingKey | null], looks: { sectionId: { wall, floor, windows } },
+// Schema v11 (the world is a city of buildings; a zone is one floor of one, see systems/world.js):
+//   { v: 11, shirts: [{ color, pattern }], toys: [toy design (data/toys.js)], zone: "slot.floor", city: [buildingKey | null], looks: { sectionId: { wall, floor, windows } },
 //     pets: [petKind], tips: [seenTipId], furniture: { sectionId: [{ type, x, y, items: [{ s: slot, k: itemKey }] }] | null },
 //     night: bool, coins: int, unlocked: [premiumKey], recipes: [recipeId], floors: { sectionId: [{ k, x, l }] },
 //     characters: [{ id, name, look, x, lane, scale, worn: { slot: itemKey } }] }
 // Furniture and floor items are stored per room (section) in that room's own 0..960 coordinates;
 // characters use zone (world) x.
 //
-// v9 had a flat list of rooms (kitchen, bedroom, park, shop) instead of a city; v8 had no pets; v7 had no tips (migrated players have seen them all); v6 had no furniture (null = the room's default layout); v5 had no recipes; v4 had no coins/unlocked; v3 had no `night`; v2 had no name/look; v1 had a single `char` + top-level `worn`. migrate()
+// v10 had no shirt/toy designs; v9 had a flat list of rooms (kitchen, bedroom, park, shop) instead of a city; v8 had no pets; v7 had no tips (migrated players have seen them all); v6 had no furniture (null = the room's default layout); v5 had no recipes; v4 had no coins/unlocked; v3 had no `night`; v2 had no name/look; v1 had a single `char` + top-level `worn`. migrate()
 // upgrades them step by step.
 import { SAVE_VERSION, FLOOR_TOP, FLOOR_BOTTOM } from '../config.js';
 import { CATALOG, SLOTS_FOR } from '../data/items.js';
@@ -27,8 +27,11 @@ import { clamp } from '../util.js';
 import { DEFAULT_LOOK, sanitizeLook } from '../data/look.js';
 import { MAX_PARTY, defaultParty } from '../data/characters.js';
 import { PETS, MAX_PETS } from '../data/pets.js';
+import { PATTERNS } from '../data/patterns.js';
+import { registerToys, sanitizeToy } from '../data/toys.js';
 
 const ok = Number.isFinite;
+const isColor = v => Number.isInteger(v) && v >= 0 && v <= 0xffffff;
 
 export function migrate(d) {
   if (!d || typeof d !== 'object') return null;
@@ -54,6 +57,7 @@ export function migrate(d) {
   if (d.v === 8) d = { ...d, v: 9, pets: [] };
   if (d.v === 9) d = migrateRoomsToCity(d);
   if (!d) return null;
+  if (d.v === 10) d = { ...d, v: 11, shirts: [], toys: [] };
   return d.v === SAVE_VERSION ? d : null;
 }
 
@@ -102,6 +106,8 @@ export function sanitize(raw) {
       };
     });
 
+  const toys = (Array.isArray(d.toys) ? d.toys.map(sanitizeToy).filter(Boolean) : []).filter((t, i, a) => a.findIndex(u => u.id === t.id) === i).slice(0, 12);
+  registerToys(toys);                                       // custom toys are items: they must exist before anything refers to them
   const sections = allSections(city);
   const floors = {};
   for (const sec of sections) {
@@ -123,7 +129,9 @@ export function sanitize(raw) {
   const known = new Set(RECIPES.map(r => r.id));
   const recipes = [...new Set(Array.isArray(d.recipes) ? d.recipes.filter(id => known.has(id)) : [])];
   const pets = (Array.isArray(d.pets) ? d.pets.filter(k => Object.prototype.hasOwnProperty.call(PETS, k)) : []).slice(0, MAX_PETS);
-  return { v: SAVE_VERSION, zone, city, looks, pets, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
+  const shirts = (Array.isArray(d.shirts) ? d.shirts : []).filter(s => s && isColor(s.color)).slice(0, 8)
+    .map(s => ({ color: s.color, pattern: s.pattern && PATTERNS[s.pattern.id] && isColor(s.pattern.color) ? { id: s.pattern.id, color: s.pattern.color } : null }));
+  return { v: SAVE_VERSION, zone, city, looks, pets, shirts, toys, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
 }
 
 // A room's furniture list, or null (= use the room's default layout).

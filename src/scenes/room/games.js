@@ -3,6 +3,7 @@
 import { MINIGAMES } from '../../data/minigames.js';
 import { floatText } from '../../systems/interactions.js';
 import { spawnFront } from '../../systems/spawn.js';
+import { registerToy } from '../../data/toys.js';
 
 export const gameMethods = {
   // Tap on a station: pause the room and run the game as an overlay.
@@ -30,7 +31,22 @@ export const gameMethods = {
       floatText(this, at.x, at.y - at.def.h / 2 - 50, `+${result.coins} 🪙`, 30);
     }
     (result.items || []).forEach((key, i) => this.time.delayedCall(250 + i * 220, () => { if (this.zone && at.active !== false) spawnFront(this, key, at, 80); }));
-    if (this.applyGameResult) this.applyGameResult(id, result);
+    this.applyGameResult(id, result);
     this.dirty = true;
+  },
+
+  // Games that hand back more than coins and items: a shirt design, a sculpted toy.
+  applyGameResult(id, result) {
+    if (result.shirt) {
+      const kid = this.selected || this.characters[0], design = result.shirt;
+      kid.applyLook({ ...kid.look, shirt: design.color, pattern: design.pattern });
+      const same = s => s.color === design.color && JSON.stringify(s.pattern) === JSON.stringify(design.pattern);
+      this.shirtDesigns = [design, ...this.shirtDesigns.filter(s => !same(s))].slice(0, 8);
+      floatText(this, kid.x, kid.headTopY() + 60, '✨', 56);
+    }
+    if (result.toy) {
+      registerToy(result.toy);
+      this.toyDesigns = [...this.toyDesigns, result.toy].slice(-12);
+    }
   },
 };

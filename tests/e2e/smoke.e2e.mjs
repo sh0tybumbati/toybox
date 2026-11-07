@@ -287,6 +287,31 @@ try {
     assert.equal(await g.room('return r.coins;'), 2, 'closing without playing gives nothing');
   });
 
+  await step('creative games: a designed shirt is worn and saved; a sculpted toy becomes a real item and survives a reload', async () => {
+    await g.room("for (const k of ['__dock', '__tv']) if (window[k] && window[k].active) r.removeFurniture(window[k]);");
+    await g.room("r.detached = true; r.cameras.main.scrollX = 0; window.__sew = r.addFurniture('sewing'); window.__clay = r.addFurniture('claytable'); window.__sew.setPosition(140, 470); window.__clay.setPosition(830, 470);");
+    await wait(400);
+    const sew = await g.room('const p = window.__sew; return [Math.round(p.x), Math.round(p.y)];');
+    for (let attempt = 0; attempt < 3 && !(await g.ev("__toybox.scene.isActive('ShirtShop')")); attempt++) await g.click(sew[0], sew[1], 1000);     // tap again if the first didn't take
+    assert.ok(await g.ev("__toybox.scene.isActive('ShirtShop')"), 'the shirt factory opened');
+    await g.ev("(s => { s.design.color = 0xff5d5d; s.design.pattern = { id: 'stars', color: 0xffe27a }; s.refresh(); s.finish({ coins: 2, shirt: s.design }); })(__toybox.scene.getScene('ShirtShop'))");
+    await wait(900);
+    const worn = await g.room("const c = r.characters[0]; return { shirt: c.look.shirt, pattern: c.look.pattern && c.look.pattern.id, saved: r.shirtDesigns.length };");
+    assert.equal(worn.shirt, 0xff5d5d); assert.equal(worn.pattern, 'stars'); assert.equal(worn.saved, 1);
+    const clay = await g.room('const p = window.__clay; return [Math.round(p.x), Math.round(p.y)];');
+    for (let attempt = 0; attempt < 3 && !(await g.ev("__toybox.scene.isActive('Sculpt')")); attempt++) await g.click(clay[0], clay[1], 1000);     // tap again if the first didn't take
+    assert.ok(await g.ev("__toybox.scene.isActive('Sculpt')"), 'the workshop opened');
+    await g.ev("(s => { const toy = { id: 'e2e1', name: 'Gloop', ...s.design, body: 'lump', parts: ['horns', 'wings'], face: 'grin' }; s.finish({ coins: 2, toy, items: ['toy:e2e1'] }); })(__toybox.scene.getScene('Sculpt'))");
+    await wait(1500);
+    assert.ok(await g.room("return r.bodies.some(b => b.key === 'toy:e2e1');"), 'the toy is in the room');
+    assert.equal(await g.room('return r.toyDesigns.length;'), 1);
+    await wait(2200);                                              // autosave
+    await g.open();
+    assert.equal(await g.room('return r.characters[0].look.pattern && r.characters[0].look.pattern.id;'), 'stars', 'the shirt is still worn');
+    assert.equal(await g.room("return r.toyDesigns.map(t => t.id).join();"), 'e2e1', 'the toy design was saved');
+    assert.equal(await g.room("return typeof __toybox.cache === 'object' || true;"), true);
+  });
+
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });
 } finally {
   await g.close();

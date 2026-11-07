@@ -3,6 +3,7 @@
 // Hair is hand-inked: flat matte colour, a wobbly dark outline and a choppy fringe (art/reference/).
 import { blob, inkFill, inkStroke, INK } from './ink.js';
 import { AGES } from './body.js';
+import { PATTERNS } from './patterns.js';
 
 export const SKIN_TONES = [0xffe6d0, 0xffd9a8, 0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0x5e3a1e, 0xb5ead7, 0xd0c1ff];
 export const HAIR_COLORS = [0x2b1b12, 0x6b4226, 0xb5651d, 0xe8c15a, 0xdcdcdc, 0xc0392b, 0x3b6fd4, 0xe667a8];
@@ -65,7 +66,7 @@ export const HAIR_STYLES = {
   } },
 };
 
-export const DEFAULT_LOOK = { age: 'kid', skin: 0xffd9a8, hair: { style: 'short', color: 0x6b4226 }, shirt: 0x6ec6ff, pants: 0x3b6fb4, shoe: 0x3b5b8c };
+export const DEFAULT_LOOK = { age: 'kid', skin: 0xffd9a8, hair: { style: 'short', color: 0x6b4226 }, shirt: 0x6ec6ff, pattern: null, pants: 0x3b6fb4, shoe: 0x3b5b8c };
 
 // Blush colour: the skin tone nudged toward pink so it reads on every tone.
 export function cheekFor(skin) {
@@ -87,6 +88,7 @@ export function sanitizeLook(l) {
       color: isColor(h.color) ? h.color : d.hair.color,
     },
     shirt: l && isColor(l.shirt) ? l.shirt : d.shirt,
+    pattern: l && l.pattern && PATTERNS[l.pattern.id] && isColor(l.pattern.color) ? { id: l.pattern.id, color: l.pattern.color } : null,
     pants: l && isColor(l.pants) ? l.pants : d.pants,
     shoe: l && isColor(l.shoe) ? l.shoe : d.shoe,
   };
@@ -99,6 +101,7 @@ export function randomLook(rand = Math.random) {
     skin: pick(SKIN_TONES),
     hair: { style: pick(Object.keys(HAIR_STYLES)), color: pick(HAIR_COLORS) },
     shirt: pick(SHIRT_COLORS),
+    pattern: rand() < 0.3 ? { id: pick(Object.keys(PATTERNS)), color: pick(SHIRT_COLORS) } : null,
     pants: pick(PANTS_COLORS),
     shoe: pick(SHOE_COLORS),
   };
