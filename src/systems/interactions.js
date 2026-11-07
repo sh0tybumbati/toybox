@@ -106,21 +106,21 @@ function tryCombo(scene, item) {
 
 function eat(scene, item, c) {
   scene.tipEvent('eat');
-  const mouthY = c.y - 45 * c.scaleX;
+  const mouthY = c.mouthY();
   const name = CATALOG[item.key].reaction || 'yum', react = REACTIONS[name];
   scene.discard(item, { x: c.x, y: mouthY, scale: 0, duration: 220 });
 
   // Chew, then react: each food has its own face, sound and emoji.
   scene.sfx.crunch();
   puff(scene, c.x, mouthY, 0xc98f5a, 6);
-  scene.earn('eat', c.x, c.y - 240 * c.scaleX);
+  scene.earn('eat', c.x, c.headTopY() - 50);
   c.eatingUntil = scene.time.now + 700;
   c.reaction = name;
   c.reactUntil = c.eatingUntil + 1600;
   scene.time.delayedCall(450, () => {
     scene.sfx[react.sfx === 'crunch' ? 'giggle' : react.sfx]();
-    floatText(scene, c.x, c.y - 200 * c.scaleX, react.emoji);
-    if (react.extra) floatText(scene, c.x + 40, c.y - 170 * c.scaleX, react.extra);
+    floatText(scene, c.x, c.headTopY() - 10, react.emoji);
+    if (react.extra) floatText(scene, c.x + 40, c.headTopY() + 20, react.extra);
   });
   squashTo(scene, c, 1.12, 0.9, 110);
   if (react.grow) scene.tweens.add({ targets: c, scale: Math.min(c.scaleX * 1.06, 1.5), duration: 150 });
@@ -166,7 +166,7 @@ function cuddle(scene, toy, c) {
   toy.vz = 560;                                // the toy hops off, delighted
   toy.vx = Phaser.Math.Between(0, 1) ? 180 : -180;
   scene.sfx.cuddle();
-  floatText(scene, c.x, c.y - 120, '💖');
+  floatText(scene, c.x, c.headTopY() + 70, '💖');
 }
 
 export function trash(scene, item) {

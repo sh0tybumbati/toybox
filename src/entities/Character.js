@@ -1,170 +1,119 @@
-import { FOOT } from '../config.js';
 import { clamp } from '../util.js';
-import { HAIR_STYLES, DEFAULT_LOOK, cheekFor } from '../data/look.js';
-import { EXPRESSIONS, EYE_OPEN } from '../data/expressions.js';
+import { HAIR_STYLES, DEFAULT_LOOK } from '../data/look.js';
+import { EXPRESSIONS } from '../data/expressions.js';
+import { layoutFor, limbCurve, limbTargets, springTip } from '../data/body.js';
+import { INK, blob, inkFill, inkStroke, inkTube } from '../data/ink.js';
+import { paintFace } from '../data/face.js';
 import { walkPose } from '../systems/walk.js';
 
-const BROW = 0x4a3426, INK = 0x222222, MOUTH = 0x7a1f2b;
+const lerp = (a, b, t) => a + (b - a) * t;
 
-// A character: a Container so body, face and hair move/scale as one unit.
-// Origin (0,0) is the centre of its 160x290 hit box. All art lives in `rig`,
-// which pivots at the FEET so squash/stretch and breathing stay planted.
-// Drop zones are stored in local coordinates and converted to world space in
-// getZone(). `entry` = { id, name, look, x, lane } (see data/look.js for `look`).
+// A character: a Container so body, face and hair move/scale as one unit. Hand-inked, boneless
+// (art/reference/): a bean body, a wobbly head and noodle limbs that are redrawn every frame as
+// springy bezier tubes, so they lag, overshoot and curl instead of rotating around joints.
+// Origin (0,0) is the centre of the hit box; the feet touch y=+F (data/body.js: kids F=145, grown-ups
+// F=190). All art lives in `rig`, which pivots at the FEET so squash/stretch and breathing stay planted.
+// Drop zones and wearable slots come from the body layout and are converted to world space in
+// getZone()/slotTarget(). `entry` = { id, name, look, x, lane } (see data/look.js for `look`).
 export default class Character extends Phaser.GameObjects.Container {
   constructor(scene, entry) {
     super(scene, entry.x ?? 480, 0);
     this.id = entry.id;
     this.name = entry.name || 'Kid';
+    this.layout = layoutFor(entry.look && entry.look.age);
+    this.F = this.layout.foot;
 
-    this.rig = scene.add.container(0, FOOT);
-    // Rig children are positioned relative to the character origin, so the
-    // graphics shift by -FOOT to compensate for the rig's pivot.
-    const layer = () => scene.add.graphics().setPosition(0, -FOOT);
+    this.rig = scene.add.container(0, this.F);
+    // Rig children are positioned relative to the character origin, so the graphics shift by -F to
+    // compensate for the rig's pivot at the feet.
+    const layer = () => scene.add.graphics().setPosition(0, -this.F);
     this.hairBack = layer();
-    // Feet and arms are their own layers (pivoting where they attach) so they can swing when walking.
-    const limb = (x, y) => scene.add.graphics().setPosition(x, y - FOOT);
-    this.footL = limb(-28, 140); this.footR = limb(28, 140);
-    this.armL = limb(-70, 12); this.armR = limb(70, 12);
+    this.legs = layer();                          // redrawn every frame (noodles + shoes)
     this.body = layer();
+    this.arms = layer();                          // redrawn every frame
+    this.head = layer();
     this.hairFront = layer();
-    this.face = layer();                          // brows, mouth, tint, happy eyes
-
-    this.eyeBase = [{ x: -24, y: -92 }, { x: 24, y: -92 }];
-    this.whites = this.eyeBase.map(e => scene.add.ellipse(e.x, e.y - FOOT, 22, 26, 0xffffff).setStrokeStyle(2, INK));
-    this.pupils = this.eyeBase.map(e => scene.add.circle(e.x, e.y - FOOT, 6, INK));
-
-    this.rig.add([this.hairBack, this.footL, this.footR, this.armL, this.armR, this.body, this.hairFront, ...this.whites, ...this.pupils, this.face]);
+    this.face = layer();                          // redrawn every frame (dot eyes, blush, mouth)
+    this.layers = [this.hairBack, this.legs, this.body, this.arms, this.head, this.hairFront, this.face];
+    this.rig.add(this.layers);
     this.add(this.rig);
 
     this.look = null;
-    this.applyLook(entry.look || DEFAULT_LOOK);
-
-    this.expr = null;
-    this.setExpression('neutral');
+    this.headPts = null;
+    this.expr = 'neutral';
     this.blink = 1;              // 1 = eyes open, ~0.1 = closed
     this.sq = { x: 1, y: 1 };    // squash & stretch factors (tweened)
     this.eatingUntil = 0;        // scene time until which the character is chewing
     this.reaction = null;        // food reaction name (data/expressions.js REACTIONS)
     this.reactUntil = 0;
     this.pokedUntil = 0;
+    this.nextZ = 0;              // next time a sleepy "💤" may float up
+    this.worn = { head: null, eyes: null, handL: null, handR: null, feet: null }; // slot -> worn item
+    this.px = this.x; this.vxs = 0;   // smoothed horizontal speed (limbs trail it, hand-held toys swing with it)
     this.goal = null;            // walking target { x, lane } (systems/walk.js)
     this.facing = 1;             // last horizontal direction walked
     this.walking = false;
     this.walkPhase = 0; this.walkAmt = 0;     // step cycle position / how much of the walk pose is showing
     this.onStep = null;          // called when a foot lands
     this.sleeping = null;        // the bed (Prop) we're tucked into
-    this.hugUntil = 0;
-    this.nextZ = 0;              // next time a sleepy "💤" may float up
-    this.worn = { head: null, eyes: null, handL: null, handR: null, feet: null }; // slot -> worn item
-    this.px = this.x; this.vxs = 0;   // smoothed horizontal speed (hand-held toys swing with it)
+    this.hugging = false; this.hugSide = 0; this.hugUntil = 0;
+    this.lift = 0;               // how far the arms are raised (0..1), eased
+    this.lastT = 0;
 
     // Physics-ish state, same fields the items use.
     this.held = false; this.lane = entry.lane ?? 490; this.z = 0; this.vz = 0;
 
-    // Hit box for dragging the whole character.
-    this.setSize(160, 290);
+    this.setSize(170, this.F * 2);
     this.setInteractive({ draggable: true, useHandCursor: true });
     scene.add.existing(this);
 
-    // Drop zones in LOCAL space: [x, y, width, height]
-    this.zones = {
-      head:  [-80, -215, 160, 110], // area just above/over the head
-      eyes:  [-55, -118, 110,  40], // area over the eyes
-      mouth: [-55,  -75, 110,  60], // area over the mouth
-      handL: [-135,  40,  75, 110],
-      handR: [  60,  40,  75, 110],
-      feet:  [-75,  108, 150,  62],
-      body:  [-80, -145, 160, 290], // whole character
-    };
-    // Wearable slots: where the item sits (local coords) and how big it is worn.
-    this.slots = {
-      head:  { off: { x: 0,   y: -150 }, scale: 1 },
-      eyes:  { off: { x: 0,   y: -92 },  scale: 1.3 },
-      handL: { off: { x: -80, y: 92 },   scale: 0.9 },
-      handR: { off: { x: 80,  y: 92 },   scale: 0.9 },
-      feet:  { off: { x: 0,   y: 134 },  scale: 1.45 },
-    };
+    this.applyLook(entry.look || DEFAULT_LOOK);
   }
 
-  foot() { return FOOT * this.scaleX; }
+  foot() { return this.F * this.scaleX; }
 
-  // (Re)draw body, hair and the static parts of the face from a look.
+  // World y of the top of the head and of the mouth (floating emoji, eating).
+  headTopY() { return this.y + (this.layout.head.y - this.layout.head.ry) * this.scaleX; }
+  mouthY() { return this.y + this.layout.mouthY * this.scaleX; }
+
+  // Switch to a (possibly different) body and (re)draw the parts that don't move: head, hair and the bean body.
   applyLook(look) {
     this.look = look;
-    const { skin, shirt, shoe, hair } = look;
-    const style = HAIR_STYLES[hair.style] || HAIR_STYLES.short;
+    const L = layoutFor(look.age);
+    if (L !== this.layout || !this.zones) this.useLayout(L);
+    const { skin, shirt, pants, hair } = look;
+    const style = HAIR_STYLES[hair.style] || HAIR_STYLES.short, h = L.head;
 
-    this.hairBack.clear(); style.back(this.hairBack, hair.color);
-    this.hairFront.clear(); style.front(this.hairFront, hair.color);
+    this.hairBack.clear(); style.back(this.hairBack, hair.color, h);
+    this.hairFront.clear(); style.front(this.hairFront, hair.color, h);
 
-    for (const f of [this.footL, this.footR]) f.clear().fillStyle(shoe, 1).fillEllipse(0, 0, 46, 18);   // feet
-    for (const a of [this.armL, this.armR]) {                                                  // arm + hand, pivoting at the shoulder
-      a.clear().fillStyle(shirt, 1).fillRoundedRect(-12, -4, 24, 80, 12);
-      a.fillStyle(skin, 1).fillCircle(0, 78, 13);
-    }
-    const g = this.body.clear();
-    g.fillStyle(shirt, 1).fillRoundedRect(-60, -10, 120, 155, 30);                             // body
-    g.fillStyle(skin, 1).fillCircle(0, -75, 70);                                               // head
-    g.fillStyle(cheekFor(skin), 0.7).fillCircle(-42, -62, 11).fillCircle(42, -62, 11);        // cheeks
-    this.drawFace();
+    const g = this.body.clear(), b = L.body;
+    inkFill(g, blob(0, L.hip.y + 6, L.hip.x + 16, 17, { n: 16, amp: 0.05, seed: 21 }), pants, { w: 4.2, seed: 21 });   // trousers showing under the sweater
+    const torso = blob(b.x, b.y, b.w / 2, b.h / 2, { n: 26, amp: 0.055, seed: 3, rot: 0.04 });
+    inkFill(g, torso, shirt, { w: 4.6, seed: 3 });
+    inkStroke(g, [{ x: -18, y: b.y - b.h / 2 + 12 }, { x: -6, y: b.y - b.h / 2 + 18 }, { x: 8, y: b.y - b.h / 2 + 17 }, { x: 19, y: b.y - b.h / 2 + 11 }], { w: 3, seed: 4, heavy: 0 });   // collar
+    inkStroke(g, [{ x: -b.w * 0.3, y: b.y + b.h * 0.2 }, { x: -b.w * 0.05, y: b.y + b.h * 0.27 }, { x: b.w * 0.25, y: b.y + b.h * 0.22 }], { w: 2.6, seed: 8, heavy: 0 });   // a slouchy fold in the belly
+
+    this.headPts = blob(h.x, h.y, h.rx, h.ry, { n: 30, amp: 0.04, seed: 7 });
+    inkFill(this.head.clear(), this.headPts, skin, { w: 5, seed: 7 });
   }
 
-  setExpression(name) {
-    if (name === this.expr) return;
-    this.expr = name;
-    this.drawFace();
+  // Everything that depends on the body: the hit box, the drop zones, the wearable slots, limb tips.
+  useLayout(L) {
+    this.layout = L;
+    this.F = L.foot;
+    this.rig.setPosition(0, this.F);
+    this.layers.forEach(l => l.setPosition(0, -this.F));
+    this.setSize(170, this.F * 2);
+    if (this.input && this.input.hitArea) this.input.hitArea.setSize(170, this.F * 2);
+    this.zones = L.zones;
+    this.slots = { head: { ...L.slots.head }, eyes: { ...L.slots.eyes }, handL: { ...L.slots.handL }, handR: { ...L.slots.handR }, feet: { ...L.slots.feet } };
+    const rest = limbTargets(L, {});
+    this.tips = {};
+    for (const [k, p] of Object.entries(rest)) this.tips[k] = { x: p.x, y: p.y, vx: 0, vy: 0 };
   }
 
-  // Brows, mouth, colour wash and ^ ^ eyes for the current expression.
-  drawFace() {
-    const e = EXPRESSIONS[this.expr] || EXPRESSIONS.neutral, f = this.face.clear();
-
-    if (e.tint) f.fillStyle(e.tint[0], e.tint[1]).fillCircle(0, -75, 70);
-
-    f.lineStyle(5, BROW, 1);
-    if (e.brows === 'up') f.lineBetween(-36, -114, -14, -120).lineBetween(14, -120, 36, -114);
-    if (e.brows === 'worried') f.lineBetween(-36, -110, -14, -120).lineBetween(14, -120, 36, -110);
-    if (e.brows === 'angry') f.lineBetween(-36, -121, -14, -111).lineBetween(14, -111, 36, -121);
-
-    if (e.eyes === 'happy') {                                  // ^ ^
-      f.lineStyle(5, INK, 1);
-      for (const ex of [-24, 24]) f.beginPath().arc(ex, -88, 11, 1.15 * Math.PI, 1.85 * Math.PI).strokePath();
-    }
-
-    if (e.eyes === 'closed') {                                 // u u
-      f.lineStyle(5, INK, 1);
-      for (const ex of [-24, 24]) f.beginPath().arc(ex, -94, 11, 0.15 * Math.PI, 0.85 * Math.PI).strokePath();
-    }
-
-    switch (e.mouth) {
-      case 'smile':
-        f.lineStyle(4, INK, 1).beginPath().arc(0, -50, 16, 0.15 * Math.PI, 0.85 * Math.PI).strokePath();
-        break;
-      case 'grin':
-        f.fillStyle(MOUTH, 1).beginPath().arc(0, -54, 22, 0, Math.PI).closePath().fillPath();
-        break;
-      case 'open':
-        f.fillStyle(MOUTH, 1).fillEllipse(0, -45, 36, 30);
-        break;
-      case 'tongue':
-        f.fillStyle(MOUTH, 1).fillEllipse(0, -44, 38, 36);
-        f.fillStyle(0xff7f9a, 1).fillEllipse(0, -34, 22, 14);
-        break;
-      case 'o':
-        f.fillStyle(MOUTH, 1).fillEllipse(0, -46, 18, 22);
-        break;
-      case 'flat':
-        f.lineStyle(4, INK, 1).lineBetween(-12, -48, 12, -48);
-        break;
-      case 'frown':
-        f.lineStyle(4, INK, 1).beginPath().arc(0, -34, 16, 1.15 * Math.PI, 1.85 * Math.PI).strokePath();
-        break;
-      case 'wavy':
-        f.lineStyle(4, INK, 1).beginPath().moveTo(-18, -46).lineTo(-9, -53).lineTo(0, -46).lineTo(9, -53).lineTo(18, -46).strokePath();
-        break;
-    }
-  }
+  setExpression(name) { this.expr = name; }
 
   // World-space rectangle of a zone, accounting for the character's scale.
   getZone(name) {
@@ -173,10 +122,11 @@ export default class Character extends Phaser.GameObjects.Container {
     return new Phaser.Geom.Rectangle(this.x + zx * s, this.y + zy * s, zw * s, zh * s);
   }
 
-  // Where a slot's item sits in world space (follows the squash so it doesn't float).
+  // Where a slot's item sits in world space (follows the squash so it doesn't float). Hands carry
+  // things in their actual (springy) hand positions.
   slotTarget(slot) {
-    const { off } = this.slots[slot], s = this.scaleX;
-    const vx = s * off.x * this.rig.scaleX, vy = s * (FOOT + (off.y - FOOT) * this.rig.scaleY + this.rig.y - FOOT);
+    const off = slot === 'handL' ? this.tips.handL : slot === 'handR' ? this.tips.handR : this.slots[slot], s = this.scaleX;
+    const vx = s * off.x * this.rig.scaleX, vy = s * (this.F + (off.y - this.F) * this.rig.scaleY + this.rig.y - this.F);
     const cos = Math.cos(this.rotation), sin = Math.sin(this.rotation);     // a lying-down character carries its hat sideways
     return { x: this.x + vx * cos - vy * sin, y: this.y + vx * sin + vy * cos };
   }
@@ -195,32 +145,63 @@ export default class Character extends Phaser.GameObjects.Container {
     }
   }
 
-  // Breathing + squash on the rig, eyes follow (tx,ty), blink and expression applied.
+  // Breathing + squash on the rig, boneless limbs springing toward where the pose wants them, the face
+  // looking at (tx,ty) in world space.
   animate(time, tx, ty) {
+    const dt = clamp((time - (this.lastT || time)) / 1000, 0, 0.05);
+    this.lastT = time;
+    const L = this.layout, t = time / 1000;
     const breath = Math.sin(time / 600) * 0.015;
     this.rig.setScale(this.sq.x * (1 - breath * 0.5), this.sq.y * (1 + breath));
 
-    // Walk cycle: bob, lean into the step, swing arms and alternate the feet.
+    // Walk cycle: the body bobs and leans into the step; the limbs follow below.
     this.walkAmt += ((this.walking ? 1 : 0) - this.walkAmt) * 0.25;
     if (this.walkAmt < 0.01) this.walkAmt = 0;
     const pose = walkPose(this.walkPhase, this.walkAmt);
-    this.rig.y = FOOT + pose.bob;
+    this.rig.y = this.F + pose.bob;
     this.rig.rotation = pose.lean * this.facing;
-    this.footL.setPosition(-28 + pose.footL.dx, 140 - FOOT - pose.footL.lift);
-    this.footR.setPosition(28 + pose.footR.dx, 140 - FOOT - pose.footR.lift);
-    this.armL.rotation = pose.armL; this.armR.rotation = pose.armR;
 
-    const eyes = (EXPRESSIONS[this.expr] || EXPRESSIONS.neutral).eyes;
-    const open = EYE_OPEN[eyes], s = this.scaleX;
-    this.eyeBase.forEach((e, i) => {
-      const dx = tx - (this.x + e.x * s), dy = ty - (this.y + e.y * s);
-      const dist = Math.hypot(dx, dy) || 1;
-      const k = Math.min(4.5, dist / 30);
-      this.pupils[i].setPosition(e.x + (dx / dist) * k, e.y - FOOT + (dy / dist) * k);
-      const visible = open > 0;
-      this.whites[i].setVisible(visible).setScale(eyes === 'wide' ? 1.15 : 1, this.blink * open);
-      this.pupils[i].setVisible(visible).setScale(1, this.blink * open);
+    // Arms rise when they're picked up, surprised, or hugging.
+    const surprised = this.expr === 'surprised' || this.expr === 'hungry';
+    const liftTo = this.held && this.dragMoved ? 1 : this.hugging ? 0.8 : surprised ? 0.45 : 0;
+    this.lift += (liftTo - this.lift) * Math.min(1, dt * 9);
+    const want = limbTargets(L, { phase: this.walkPhase, amt: this.walkAmt, lift: this.lift, reach: this.hugging ? this.hugSide : 0, vx: this.vxs, t });
+    for (const k of Object.keys(want)) springTip(this.tips[k], want[k], dt, k.startsWith('hand') ? 130 : 220, k.startsWith('hand') ? 9 : 16);
+
+    this.paintLimbs();
+
+    // The face: dot eyes drift toward whatever we're looking at.
+    const e = EXPRESSIONS[this.expr] || EXPRESSIONS.neutral, s = this.scaleX;
+    const dx = tx - (this.x + L.head.x * s), dy = ty - (this.y + L.eyes.y * s), dist = Math.hypot(dx, dy) || 1;
+    const k = Math.min(3.6, dist / 40);
+    paintFace(this.face.clear(), L, this.look, e, {
+      blink: this.blink, gx: (dx / dist) * k, gy: (dy / dist) * k * 0.7, chew: this.expr === 'chew' ? 1 : 0, headPts: this.headPts,
     });
+  }
+
+  // Redraw the noodles: each limb is a bezier tube from its root to its (springy) tip.
+  paintLimbs() {
+    const L = this.layout, look = this.look, legs = this.legs.clear(), arms = this.arms.clear();
+    const bulge = (w0, w1) => k => lerp(w0, w1, k) * (1 + 0.14 * Math.sin(Math.PI * k));     // a noodle that's fatter in the middle
+    for (const side of [-1, 1]) {
+      const foot = this.tips[side < 0 ? 'footL' : 'footR'];
+      const hip = { x: side * L.hip.x, y: L.hip.y }, ankle = { x: foot.x, y: foot.y - 3 };
+      inkTube(legs, limbCurve(hip, ankle, L.leg.bow, -side, 10), bulge(L.leg.w0, L.leg.w1), look.pants, { w: 4, seed: 40 + side });
+      inkFill(legs, blob(foot.x + side * 4, foot.y + 2, L.feet.rx, L.feet.ry, { n: 14, amp: 0.06, seed: 50 + side }), look.shoe, { w: 4, seed: 50 + side });
+    }
+    for (const side of [-1, 1]) {
+      const hand = this.tips[side < 0 ? 'handL' : 'handR'];
+      const shoulder = { x: side * L.shoulder.x, y: L.shoulder.y };
+      const curve = limbCurve(shoulder, hand, L.arm.bow, side, 10);
+      inkTube(arms, curve, bulge(L.arm.w0, L.arm.w1), look.shirt, { w: 4, seed: 60 + side });
+      // a nubby little hand with three stubby fingers, pointing the way the arm ends
+      const end = curve[curve.length - 1], prev = curve[curve.length - 3], ang = Math.atan2(end.y - prev.y, end.x - prev.x);
+      inkFill(arms, blob(hand.x, hand.y + 1, L.arm.hand, L.arm.hand * 0.9, { n: 12, amp: 0.07, seed: 70 + side }), look.skin, { w: 3.6, seed: 70 + side, heavy: 1 });
+      for (const f of [-0.55, 0, 0.55]) {
+        const a = ang + f, x0 = hand.x + Math.cos(a) * L.arm.hand * 0.8, y0 = hand.y + Math.sin(a) * L.arm.hand * 0.8;
+        inkStroke(arms, [{ x: x0, y: y0 }, { x: x0 + Math.cos(a) * 6, y: y0 + Math.sin(a) * 6 }], { w: 3.2, seed: 80 + side, heavy: 0 });
+      }
+    }
   }
 
   // Advance the step cycle by `px` of ground covered; fires onStep each time a foot lands.

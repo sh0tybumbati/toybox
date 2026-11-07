@@ -154,7 +154,7 @@ export default class RoomScene extends Phaser.Scene {
       }));
       if (sleepy && !c.sleeping && now >= c.nextZ) {
         c.nextZ = now + 2200;
-        floatText(this, c.x + 50 * c.scaleX, c.y - 190 * c.scaleX, '💤');
+        floatText(this, c.x + 50 * c.scaleX, c.headTopY() - 6, '💤');
       }
     }
 

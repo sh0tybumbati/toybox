@@ -64,7 +64,7 @@ export const walkingMethods = {
     if (this.selectMarker) this.selectMarker.setVisible(this.characters.length > 1 && Boolean(this.selected));
     if (this.selectMarker && this.selected) {
       const bob = Math.sin(this.time.now / 250) * 4;
-      this.selectMarker.setPosition(this.selected.x, this.selected.y - 205 * this.selected.scaleX + bob);
+      this.selectMarker.setPosition(this.selected.x, this.selected.headTopY() - 22 + bob);
     }
   },
 

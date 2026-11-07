@@ -60,7 +60,7 @@ export const partyMethods = {
     c.pokedUntil = this.time.now + 900;
     squashTo(this, c, 1.1, 0.92, 90);
     this.sfx.giggle();
-    floatText(this, c.x, c.y - 200 * c.scaleX, '😄');
+    floatText(this, c.x, c.headTopY() - 10, '😄');
   },
 
   // Blink every 2–5 seconds.

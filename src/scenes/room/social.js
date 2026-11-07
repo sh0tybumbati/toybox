@@ -18,6 +18,7 @@ export const socialMethods = {
     const pairs = [[other, spots.a], [c, spots.b]];
     for (const [who, at] of pairs) {
       who.hugging = true;
+      who.hugSide = who === c ? Math.sign(other.x - c.x) || 1 : Math.sign(c.x - other.x) || 1;     // arms reach toward the other
       who.goal = null;
       who.hugUntil = this.time.now + HUG_MS;
       who.reaction = 'yum'; who.reactUntil = who.hugUntil;
@@ -33,9 +34,9 @@ export const socialMethods = {
     this.sfx.cuddle();
     const mid = (other.x + c.x) / 2;
     for (const [i, e] of ['💖', '💕', '💞'].entries()) {
-      this.time.delayedCall(i * 260, () => floatText(this, mid + (i - 1) * 34, Math.min(other.y, c.y) - 200 * c.scaleX, e));
+      this.time.delayedCall(i * 260, () => floatText(this, mid + (i - 1) * 34, Math.min(other.headTopY(), c.headTopY()) - 10, e));
     }
-    this.earn('hug', mid, Math.min(other.y, c.y) - 250 * c.scaleX);
+    this.earn('hug', mid, Math.min(other.headTopY(), c.headTopY()) - 50);
     this.dirty = true;
     return true;
   },

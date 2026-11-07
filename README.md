@@ -15,8 +15,8 @@ Tap 🎨 in the room to open the character creator. Tap the floor to walk, drop 
 main.js                  Phaser.Game config + scene list
 src/config.js            constants (screen, floor band, gravity, bin, save version)
 src/ui.js                touch-friendly hit areas and icon buttons
-src/data/                content as data: tips.js (guided start), items.js, rooms.js, props.js, recipes.js, economy.js, pets.js, look.js (hair/palettes), expressions.js, characters.js
-src/entities/            Character (container rig), Item (emoji Text with physics state), Prop (furniture)
+src/data/                art + content as data: ink.js (wobbly hand-inked shapes), body.js (kid/adult layouts + noodle-limb maths), face.js (dot-eye faces), decor.js/style.js/exterior.js (rooms, buildings), tips.js (guided start), items.js, rooms.js, props.js, recipes.js, economy.js, pets.js, look.js (hair/palettes), expressions.js, characters.js
+src/entities/            Character (container rig: boneless ink-drawn people, kid + grown-up bodies), Item (emoji Text with physics state), Prop (furniture)
 src/systems/             physics.js + expression.js + slots.js (pure), cooking.js (oven minigame),
                          storage.js (items in furniture), save.js (versioned, IndexedDB), sfx.js (WebAudio),
                          interactions.js (eat / wear / cuddle / bin / combos, effects),

@@ -16,7 +16,7 @@ const g = await launch();
 console.log('e2e smoke (mouse):');
 const pos = (key) => g.room(`const i = r.bodies.find(b => b.key === '${key}' && b.onShelf); return i && [Math.round(i.x), Math.round(i.y)];`);
 const state = () => g.room('return { room: r.zoneKey, coins: r.coins, recipes: [...r.discovered], night: r.night, chars: r.characters.length, props: r.props.map(p => p.type), floor: r.bodies.filter(b => b.key && !b.onShelf && !b.worn && !b.storedIn && !b.dead).map(b => b.key) };');
-const mouth = () => g.room('const c = r.characters[0]; return [Math.round(c.x), Math.round(c.y - 45 * c.scaleX)];');
+const mouth = () => g.room('const c = r.characters[0]; return [Math.round(c.x), Math.round(c.mouthY())];');
 
 try {
   await g.open();
@@ -261,7 +261,7 @@ try {
   await step('a finger can drag an item onto the mouth', async () => {
     await t.room("r.coins = 0; r.lastEarned = {}; r.createItem('banana', 300, 520);");
     await wait(600);
-    const m = await t.room('const c = r.characters[0]; return [Math.round(c.x), Math.round(c.y - 45 * c.scaleX)];');
+    const m = await t.room('const c = r.characters[0]; return [Math.round(c.x), Math.round(c.mouthY())];');
     await t.touchDrag(300, 492, m[0], m[1], 1200);
     assert.equal(await t.room('return r.coins;'), 1);
   });
