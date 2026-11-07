@@ -54,10 +54,10 @@ test('a v12 save round-trips through sanitize', () => {
   assert.deepEqual(sanitize(JSON.parse(JSON.stringify(d))), d);
 });
 
-test('party is capped at 4, junk looks are repaired, an empty party gets the default', () => {
+test('party is capped at 6, junk looks are repaired, an empty party gets the default', () => {
   const many = Array.from({ length: 9 }, (_, i) => ({ id: `c${i}`, name: `N${i}`, look: { skin: 'red', hair: { style: 'wat' } }, worn: {} }));
   const d = sanitize({ v: 3, room: 'bedroom', characters: many, floors: {} });
-  assert.equal(d.characters.length, 4);
+  assert.equal(d.characters.length, 6);
   assert.equal(d.characters[0].look.hair.style, 'short');
   assert.equal(typeof d.characters[0].look.skin, 'number');
   const empty = sanitize({ v: 3, room: 'bedroom', characters: [], floors: {} });

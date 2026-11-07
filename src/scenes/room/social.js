@@ -75,7 +75,7 @@ export const socialMethods = {
     c.sleeping = null; bed.sleeper = null; c.tucked = false;
     bed.boing(-0.5);                                        // and springs back up
     if (bed.blanket) { this.roomGfx = this.roomGfx.filter(o => o !== bed.blanket); bed.blanket.destroy(); bed.blanket = null; }
-    const stand = { x: clamp(bed.x + (bed.x > 480 ? -1 : 1) * (bed.def.w / 2 + 70), 100, 860), lane: clamp(bed.y + 10, 0, FLOOR_BOTTOM) };
+    const stand = { x: clamp(bed.x + (bed.x > 480 ? -1 : 1) * (bed.def.w / 2 + 50), 60, 900), lane: clamp(bed.y + 10, 0, FLOOR_BOTTOM) };
     c.lane = clamp(c.lane, 0, FLOOR_BOTTOM);
     if (instant) { c.setAngle(0); c.setScale(c.preScale); c.x = stand.x; c.lane = stand.lane; }
     else {
@@ -99,7 +99,7 @@ export const socialMethods = {
     if (bed.sleeper) { this.wakeUp(bed.sleeper); return; }
     const c = this.walkerFor({ x: bed.x });
     if (!c) return;
-    c.goal = { x: clamp(bed.x - 70, 100, 860), lane: clamp(bed.y - 8, 0, FLOOR_BOTTOM) };
+    c.goal = { x: clamp(bed.x - 50, 60, 900), lane: clamp(bed.y - 8, 0, FLOOR_BOTTOM) };
     this.showWalkMarker(c.goal.x, c.goal.lane);
     c.onArrive = () => { if (bed.active && !bed.sleeper) this.startSleep(c, bed); };
   },

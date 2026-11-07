@@ -78,7 +78,7 @@ export const dragMethods = {
         return;
       }
       const isChar = obj instanceof Character;
-      const mx = isChar ? 100 : 30;
+      const mx = isChar ? 60 : 30;
       obj.x = clamp(dragX, mx, this.worldW - mx);
       obj.y = clamp(dragY, isChar ? 190 : 30, FLOOR_BOTTOM - obj.foot());
       obj.lane = laneForFeet(obj.lane, obj.y + obj.foot());

@@ -1,5 +1,6 @@
 // Room scene mixin — The party: adding and removing characters, creator, poking, blinking.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
+import { CHAR_SCALE } from '../../config.js';
 import { MAX_PARTY, SLOT_X } from '../../data/characters.js';
 import Character from '../../entities/Character.js';
 import { floatText, squashTo } from '../../systems/interactions.js';
@@ -8,9 +9,9 @@ export const partyMethods = {
   // `entry` = { id, name, look, x?, lane?, scale? } — the same shape the save stores.
   addCharacter(entry) {
     const c = new Character(this, { ...entry, x: entry.x ?? this.freeX(), lane: entry.lane ?? Phaser.Math.Between(480, 515) });
-    if (entry.scale) c.setScale(entry.scale);
+    c.setScale(entry.scale ?? CHAR_SCALE);
     c.setDepth(this.topDepth++);
-    this.addShadow(c, 150, 26);
+    this.addShadow(c, 100, 18);
     c.y = c.lane - c.foot();
     c.px = c.x;
     this.characters.push(c);
@@ -21,7 +22,7 @@ export const partyMethods = {
   },
 
   // First standing spot that isn't crowded.
-  freeX() { return SLOT_X.find(x => this.characters.every(c => Math.abs(c.x - x) > 110)) ?? 480; },
+  freeX() { return SLOT_X.find(x => this.characters.every(c => Math.abs(c.x - x) > 80)) ?? 480; },
 
   // Everything they wore tumbles to the floor, then they leave.
   removeCharacter(c) {

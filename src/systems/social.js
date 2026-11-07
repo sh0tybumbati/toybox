@@ -2,9 +2,9 @@
 import { FLOOR_BOTTOM } from '../config.js';
 import { clamp } from '../util.js';
 
-export const HUG_RANGE_X = 130;         // dropped this close to a friend (px) and you hug
-export const HUG_RANGE_LANE = 60;
-export const HUG_GAP = 78;              // distance between two huggers' centres
+export const HUG_RANGE_X = 90;         // dropped this close to a friend (px) and you hug
+export const HUG_RANGE_LANE = 50;
+export const HUG_GAP = 54;              // distance between two huggers' centres
 export const HUG_MS = 1900;
 
 const free = c => !c.held && !c.hugging && !c.sleeping;

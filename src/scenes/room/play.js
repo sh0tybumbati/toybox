@@ -21,7 +21,7 @@ export const playMethods = {
     if (c.sleeping) this.wakeUp(c, true);
     const seat = slide ? null : freeSeat(prop.def.ride, on.map(r => r.riding));
     const at = slide ? { x: prop.x + slide.base.x + 34, lane: floorY(prop) + 8 } : this.seatApproach(prop, seat);
-    c.goal = { x: clamp(at.x, 100, this.worldW - 100), lane: clamp(at.lane, FLOOR_TOP + 20, FLOOR_BOTTOM) };
+    c.goal = { x: clamp(at.x, 60, this.worldW - 60), lane: clamp(at.lane, FLOOR_TOP + 20, FLOOR_BOTTOM) };
     c.z = 0;
     this.showWalkMarker(c.goal.x, c.goal.lane);
     c.onArrive = () => { if (prop.active && !c.riding) this.mount(c, prop, seat); };
@@ -70,7 +70,7 @@ export const playMethods = {
     const out = r.slide ? { x: prop.x + prop.def.ride.slide.end.x + 50, lane: floorY(prop) + 14 }
       : { x: prop.x + prop.def.ride.parts[r.part].seats[r.seat].x, lane: floorY(prop) + 14 };
     c.setAngle(0);
-    c.x = clamp(out.x, 100, Math.max(100, this.worldW - 100));
+    c.x = clamp(out.x, 60, Math.max(60, this.worldW - 60));
     c.lane = clamp(out.lane, FLOOR_TOP + 20, FLOOR_BOTTOM);
     c.y = c.lane - c.foot();
     c.z = 0;

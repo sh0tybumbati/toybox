@@ -11,7 +11,7 @@ export const walkingMethods = {
     const at = this.worldPoint(pointer);
     const c = this.walkerFor(at);
     if (!c) return;
-    const g = clampGoal(at.x, at.y, 100, this.worldW);
+    const g = clampGoal(at.x, at.y, 60, this.worldW);
     this.walkTo(c, g.x, g.lane);
     this.tipEvent('walk');
   },

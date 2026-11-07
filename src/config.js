@@ -8,6 +8,7 @@ export const H = 600;
 export const FLOOR_TOP = 445;
 export const FLOOR_BOTTOM = 580;
 export const GRAVITY = 2200;
+export const CHAR_SCALE = 0.64;       // how big people are in the room (the creator shows them full size)
 
 export const SHELF_W = 300;
 export const SHELF_STEP = 75;

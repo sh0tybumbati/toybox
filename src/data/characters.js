@@ -2,8 +2,8 @@
 // edited in the creator. This module holds the defaults and the party limit.
 import { DEFAULT_LOOK, NAMES } from './look.js';
 
-export const MAX_PARTY = 4;
-export const SLOT_X = [480, 330, 630, 780];     // where new characters are placed, in order
+export const MAX_PARTY = 6;
+export const SLOT_X = [480, 370, 590, 260, 700, 150];     // where new characters are placed, in order
 
 export const defaultParty = () => [{ id: 'kid', name: 'Kid', look: { ...DEFAULT_LOOK, hair: { ...DEFAULT_LOOK.hair } } }];
 
