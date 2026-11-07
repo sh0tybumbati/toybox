@@ -3,7 +3,8 @@
 import { W } from '../../config.js';
 import { PROP_TYPES } from '../../data/props.js';
 import Prop from '../../entities/Prop.js';
-import { touchable } from '../../ui.js';
+import { COLORS, inkButton, inkChip, pin, touchable } from '../../ui.js';
+import { spriteImage } from '../../systems/itemTextures.js';
 import { flushOven } from '../../systems/cooking.js';
 import { floatText, puff } from '../../systems/interactions.js';
 import { tapProp } from '../../systems/props.js';
@@ -42,13 +43,10 @@ export const furnitureMethods = {
     for (const b of this.bodies) if (b.input) b.input.enabled = false;     // only furniture can be grabbed
     for (const p of this.pets) p.input.enabled = false;
     for (const p of this.props) { p.input.draggable = true; this.attachRemoveButton(p); }
-    const pill = { fontSize: '20px', color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.55)', padding: { x: 14, y: 8 } };
-    const add = o => { o.setDepth(9500).setScrollFactor(0); this.editUI.push(o); return o; };
-    add(this.add.text(W / 2, 74, '🛋️ Furniture mode — drag to move, ✖ to remove', pill).setOrigin(0.5));
-    add(this.add.text(W / 2 - 110, 118, '➕ Add furniture', { ...pill, backgroundColor: '#3b8f5a' }).setOrigin(0.5)
-      .setInteractive({ useHandCursor: true }).on('pointerdown', () => this.openCatalog()));
-    add(this.add.text(W / 2 + 110, 118, '✔ Done', { ...pill, backgroundColor: '#e0a030' }).setOrigin(0.5)
-      .setInteractive({ useHandCursor: true }).on('pointerdown', () => this.exitEdit()));
+    const add = o => { pin(o).setDepth(9500); this.editUI.push(o); return o; };
+    add(inkChip(this, W / 2, 76, '🛋️ Furniture mode — drag to move, ✖ to remove', { size: 21, depth: 9500 }));
+    add(inkButton(this, W / 2 - 110, 120, '➕ Add furniture', { w: 188, fill: COLORS.green, size: 21, depth: 9500, onTap: () => this.openCatalog() }));
+    add(inkButton(this, W / 2 + 110, 120, '✔ Done', { w: 120, fill: COLORS.orange, size: 21, depth: 9500, onTap: () => this.exitEdit() }));
     this.sfx.click();
   },
 
@@ -68,9 +66,7 @@ export const furnitureMethods = {
   },
 
   attachRemoveButton(prop) {
-    prop.removeBtn = touchable(this.add.text(prop.x, prop.y, '✖', {
-      fontSize: '22px', color: '#c0392b', backgroundColor: '#ffffff', padding: { x: 8, y: 4 },
-    }).setOrigin(0.5).setDepth(9500), 8).on('pointerdown', () => this.removeFurniture(prop));
+    prop.removeBtn = touchable(spriteImage(this, 'icon-close', prop.x, prop.y, 34).setDepth(9500), 10).on('pointerdown', () => this.removeFurniture(prop));
   },
 
   openCatalog() {

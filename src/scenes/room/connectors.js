@@ -5,7 +5,7 @@ import { defaultFurniture } from '../../data/rooms.js';
 import { PROP_TYPES } from '../../data/props.js';
 import { floatText } from '../../systems/interactions.js';
 import { floorLabel, reachableFloors, sectionId, zoneKey } from '../../systems/world.js';
-import { touchable } from '../../ui.js';
+import { COLORS, inkButton, inkPanel, pin, richText } from '../../ui.js';
 
 const WORD = { elevator: 'elevator', stairs: 'stairs', ladder: 'ladder' };
 
@@ -47,18 +47,16 @@ export const connectorMethods = {
   showLiftPanel(prop, targets) {
     this.closeLiftPanel();
     const z = this.zone, ui = (this.liftUI = []);
-    const add = o => { o.setScrollFactor(0).setDepth(9700); ui.push(o); return o; };
+    const add = o => { pin(o).setDepth(9700); ui.push(o); return o; };
     add(this.add.rectangle(0, 0, W, H, 0x000000, 0.35).setOrigin(0).setInteractive().on('pointerdown', () => this.closeLiftPanel()));
     const rows = [...targets.map(id => z.building.floors.findIndex(f => f.id === id)), z.floorIndex].sort((a, b) => b - a);
-    const h = 70 + rows.length * 54, top = H / 2 - h / 2;
-    add(this.add.rectangle(W / 2, H / 2, 280, h, 0xfff4e0).setStrokeStyle(5, 0xe3c9a0).setInteractive());
-    add(this.add.text(W / 2, top + 28, `${prop.def.name}: where to?`, { fontSize: '22px', color: '#4a3426', fontStyle: 'bold' }).setOrigin(0.5));
+    const h = 84 + rows.length * 58, top = H / 2 - h / 2;
+    add(inkPanel(this, W / 2, H / 2, 310, h, { depth: 9700, seed: 4 })).setInteractive(new Phaser.Geom.Rectangle(W / 2 - 155, H / 2 - h / 2, 310, h), Phaser.Geom.Rectangle.Contains);
+    add(richText(this, `${prop.def.name}: where to?`, { fontSize: '26px', fontStyle: 'bold' })).setPosition(W / 2, top + 34);
     rows.forEach((idx, i) => {
-      const here = idx === z.floorIndex, y = top + 66 + i * 54;
-      const btn = add(this.add.text(W / 2, y, `${here ? '📍 ' : ''}${floorLabel(idx)}`, {
-        fontSize: '22px', color: here ? '#8a7a68' : '#ffffff', backgroundColor: here ? '#ede2cf' : '#3b8f5a', padding: { x: 28, y: 8 },
-      }).setOrigin(0.5));
-      if (!here) touchable(btn, 6).on('pointerdown', () => this.rideTo(z.building.floors[idx].id, prop));
+      const here = idx === z.floorIndex, y = top + 80 + i * 58;
+      const btn = add(inkButton(this, W / 2, y, `${here ? '📍 ' : ''}${floorLabel(idx)}`, { w: 220, fill: here ? COLORS.grey : COLORS.green, size: 23, depth: 9700 }));
+      if (!here) btn.on('pointerdown', () => this.rideTo(z.building.floors[idx].id, prop));
     });
   },
 

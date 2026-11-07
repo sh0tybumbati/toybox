@@ -58,6 +58,6 @@ test('sprites: every pet, the bin, the coin and the reaction faces have art, ins
 });
 
 test('every emoji the game floats up has a hand-drawn replacement', () => {
-  for (const [emoji, sprite] of Object.entries(EMOJI_SPRITE)) assert.ok(SPRITE_ART[sprite], `${emoji} -> ${sprite}`);
+  for (const [emoji, sprite] of Object.entries(EMOJI_SPRITE)) assert.ok(sprite.startsWith('item:') ? ITEM_ART[sprite.slice(5)] : SPRITE_ART[sprite], `${emoji} -> ${sprite}`);
   for (const r of Object.values(REACTIONS)) { assert.ok(EMOJI_SPRITE[r.emoji], r.emoji); if (r.extra) assert.ok(EMOJI_SPRITE[r.extra], r.extra); }
 });

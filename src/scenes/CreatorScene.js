@@ -6,9 +6,11 @@ import {
   SKIN_TONES, HAIR_COLORS, SHIRT_COLORS, PANTS_COLORS, SHOE_COLORS, HAIR_STYLES, randomLook,
 } from '../data/look.js';
 import { freshId, freshName } from '../data/characters.js';
+import { CARD, COLORS, hitZone, inkButton, inkPanel, inkSwatch } from '../ui.js';
+import { blob, inkFill } from '../data/ink.js';
 
-const INK = '#4a3426';
-const label = { fontSize: '18px', color: INK, fontStyle: 'bold' };
+const INK = '#3a2a22';
+const label = { fontSize: '21px', color: INK, fontStyle: 'bold' };
 
 export default class CreatorScene extends Phaser.Scene {
   constructor() { super('Creator'); }
@@ -23,8 +25,9 @@ export default class CreatorScene extends Phaser.Scene {
 
   create() {
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setInteractive();   // blocks the room underneath
-    this.add.rectangle(W / 2, H / 2, 880, 520, 0xfff4e0).setStrokeStyle(6, 0xe3c9a0);
-    this.add.ellipse(240, 515, 230, 34, 0xe6d3b3);                                 // preview platform
+    inkPanel(this, W / 2, H / 2, 892, 534, { seed: 13 });
+    const stage = this.add.graphics();                                              // the preview platform
+    inkFill(stage, blob(240, 520, 120, 17, { n: 20, amp: 0.05, seed: 3 }), 0xe6d3b3, { w: 3.4, seed: 3, heavy: 0 });
   }
 
   update(time) {
@@ -40,10 +43,7 @@ export default class CreatorScene extends Phaser.Scene {
   track(obj) { this.dyn.push(obj); return obj; }
 
   button(x, y, w, text, fill, onClick) {
-    const r = this.track(this.add.rectangle(x, y, w, 44, fill).setStrokeStyle(3, 0x4a3426)
-      .setInteractive({ useHandCursor: true }).on('pointerdown', onClick));
-    this.track(this.add.text(x, y, text, { ...label, fontSize: '16px' }).setOrigin(0.5));
-    return r;
+    return this.track(inkButton(this, x, y, text, { w, h: 40, fill, size: 20, onTap: onClick, depth: 6, seed: Math.round(x + y) }));
   }
 
   // Edit the selected character's look: copy, change, apply live, rebuild the UI.
@@ -55,12 +55,11 @@ export default class CreatorScene extends Phaser.Scene {
   }
 
   swatches(title, y, colors, selected, onPick, { x = 470, pitch = 47, r = 21 } = {}) {
-    this.track(this.add.text(x, y, title, { ...label, fontSize: r < 20 ? '16px' : '18px' }));
+    this.track(this.add.text(x, y, title, { ...label, fontSize: r < 20 ? '19px' : '21px' }).setDepth(2));
     colors.forEach((color, i) => {
-      const on = color === selected;
-      this.track(this.add.circle(x + 16 + i * pitch, y + r + 22, r, color)
-        .setStrokeStyle(on ? 5 : 2, on ? 0x222222 : 0xffffff)
-        .setInteractive({ useHandCursor: true }).on('pointerdown', () => onPick(color)));
+      const sx = x + 16 + i * pitch, sy = y + r + 24;
+      inkSwatch(this.sg, sx, sy, r, color, color === selected, i + Math.round(y));
+      this.track(hitZone(this, sx, sy, r * 2 + 6, r * 2 + 6, () => onPick(color), 3));
     });
   }
 
@@ -68,16 +67,15 @@ export default class CreatorScene extends Phaser.Scene {
     this.dyn.forEach(o => o.destroy());
     this.dyn = [];
     const room = this.room, c = this.current;
+    this.sg = this.track(this.add.graphics().setDepth(2));                          // this build's swatches
 
     // Party chips (+ add friend)
     room.characters.forEach((ch, i) => {
-      const on = i === this.index;
-      this.track(this.add.rectangle(112 + i * 92, 62, 84, 44, ch.look.shirt).setStrokeStyle(on ? 5 : 2, 0x4a3426)
-        .setInteractive({ useHandCursor: true }).on('pointerdown', () => { this.index = i; this.needsBuild = true; }));
-      this.track(this.add.text(112 + i * 92, 62, ch.name, { ...label, fontSize: '14px' }).setOrigin(0.5));
+      const chip = this.button(112 + i * 92, 62, 86, ch.name, ch.look.shirt, () => { this.index = i; this.needsBuild = true; });
+      chip.setScale(i === this.index ? 1.14 : 0.94);                               // the one being edited is bigger
     });
     if (room.canAddCharacter()) {
-      this.button(112 + room.characters.length * 92, 62, 84, '➕ Friend', 0xdff5d8, () => {
+      this.button(112 + room.characters.length * 92, 62, 104, '➕ Friend', COLORS.green, () => {
         const party = room.characters.map(x => ({ id: x.id, name: x.name }));
         room.addCharacter({ id: freshId(party), name: freshName(party), look: randomLook() });
         this.index = room.characters.length - 1;
@@ -86,22 +84,22 @@ export default class CreatorScene extends Phaser.Scene {
     }
 
     // Actions
-    this.button(630, 62, 100, '🎲 Random', 0xffe9a8, () => this.edit(look => Object.assign(look, randomLook())));
+    this.button(596, 62, 120, '🎲 Random', COLORS.gold, () => this.edit(look => Object.assign(look, randomLook())));
     if (room.characters.length > 1) {
-      this.button(730, 62, 80, '🗑 Leave', 0xffd0d0, () => {
+      this.button(716, 62, 104, '🗑 Leave', COLORS.red, () => {
         room.removeCharacter(c);
         this.index = Math.min(this.index, room.characters.length - 1);
         this.needsBuild = true;
       });
     }
-    this.button(850, 62, 110, '✔ Done', 0xb8ecb0, () => this.close());
+    this.button(852, 62, 118, '✔ Done', COLORS.green, () => this.close());
 
     // Preview (a clone; tap it for a giggle)
     this.preview = this.track(new Character(this, { id: 'preview', name: c.name, look: c.look, x: 240 }));
     this.preview.disableInteractive();
     const big = this.preview.look.age === 'adult' ? 1.0 : 1.3;               // grown-ups are taller: smaller on the stage
     this.preview.setScale(big).setPosition(240, 515 - this.preview.foot()).setDepth(5);
-    this.track(this.add.text(240, 100, c.name, { ...label, fontSize: '28px' }).setOrigin(0.5));
+    this.track(this.add.text(240, 108, c.name, { ...label, fontSize: '34px' }).setOrigin(0.5).setDepth(2));
     this.track(this.add.rectangle(240, 340, 220, 380, 0xffffff, 0.001)
       .setInteractive({ useHandCursor: true }).on('pointerdown', () => {
         this.preview.setExpression('giggle');
@@ -112,14 +110,14 @@ export default class CreatorScene extends Phaser.Scene {
     // Controls
     const look = c.look;
     for (const [i, [age, text]] of [['kid', '🧒 Kid'], ['adult', '🧑 Grown-up']].entries()) {
-      this.button(560 + i * 170, 112, 160, text, look.age === age ? 0xffd166 : 0xffffff, () => this.edit(l => { l.age = age; }));
+      this.button(560 + i * 176, 112, 166, text, look.age === age ? COLORS.gold : CARD, () => this.edit(l => { l.age = age; }));
     }
     this.swatches('Skin', 138, SKIN_TONES, look.skin, color => this.edit(l => { l.skin = color; }), { r: 18, pitch: 42 });
 
-    this.track(this.add.text(470, 208, 'Hair style', { ...label, fontSize: '16px' }));
+    this.track(this.add.text(470, 206, 'Hair style', { ...label, fontSize: '21px' }).setDepth(2));
     Object.entries(HAIR_STYLES).forEach(([key, style], i) => {
       const on = key === look.hair.style;
-      this.button(512 + (i % 5) * 88, 252 + Math.floor(i / 5) * 48, 82, style.label, on ? 0xffd166 : 0xffffff,
+      this.button(514 + (i % 5) * 90, 254 + Math.floor(i / 5) * 46, 84, style.label, on ? COLORS.gold : CARD,
         () => this.edit(l => { l.hair.style = key; }));
     });
 

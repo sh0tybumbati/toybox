@@ -8,7 +8,7 @@ import { dropOnProps } from './props.js';
 import { storeInFurniture } from './storage.js';
 import { clamp } from '../util.js';
 import { EMOJI_SPRITE } from '../data/spriteart.js';
-import { spriteImage } from './itemTextures.js';
+import { iconImage } from './itemTextures.js';
 
 // --- Small effects -----------------------------------------------------------
 
@@ -43,7 +43,7 @@ export function floatText(scene, x, y, str, size = 48) {
   const wordy = size < 40, px = wordy ? size * 1.15 : size * 1.05, gap = 4, items = [];
   for (const part of parts) {
     items.push(EMOJI_SPRITE[part]
-      ? spriteImage(scene, EMOJI_SPRITE[part], 0, 0, px)
+      ? iconImage(scene, EMOJI_SPRITE[part], 0, 0, px)
       : scene.add.text(0, 0, part, { fontSize: `${size}px`, ...(wordy && { fontStyle: 'bold', color: '#ffffff', stroke: '#4a3426', strokeThickness: 4 }) }).setOrigin(0.5));
   }
   const total = items.reduce((n, o) => n + o.displayWidth + gap, -gap);

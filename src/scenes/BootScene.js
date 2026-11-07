@@ -11,7 +11,7 @@ export default class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
     // Load the save and the emoji font together; never wait more than ~2s for the font.
     const font = Promise.race([
-      document.fonts ? document.fonts.load('32px "Noto Color Emoji"', '🍎🧸').catch(() => null) : null,
+      document.fonts ? Promise.all([document.fonts.load('32px "Noto Color Emoji"', '🍎🧸'), document.fonts.load('24px "Patrick Hand"', 'Aa')]).catch(() => null) : null,
       new Promise(r => setTimeout(r, 2000)),
     ]);
     Promise.all([saveStore.load(), font]).then(([save]) => this.scene.start('Room', { save }));

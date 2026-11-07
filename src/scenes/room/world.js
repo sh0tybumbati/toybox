@@ -10,7 +10,7 @@ import { flushProps } from '../../systems/props.js';
 import { sectionAt, zoneInfo, entryZone } from '../../systems/world.js';
 import { SHELF_STEP, SHELF_W } from '../../config.js';
 import { clamp } from '../../util.js';
-import { TEX_SIZE, ensureSpriteTexture } from '../../systems/itemTextures.js';
+import { TEX_SIZE, ensureSpriteTexture, spriteImage } from '../../systems/itemTextures.js';
 
 const SUNBEAMS = false;            // the hand-inked style (art/reference/) is flat: no light effects
 
@@ -269,7 +269,7 @@ export const worldMethods = {
     for (const sec of this.zone.sections) {
       const room = ROOMS[sec.type], off = sec.offset;
       if (room.openSky) {                                                        // outdoors: a moon and scattered stars
-        add(this.add.text(off + sec.w - 120, 90, '🌙', { fontSize: '56px' }).setOrigin(0.5));
+        add(spriteImage(this, 'moon', off + sec.w - 120, 90, 70));
         for (let i = 0; i < 18; i++) {
           const star = add(this.add.circle(off + 30 + ((i * 131) % (sec.w - 60)), 20 + ((i * 67) % 230), 2 + (i % 2), 0xffffff));
           this.tweens.add({ targets: star, alpha: 0.25, duration: 700 + i * 90, yoyo: true, repeat: -1, delay: i * 130 });
@@ -283,7 +283,7 @@ export const worldMethods = {
           const star = add(this.add.circle(wx + 14 + ((i * 53) % (w.w - 28)), w.y + 12 + ((i * 37) % (w.h - 36)), 2 + (i % 2), 0xffffff));
           this.tweens.add({ targets: star, alpha: 0.25, duration: 700 + i * 120, yoyo: true, repeat: -1, delay: i * 150 });
         }
-        add(this.add.text(wx + w.w * 0.72, w.y + w.h * 0.32, '🌙', { fontSize: '34px' }).setOrigin(0.5));
+        add(spriteImage(this, 'moon', wx + w.w * 0.72, w.y + w.h * 0.32, 40));
         const bars = add(this.add.graphics());
         bars.lineStyle(8, 0xffffff, 1).lineBetween(wx + w.w / 2, w.y, wx + w.w / 2, w.y + w.h).lineBetween(wx, w.y + w.h / 2, wx + w.w, w.y + w.h / 2);
       }

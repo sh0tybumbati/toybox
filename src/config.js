@@ -19,4 +19,4 @@ export const BIN = { x: 880, lane: 565, minLane: 500, halfW: 46 };
 export const SAVE_VERSION = 10;
 
 // Text defaults to this stack so emoji look the same everywhere (index.html loads the font).
-export const FONT = '"Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+export const FONT = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", cursive';

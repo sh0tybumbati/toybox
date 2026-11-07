@@ -39,6 +39,12 @@ export function ensureSpriteTexture(scene, key) {
   return tk;
 }
 
+// An icon by key: a sprite ('icon-map') or an item's drawing ('item:apple'), `px` wide and tall.
+export function iconImage(scene, key, x, y, px) {
+  const tex = key.startsWith('item:') ? ensureItemTexture(scene, key.slice(5)) : ensureSpriteTexture(scene, key);
+  return scene.add.image(x, y, tex).setDisplaySize(px, px);
+}
+
 // A sprite as an image, `px` wide and tall (the drawing's whole box).
 export function spriteImage(scene, key, x, y, px) {
   return scene.add.image(x, y, ensureSpriteTexture(scene, key)).setDisplaySize(px, px);

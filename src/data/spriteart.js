@@ -61,6 +61,19 @@ export const SPRITE_ART = {
   'icon-bed': small(p => { r(p, 6, 28, 52, 18, 0xf3ece0, 8); r(p, 6, 14, 10, 40, 0x9a6238, 4); r(p, 10, 22, 18, 12, WHITE, 6); r(p, 24, 28, 34, 18, 0x6aaee8, 8); ln(p, 56, 46, 56, 56, 4); }),
   'icon-plus': small(p => { poly(p, [[24, 8], [40, 8], [40, 24], [56, 24], [56, 40], [40, 40], [40, 56], [24, 56], [24, 40], [8, 40], [8, 24], [24, 24]], 0x4aa84a); }),
   'icon-pin': small(p => { poly(p, [[32, 60], [14, 32], [14, 16], [24, 6], [40, 6], [50, 16], [50, 32]], RED); c(p, 32, 24, 7, WHITE); }),
+  'icon-minus': small(p => poly(p, [[8, 24], [56, 24], [56, 40], [8, 40]], 0xe0605a)),
+  'icon-check': small(p => poly(p, [[8, 34], [18, 24], [26, 34], [48, 10], [58, 20], [26, 54]], 0x4aa84a)),
+  'icon-dice': small(p => { r(p, 8, 8, 48, 48, WHITE, 12); dots(p, [[20, 20], [44, 20], [32, 32], [20, 44], [44, 44]], INKC, 4.5); }),
+  'icon-lock': small(p => { poly(p, [[18, 28], [18, 18], [24, 8], [40, 8], [46, 18], [46, 28], [40, 28], [40, 18], [32, 14], [24, 18], [24, 28]], GREY); r(p, 10, 28, 44, 30, GOLD, 8); c(p, 32, 42, 5, INKC); }),
+  'icon-ladder': small(p => { ln(p, 18, 6, 18, 60, 5); ln(p, 46, 6, 46, 60, 5); for (const y of [16, 30, 44]) ln(p, 18, y, 46, y, 4); }),
+  'icon-elevator': small(p => { r(p, 8, 6, 48, 54, 0x6b7a99, 6); r(p, 14, 14, 17, 40, 0xc6cfe2, 3); r(p, 33, 14, 17, 40, 0xc6cfe2, 3); poly(p, [[32, 2], [38, 8], [26, 8]], GREEN); }),
+  'icon-kid': small(p => { c(p, 32, 32, 24, SKIN); tiny(p, () => { c(p, 24, 32, 3.4, INKC); c(p, 40, 32, 3.4, INKC); ln(p, 28, 42, 32, 45, 3); ln(p, 32, 45, 36, 42, 3); }); poly(p, [[10, 26], [16, 10], [32, 6], [48, 10], [54, 26], [44, 18], [32, 22], [20, 18]], BROWN); }),
+  'icon-grownup': small(p => { e(p, 32, 34, 20, 26, SKIN); tiny(p, () => { c(p, 25, 32, 3, INKC); c(p, 39, 32, 3, INKC); ln(p, 28, 46, 36, 46, 3); }); poly(p, [[10, 30], [14, 8], [32, 4], [50, 8], [54, 30], [46, 18], [32, 22], [18, 18]], CHOC); }),
+  'icon-question': small(p => { poly(p, [[16, 20], [22, 8], [38, 6], [50, 16], [48, 30], [36, 38], [34, 44], [26, 44], [26, 34], [38, 28], [40, 20], [32, 14], [24, 18]], 0xb8aa94); c(p, 30, 56, 5, 0xb8aa94); }),
+  'icon-feet': small(p => { e(p, 22, 42, 9, 14, 0x9a6238); e(p, 42, 24, 9, 14, 0x9a6238); dots(p, [[18, 26], [24, 24], [38, 8], [44, 6]], 0x9a6238, 3); }),
+  'icon-hand': small(p => { poly(p, [[22, 58], [14, 36], [20, 30], [26, 38], [26, 10], [34, 10], [34, 30], [42, 28], [42, 36], [50, 36], [50, 58]], SKIN); }),
+  arrow: small(p => poly(p, [[6, 22], [34, 22], [34, 6], [60, 32], [34, 58], [34, 42], [6, 42]], 0xfff3d0)),
+  moon: small(p => poly(p, [[40, 6], [26, 14], [18, 28], [20, 44], [32, 56], [48, 58], [58, 52], [44, 46], [36, 34], [38, 18]], 0xf7e27a)),
   'icon-trash': small(p => { poly(p, [[14, 18], [50, 18], [44, 58], [20, 58]], 0xa9c6d6); r(p, 10, 12, 44, 8, 0x8fb0c4, 4); r(p, 26, 6, 12, 8, 0x8fb0c4, 3); tiny(p, () => { ln(p, 26, 24, 26, 54, 2); ln(p, 38, 24, 38, 54, 2); }); }),
 };
 
@@ -69,4 +82,9 @@ export const EMOJI_SPRITE = {
   '💖': 'heart', '💕': 'heart', '💞': 'heart', '❤️': 'heart', '💤': 'zzz', '✨': 'sparkle', '🔥': 'fire',
   '😄': 'laugh', '😋': 'yum', '😖': 'sour', '🥵': 'spicy', '🤢': 'yuck', '🪙': 'coin', '📖': 'icon-book', '🏗️': 'icon-hammer',
   '🔻': 'marker',
+  // menu and HUD emoji -> drawn icons ('item:x' = that item's drawing)
+  '🗺️': 'icon-map', '🛋️': 'icon-furniture', '➕': 'icon-plus', '➖': 'icon-minus', '✔': 'icon-check', '✖': 'icon-close', '✕': 'icon-close',
+  '🗑': 'icon-trash', '🎲': 'icon-dice', '🔒': 'icon-lock', '📍': 'icon-pin', '🚪': 'icon-door', '🔨': 'icon-hammer', '🪜': 'icon-ladder',
+  '🛗': 'icon-elevator', '🧒': 'icon-kid', '🧑': 'icon-grownup', '❓': 'icon-question', '👣': 'icon-feet', '👆': 'icon-hand', '🎨': 'icon-palette',
+  '🌙': 'moon', '🧢': 'item:cap', '🍎': 'item:apple', '🍳': 'item:friedegg', '🧸': 'item:teddy',
 };

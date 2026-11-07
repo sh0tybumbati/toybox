@@ -2,7 +2,8 @@
 // Buildings stand on dirt plots along winding paths, each shown as a chubby little model of itself. Tap one
 // to visit it or to build and decorate it; tap an empty dashed plot (with its sign) to build there.
 import { W, H } from '../config.js';
-import { iconButton, touchable } from '../ui.js';
+import { CARD, COLORS, TEXT, iconButton, inkButton, inkChip, inkPanel, richText } from '../ui.js';
+import { spriteImage } from '../systems/itemTextures.js';
 import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, newBuilding } from '../data/buildings.js';
 import { paintBuildingMini } from '../data/exterior.js';
 import { INK, blob, inkFill, inkStroke, smoothPath } from '../data/ink.js';
@@ -30,13 +31,13 @@ export default class HubScene extends Phaser.Scene {
     this.addWalkers();
 
     this.add.text(W / 2, 30, 'The City', { ...label, fontSize: '40px', color: '#fff7e0', stroke: '#3a2a22', strokeThickness: 7 }).setOrigin(0.5);
-    this.coinText = this.add.text(78, 30, '', { ...label, fontSize: '26px', backgroundColor: '#f6e7b8', padding: { x: 12, y: 4 } }).setOrigin(0.5);
+    this.coinText = inkChip(this, 84, 32, '', { size: 26, depth: 20, h: 42 });
     this.refreshCoins();
     iconButton(this, W - 44, 30, '✖', () => this.close(), 0);
     this.input.keyboard.on('keydown-ESC', () => (this.popup.length ? this.closePopup() : this.close()));
   }
 
-  refreshCoins() { this.coinText.setText(`🪙 ${this.room.coins}`); }
+  refreshCoins() { this.coinText.setLabel(`🪙 ${this.room.coins}`); }
 
   // One plot per lot: a model of the building on flat dirt, or an empty dashed plot with a sign.
   drawLots() {
@@ -56,9 +57,9 @@ export default class HubScene extends Phaser.Scene {
         return;
       }
       paintBuildingMini(g, b, pos.x, pos.y + 42, LOT.w - 14, LOT.h - 8, i * 13 + 5);
-      this.lots.add(this.add.text(pos.x, pos.y + 62, b.name, { ...label, fontSize: '17px', backgroundColor: '#f3e3b8', padding: { x: 7, y: 1 } }).setOrigin(0.5));
+      this.lots.add(inkChip(this, pos.x, pos.y + 64, b.name, { size: 19, h: 30, fill: 0xf3e3b8, depth: 5, seed: i + 30 }));
       if (i === here) {
-        const pin = this.add.text(pos.x, pos.y - 70, '📍', { fontSize: '26px' }).setOrigin(0.5);
+        const pin = spriteImage(this, 'icon-pin', pos.x, pos.y - 70, 34);
         this.tweens.add({ targets: pin, y: pin.y - 7, duration: 600, yoyo: true, repeat: -1 });
         this.lots.add(pin);
       }
@@ -96,39 +97,38 @@ export default class HubScene extends Phaser.Scene {
     this.closePopup();
     const add = o => { o.setDepth(500); this.popup.push(o); return o; };
     add(this.add.rectangle(0, 0, W, H, 0x000000, 0.45).setOrigin(0).setInteractive().on('pointerdown', () => this.closePopup()));
-    add(this.add.rectangle(W / 2, H / 2, w, h, 0xfff4e0).setStrokeStyle(6, 0xe3c9a0).setInteractive());
-    add(this.add.text(W / 2, H / 2 - h / 2 + 30, title, { ...label, fontSize: '28px' }).setOrigin(0.5));
+    add(inkPanel(this, W / 2, H / 2, w, h, { depth: 500, seed: 6 })).setInteractive(new Phaser.Geom.Rectangle(W / 2 - w / 2, H / 2 - h / 2, w, h), Phaser.Geom.Rectangle.Contains);
+    add(richText(this, title, { fontSize: '32px', fontStyle: 'bold' })).setPosition(W / 2, H / 2 - h / 2 + 36);
     return add;
   }
 
   closePopup() { this.popup.forEach(o => o.destroy()); this.popup = []; }
 
-  button(add, x, y, text, color, onTap) {
-    const b = add(this.add.text(x, y, text, { fontFamily: HAND, fontSize: '24px', color: '#ffffff', backgroundColor: color, padding: { x: 18, y: 8 } }).setOrigin(0.5));
-    return touchable(b, 4).on('pointerdown', onTap);
+  button(add, x, y, text, fill, onTap, w) {
+    return add(inkButton(this, x, y, text, { fill, onTap, w, size: 24, depth: 500, h: 48 }));
   }
 
   openBuildingMenu(slot) {
     const b = this.room.city[slot];
-    const add = this.openPopup(`${b.emoji || ''} ${b.name}`, 380, 270);
-    this.button(add, W / 2, H / 2 - 28, '🚪 Visit', '#3b8f5a', () => this.visit(slot));
-    this.button(add, W / 2, H / 2 + 36, '🔨 Build & decorate', '#e0a030', () => { this.closePopup(); this.openBuilder(slot); });
-    this.button(add, W / 2, H / 2 + 100, 'Close', '#9a8a78', () => this.closePopup());
+    const add = this.openPopup(b.name, 400, 300);
+    this.button(add, W / 2, H / 2 - 24, '🚪 Visit', COLORS.green, () => this.visit(slot), 250);
+    this.button(add, W / 2, H / 2 + 44, '🔨 Build & decorate', COLORS.orange, () => { this.closePopup(); this.openBuilder(slot); }, 250);
+    this.button(add, W / 2, H / 2 + 112, 'Close', COLORS.grey, () => this.closePopup(), 250);
   }
 
   openBuildPicker(slot) {
-    const add = this.openPopup('What shall we build?', 860, 440);
+    const add = this.openPopup('What shall we build?', 880, 524);
     const keys = BUILDABLE;
     keys.forEach((key, i) => {
-      const bp = BLUEPRINTS[key], x = W / 2 - 300 + (i % 3) * 300 + (keys.length < 3 ? 150 : 0), y = H / 2 - 20 + Math.floor(i / 3) * 190;
-      add(this.add.rectangle(x, y, 270, 170, 0xffffff).setStrokeStyle(3, 0xe0a030));
-      const g = add(this.add.graphics());
-      paintBuildingMini(g, bp, x - 70, y + 30, 100, 90);
-      add(this.add.text(x + 30, y - 52, bp.name, { ...label, fontSize: '22px' }));
+      const bp = BLUEPRINTS[key], x = W / 2 - 300 + (i % 3) * 300 + (keys.length < 3 ? 150 : 0), y = H / 2 - 34 + Math.floor(i / 3) * 180;
+      add(inkPanel(this, x, y, 270, 172, { fill: CARD, depth: 500, seed: 20 + i, radius: 16, shadow: false, weight: 3.4 }));
+      const g = add(this.add.graphics().setDepth(500));
+      paintBuildingMini(g, bp, x - 70, y + 36, 104, 96);
+      add(this.add.text(x + 20, y - 62, bp.name, { fontSize: '25px', fontStyle: 'bold', color: TEXT }).setDepth(500));
       const rooms = bp.floors.reduce((n, f) => n + f.rooms.length, 0);
-      add(this.add.text(x + 30, y - 26, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}\n${rooms} room${rooms > 1 ? 's' : ''}`, { ...label, fontSize: '17px', fontStyle: 'normal' }));
+      add(this.add.text(x + 20, y - 30, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}\n${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '19px', color: TEXT }).setDepth(500));
       const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
-      const buy = this.button(add, x + 40, y + 52, `🪙 ${bp.cost}`, why && why !== '' && this.room.coins < bp.cost ? '#9a8a78' : '#3b8f5a', () => this.build(slot, key));
+      const buy = this.button(add, x + 50, y + 54, `🪙 ${bp.cost}`, why ? COLORS.grey : COLORS.green, () => this.build(slot, key), 110);
       if (why) buy.setAlpha(this.room.coins < bp.cost ? 0.6 : 1);
     });
   }

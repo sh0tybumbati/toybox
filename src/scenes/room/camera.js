@@ -4,6 +4,7 @@
 import { W } from '../../config.js';
 import { ROOMS } from '../../data/rooms.js';
 import { touchable } from '../../ui.js';
+import { spriteImage } from '../../systems/itemTextures.js';
 import { clamp } from '../../util.js';
 
 const PAN_SPEED = 720;                 // px/s with the arrows
@@ -15,8 +16,8 @@ export const cameraMethods = {
     this.panDir = 0;
     this.detached = false;                 // true once the player pans by hand: stop following until the kid walks again
     this.arrows = [-1, 1].map(dir => {
-      const t = this.add.text(dir < 0 ? 30 : W - 30, 320, dir < 0 ? '◀' : '▶', { fontSize: '46px', color: '#ffffff', stroke: '#00000088', strokeThickness: 5 })
-        .setOrigin(0.5).setDepth(9400).setScrollFactor(0).setAlpha(0.6);
+      const t = spriteImage(this, 'arrow', dir < 0 ? 34 : W - 34, 320, 54).setFlipX(dir < 0)
+        .setDepth(9400).setScrollFactor(0).setAlpha(0.8);
       touchable(t, 14).on('pointerdown', () => { this.panDir = dir; }).on('pointerup', () => { this.panDir = 0; }).on('pointerout', () => { this.panDir = 0; });
       return t;
     });
