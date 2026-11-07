@@ -15,6 +15,7 @@ export function poolFor(scene, def) {
 export function tapProp(scene, prop) {
   if (scene.editMode) return;                           // in furniture mode, props are for moving
   scene.lastActive = scene.time.now;
+  prop.boing(prop.def.behaviour === 'bell' ? 0.7 : prop.def.behaviour === 'switch' ? 0.3 : 0.55);          // everything gives a little when you poke it
   switch (prop.def.behaviour) {
     case 'dispenser': {
       if (prop.state) return;                           // already open
@@ -59,6 +60,7 @@ export function dropOnProps(scene, item) {
   if (item.kind !== 'food') return false;
   const oven = scene.props.find(p => p.def.behaviour === 'oven' && canAccept(p) && p.zone().contains(item.x, item.y));
   if (!oven) return false;
+  oven.boing(0.6);
   addIngredient(scene, oven, item);
   return true;
 }

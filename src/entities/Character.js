@@ -43,6 +43,7 @@ export default class Character extends Phaser.GameObjects.Container {
     this.expr = 'neutral';
     this.blink = 1;              // 1 = eyes open, ~0.1 = closed
     this.sq = { x: 1, y: 1 };    // squash & stretch factors (tweened)
+    this.st = { x: 1, y: 1 };    // stretch from moving fast (set by the scene)
     this.eatingUntil = 0;        // scene time until which the character is chewing
     this.reaction = null;        // food reaction name (data/expressions.js REACTIONS)
     this.reactUntil = 0;
@@ -64,13 +65,26 @@ export default class Character extends Phaser.GameObjects.Container {
     this.held = false; this.lane = entry.lane ?? 490; this.z = 0; this.vz = 0;
 
     this.setSize(170, this.F * 2);
-    this.setInteractive({ draggable: true, useHandCursor: true });
+    // The hit box ignores any spot where a pet is standing, so pets (which follow kids around) can always be patted.
+    this.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(0, 0, 170, this.F * 2),
+      hitAreaCallback: (rect, x, y, obj) => Phaser.Geom.Rectangle.Contains(rect, x, y) && !obj.petAt(x, y),
+      draggable: true, useHandCursor: true,
+    });
     scene.add.existing(this);
 
     this.applyLook(entry.look || DEFAULT_LOOK);
   }
 
   foot() { return this.F * this.scaleX; }
+
+  // Is a pet under this point of my hit box? (x, y are in hit-box coordinates, top-left origin.)
+  petAt(x, y) {
+    const pets = this.scene && this.scene.pets;
+    if (!pets || !pets.length) return false;
+    const wx = this.x + (x - 85) * this.scaleX, wy = this.y + (y - this.F) * this.scaleY;
+    return pets.some(p => p.active && !p.held && p.getBounds().contains(wx, wy));
+  }
 
   // World y of the top of the head and of the mouth (floating emoji, eating).
   headTopY() { return this.y + (this.layout.head.y - this.layout.head.ry) * this.scaleX; }
@@ -152,7 +166,7 @@ export default class Character extends Phaser.GameObjects.Container {
     this.lastT = time;
     const L = this.layout, t = time / 1000;
     const breath = Math.sin(time / 600) * 0.015;
-    this.rig.setScale(this.sq.x * (1 - breath * 0.5), this.sq.y * (1 + breath));
+    this.rig.setScale(this.sq.x * this.st.x * (1 - breath * 0.5), this.sq.y * this.st.y * (1 + breath));
 
     // Walk cycle: the body bobs and leans into the step; the limbs follow below.
     this.walkAmt += ((this.walking ? 1 : 0) - this.walkAmt) * 0.25;

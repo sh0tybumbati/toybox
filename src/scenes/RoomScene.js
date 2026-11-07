@@ -13,6 +13,7 @@ import { Sfx } from '../systems/sfx.js';
 import { stepBody, isMoving, inBin } from '../systems/physics.js';
 import { land, trash, floatText } from '../systems/interactions.js';
 import { tickProps } from '../systems/props.js';
+import { easeStretch, flightStretch } from '../systems/squash.js';
 import { tickStorage } from '../systems/storage.js';
 import { hudMethods } from './room/hud.js';
 import { economyMethods } from './room/economy.js';
@@ -115,9 +116,16 @@ export default class RoomScene extends Phaser.Scene {
     for (const b of this.bodies) {
       if (!b.held && !b.dead && !b.worn && !b.onShelf && !b.storedIn && !b.sleeping) this.stepBody(b, dt);
 
-      if (b instanceof Item && !b.dead && !b.worn && !b.storedIn) {   // item scale = lift * squash
+      if (b instanceof Item && !b.dead && !b.worn && !b.storedIn) {   // item scale = lift * squash * stretch from moving fast
         const s = 1 + 0.15 * b.lift;
-        b.setScale(s * b.sq.x, s * b.sq.y);
+        if (!b.onShelf) {
+          const d = Math.max(dt, 0.001);
+          const vx = b.lastX === undefined ? 0 : (b.x - b.lastX) / d, vy = b.lastY === undefined ? 0 : (b.y - b.lastY) / d;
+          b.lastX = b.x; b.lastY = b.y;
+          b.st = easeStretch(b.st || { x: 1, y: 1 }, flightStretch(vx, vy), dt);
+        }
+        const st = b.st || { x: 1, y: 1 };
+        b.setScale(s * b.sq.x * st.x, s * b.sq.y * st.y);
       }
 
       // Shadow shrinks and fades with height above the floor.
@@ -136,6 +144,9 @@ export default class RoomScene extends Phaser.Scene {
       const gaze = (!this.heldItem && this.lookTarget(c)) || look;
       c.animate(time, gaze.x, gaze.y);
       c.vxs += ((c.x - c.px) / Math.max(dt, 0.001) - c.vxs) * 0.2;   // smoothed speed
+      const dtc = Math.max(dt, 0.001), vyc = c.py === undefined ? 0 : (c.y - c.py) / dtc;
+      c.py = c.y;
+      easeStretch(c.st, flightStretch(c.vxs, vyc, { max: 0.12, ref: 1100 }), dt, 12);
       c.px = c.x;
       c.syncWorn();
 
@@ -161,6 +172,7 @@ export default class RoomScene extends Phaser.Scene {
     this.tickSleepers(time);
     this.drawZoneHint();
     tickProps(this, this.time.now);
+    for (const p of this.props) p.tickSquash(dt);
     for (const p of this.props) {                          // nearer (lower) furniture draws in front
       p.setDepth(1 + Math.min(0.9, (p.y + p.def.h / 2) / 1000 * 0.9));
       if (p.removeBtn) p.removeBtn.setPosition(p.x + p.def.w / 2, p.y - p.def.h / 2);

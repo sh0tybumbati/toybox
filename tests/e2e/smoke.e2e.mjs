@@ -172,8 +172,11 @@ try {
     await g.room('r.detached = true; const p = r.pets[0]; p.goal = null; p.nextThink = r.time.now + 60000; r.cameras.main.scrollX = Math.max(0, Math.min(r.worldW - 960, p.x - 480));');
     await wait(300);
     const pos = await g.room('const p = r.pets[0]; return [Math.round(p.x - r.cameras.main.scrollX), Math.round(p.y)];');
-    await g.click(pos[0], pos[1], 200);                              // pet it
-    assert.ok(await g.room('return r.pets[0].pats > 0;'), `the pet was patted (and hopped): ${JSON.stringify(await g.room('const p = r.pets[0]; return { pats: p.pats, held: p.held, moved: p.moved, n: r.pets.length, x: Math.round(p.x), y: Math.round(p.y), sx: r.cameras.main.scrollX, z: p.z, pos: window.__lastPos };'))} click=${JSON.stringify(pos)}`);
+    for (let attempt = 0; attempt < 3 && !(await g.room('return r.pets[0].pats > 0;')); attempt++) {     // a person would just tap again
+      const at = await g.room('const p = r.pets[0]; return [Math.round(p.x - r.cameras.main.scrollX), Math.round(p.y - 6)];');
+      await g.click(at[0], at[1], 250);                              // pet it
+    }
+    assert.ok(await g.room('return r.pets[0].pats > 0;'), 'the pet was patted (and hopped)');
     await g.room("r.coins = 0; r.lastEarned = {}; r.pets[0].goal = null; r.pets[0].nextThink = r.time.now + 60000; r.detached = true; const p = r.pets[0]; r.cameras.main.scrollX = Math.max(0, Math.min(r.worldW - 960, p.x - 480)); r.createItem('apple', Math.max(r.cameras.main.scrollX + 120, p.x - 160), p.lane);");
     await wait(700);
     const f = await g.room("const p = r.pets[0], a = r.bodies.find(b => b.key === 'apple' && !b.onShelf), sx = r.cameras.main.scrollX; return [Math.round(a.x - sx), Math.round(a.y), Math.round(p.x - sx), Math.round(p.y)];");

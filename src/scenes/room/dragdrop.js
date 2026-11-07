@@ -20,7 +20,7 @@ export const dragMethods = {
       if (obj.isPet) return this.petDragStart(obj);
       if (obj instanceof Prop) {                // furniture mode: pick a piece up
         this.sfx.pop();
-        this.tweens.add({ targets: obj, scale: 1.04, duration: 100 });
+        obj.boing(-0.7);                          // picked up: a little stretch
         return;
       }
       if (this.topDepth > 7000) this.renormalizeDepths();
@@ -96,7 +96,7 @@ export const dragMethods = {
       this.dirty = true;
       if (obj.isPet) return this.petDragEnd(obj);
       if (obj instanceof Prop) {
-        this.tweens.add({ targets: obj, scale: 1, duration: 100 });
+        obj.boing(0.9);                           // put down: squash and wobble
         this.sfx.click();
         return;
       }

@@ -19,6 +19,7 @@ export function storeInFurniture(scene, item) {
     const slot = nearestFreeSlot(prop.def.slots, prop.stored, item.x - prop.x, item.y - prop.y);
     if (slot < 0) continue;
     prop.stored[slot] = item;
+    prop.boing(0.45);
     item.storedIn = prop;
     item.storedSlot = slot;
     item.vx = item.vz = item.ly = 0;

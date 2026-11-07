@@ -5,6 +5,7 @@ import { PETS, PET_KINDS, MAX_PETS } from '../../data/pets.js';
 import { PET_SPEED, PET_STRIDE, petGoal, thinkDelay } from '../../systems/pets.js';
 import { floatText, puff } from '../../systems/interactions.js';
 import { stepWalk } from '../../systems/walk.js';
+import { flightStretch } from '../../systems/squash.js';
 import { clamp } from '../../util.js';
 
 const SIZE = 80;
@@ -42,6 +43,7 @@ export const petMethods = {
     const kind = Phaser.Utils.Array.GetRandom(spare.length ? spare : PET_KINDS);
     const pet = this.addPet(kind, basket.x, clamp(basket.y + 10, FLOOR_TOP + 20, FLOOR_BOTTOM));
     pet.z = 70; pet.vz = 350;                                // hop out of the basket
+    basket.boing(0.7);
     this.sfx.pop();
     this.petCry(pet);
     puff(this, basket.x, basket.y - 20, 0xfff3a0, 5);
@@ -103,13 +105,15 @@ export const petMethods = {
       // little hops along the way, plus the vertical physics of being tossed or petted
       if (pet.z > 0 || pet.vz) {
         pet.vz -= 1900 * dt; pet.z += pet.vz * dt;
-        if (pet.z <= 0) { pet.z = 0; pet.vz = 0; }
+        if (pet.z <= 0) { if (pet.vz < -150) pet.land = 1; pet.z = 0; pet.vz = 0; }
       }
       const hop = r.moved ? Math.abs(Math.sin(pet.phase)) * 12 : 0;
       pet.setPosition(pet.x, pet.lane - hop - pet.z);
       pet.setAngle(r.moved ? Math.sin(pet.phase) * 6 : 0);
-      pet.setScale(1 + Math.sin(now / 500 + pet.lane) * 0.015);
-      pet.setDepth(this.topDepth - 0.5 + pet.lane / 100000);       // above the kids it follows (so it can always be patted), below whatever was grabbed last
+      pet.land = (pet.land || 0) * Math.pow(0.02, dt);                            // a squash when it lands, fading fast
+      const air = flightStretch(0, pet.vz * 1.4, { max: 0.2, ref: 900 }), br = 1 + Math.sin(now / 500 + pet.lane) * 0.015;
+      pet.setScale(br * air.x * (1 + 0.22 * pet.land), br * air.y * (1 - 0.2 * pet.land));
+      pet.setDepth(4 + pet.lane / 1000);                          // low: behind the kids and the items (a kid's click area ignores spots where a pet stands: see Character.petAt)
       const k = 1 / (1 + pet.z / 200);
       pet.shadow.setPosition(pet.x, pet.lane + 2).setScale(k).setAlpha(0.28 * k);
     }

@@ -47,6 +47,7 @@ export const socialMethods = {
   startSleep(c, bed, instant = false) {
     if (bed.sleeper || c.sleeping) return;
     c.sleeping = bed; bed.sleeper = c;
+    bed.boing(0.9);                                         // the mattress squishes
     c.goal = null; c.onArrive = null; c.walking = false; c.tucked = false;
     c.z = 0; c.vz = 0;
     c.preScale = c.scaleX;
@@ -72,6 +73,7 @@ export const socialMethods = {
     const bed = c.sleeping;
     if (!bed) return;
     c.sleeping = null; bed.sleeper = null; c.tucked = false;
+    bed.boing(-0.5);                                        // and springs back up
     if (bed.blanket) { this.roomGfx = this.roomGfx.filter(o => o !== bed.blanket); bed.blanket.destroy(); bed.blanket = null; }
     const stand = { x: clamp(bed.x + (bed.x > 480 ? -1 : 1) * (bed.def.w / 2 + 70), 100, 860), lane: clamp(bed.y + 10, 0, FLOOR_BOTTOM) };
     c.lane = clamp(c.lane, 0, FLOOR_BOTTOM);
