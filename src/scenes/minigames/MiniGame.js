@@ -10,11 +10,14 @@ export default class MiniGame extends Phaser.Scene {
     this.over = false;
   }
 
+  // The title (a cartridge overrides it with its own name).
+  heading() { return MINIGAMES[this.gameId].name; }
+
   // The frame: dim backdrop, panel, title, close button. Returns the play area { x, y, w, h }.
   frame(subtitle = '') {
     this.add.rectangle(0, 0, W, H, 0x000000, 0.6).setOrigin(0).setInteractive();
     inkPanel(this, W / 2, H / 2, 920, 560, { seed: 31 });
-    leftText(this, 54, 50, MINIGAMES[this.gameId].name, { fontSize: '36px', fontStyle: 'bold' });
+    leftText(this, 54, 50, this.heading(), { fontSize: '36px', fontStyle: 'bold' });
     if (subtitle) this.add.text(W / 2 + 40, 42, subtitle, { fontSize: '21px', color: TEXT });
     iconButton(this, W - 56, 50, '✖', () => this.finish(null), 100);
     this.input.keyboard.on('keydown-ESC', () => this.finish(null));
@@ -22,6 +25,7 @@ export default class MiniGame extends Phaser.Scene {
   }
 
   // The "all done" card: what you got, and a button to go back.
+  // `result.score` + `result.game` (an arcade cartridge) are remembered as the best score by the room.
   results(lines, result) {
     this.add.rectangle(0, 0, W, H, 0x000000, 0.35).setOrigin(0).setInteractive().setDepth(200);
     inkPanel(this, W / 2, H / 2, 480, 300, { depth: 201, seed: 33 });

@@ -280,8 +280,11 @@ try {
     const after = await g.room("return { coins: r.coins, fish: r.bodies.filter(b => b.key === 'fish' && !b.onShelf).length, paused: r.scene.isPaused() };");
     assert.equal(after.coins, 2); assert.ok(after.fish >= 1, 'the fish is in the room'); assert.equal(after.paused, false);
     const tv = await g.room('const p = window.__tv; return [Math.round(p.x), Math.round(p.y)];');
-    await g.click(tv[0], tv[1], 1000);                               // tap the TV: Star Catcher
-    assert.ok(await g.ev("__toybox.scene.isActive('Arcade')"), 'star catcher opened');
+    for (let attempt = 0; attempt < 3 && !(await g.ev("__toybox.scene.isActive('Console')")); attempt++) await g.click(tv[0], tv[1], 1000);     // tap the TV: the console menu
+    assert.ok(await g.ev("__toybox.scene.isActive('Console')"), 'the console menu opened');
+    await g.ev("(c => c.play('starcatcher'))(__toybox.scene.getScene('Console'))");
+    await wait(600);
+    assert.ok(await g.ev("__toybox.scene.isActive('Arcade') && !__toybox.scene.isActive('Console')"), 'star catcher opened from the menu');
     await g.ev("(a => a.finish(null))(__toybox.scene.getScene('Arcade'))");     // close without playing
     await wait(500);
     assert.equal(await g.room('return r.coins;'), 2, 'closing without playing gives nothing');
@@ -400,7 +403,9 @@ try {
     await t.room("r.detached = true; r.cameras.main.scrollX = 0; window.__tv = r.addFurniture('tv'); window.__tv.setPosition(820, 470);");
     await wait(400);
     await t.tap(820, 470, 1000);
-    assert.ok(await t.ev("__toybox.scene.isActive('Arcade')"), 'the TV game opened');
+    assert.ok(await t.ev("__toybox.scene.isActive('Console')"), 'the console menu opened');
+    await t.tap(150, 320, 900);                                         // the first cartridge: Star Catcher
+    assert.ok(await t.ev("__toybox.scene.isActive('Arcade')"), 'the game opened');
     await t.touchDrag(200, 480, 700, 480, 700);
     assert.ok(Math.abs(await t.ev("Math.round(__toybox.scene.getScene('Arcade').bx)") - 700) < 40, 'the basket followed the finger');
     await t.ev("(a => a.finish(null))(__toybox.scene.getScene('Arcade'))");

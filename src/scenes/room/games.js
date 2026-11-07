@@ -38,6 +38,7 @@ export const gameMethods = {
 
   // Games that hand back more than coins and items: a shirt design, a sculpted toy.
   applyGameResult(id, result) {
+    if (result.game && Number.isFinite(result.score)) this.scores[result.game] = Math.max(this.scores[result.game] || 0, Math.floor(result.score));     // arcade high scores
     if (result.shirt) {
       const kid = this.selected || this.characters[0], design = result.shirt;
       kid.applyLook({ ...kid.look, shirt: design.color, pattern: design.pattern });

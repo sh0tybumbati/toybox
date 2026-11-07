@@ -30,6 +30,7 @@ import { PETS, MAX_PETS } from '../data/pets.js';
 import { PATTERNS } from '../data/patterns.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
 import { cleanParcels } from './mail.js';
+import { ARCADE_GAMES } from '../data/minigames.js';
 
 const ok = Number.isFinite;
 const isColor = v => Number.isInteger(v) && v >= 0 && v <= 0xffffff;
@@ -133,7 +134,9 @@ export function sanitize(raw) {
   const shirts = (Array.isArray(d.shirts) ? d.shirts : []).filter(s => s && isColor(s.color)).slice(0, 8)
     .map(s => ({ color: s.color, pattern: s.pattern && PATTERNS[s.pattern.id] && isColor(s.pattern.color) ? { id: s.pattern.id, color: s.pattern.color } : null }));
   const parcels = cleanParcels(d.parcels, k => Boolean(CATALOG[k]), city);
-  return { v: SAVE_VERSION, zone, city, looks, pets, shirts, toys, parcels, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
+  const scores = {};
+  for (const id of Object.keys(ARCADE_GAMES)) if (d.scores && Number.isFinite(d.scores[id]) && d.scores[id] > 0) scores[id] = clamp(Math.floor(d.scores[id]), 0, 99999);
+  return { v: SAVE_VERSION, zone, city, looks, pets, shirts, toys, parcels, scores, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
 }
 
 // A room's furniture list, or null (= use the room's default layout).

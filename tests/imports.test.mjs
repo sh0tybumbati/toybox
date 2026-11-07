@@ -40,7 +40,7 @@ test('every relative import resolves, and every named import is exported', () =>
   assert.deepEqual(problems, []);
 });
 
-test('every mini-game in the registry has a scene registered in main.js', () => {
+test('every mini-game and arcade cartridge in the registry has a scene registered in main.js', () => {
   const main = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
   const reg = fs.readFileSync(path.join(root, 'src/data/minigames.js'), 'utf8');
   for (const m of reg.matchAll(/scene:\s*'(\w+)'/g)) {

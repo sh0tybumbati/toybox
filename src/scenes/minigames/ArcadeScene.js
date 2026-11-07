@@ -12,6 +12,8 @@ const RIM = SCREEN.y + SCREEN.h - 66;
 export default class ArcadeScene extends MiniGame {
   constructor() { super('Arcade'); }
 
+  heading() { return 'Star Catcher'; }
+
   create() {
     this.frame();
     const g = this.add.graphics().setDepth(1);                                                       // the TV and its screen
@@ -67,6 +69,6 @@ export default class ArcadeScene extends MiniGame {
   end() {
     this.ended = true;
     const coins = coinsFor(this.score);
-    this.results([`${this.score} stars`, `+${coins} coins`], { coins });
+    this.results([`${this.score} stars`, `+${coins} coins`], { coins, score: this.score, game: 'starcatcher' });
   }
 }
