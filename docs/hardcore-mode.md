@@ -4,6 +4,24 @@ A hidden, adults-only mode of Toybox: the same world, rooms, buildings, items, m
 survival-capitalism life sim (Sims × Schedule 1). **Child mode stays the default and stays exactly as it is.**
 This document is the plan; nothing here is built yet.
 
+## 0. Decisions so far (user, 2026-11-08)
+
+- **Clock:** 1 real minute = 1 game hour (a day = 24 real minutes), like The Sims.
+- **Money:** coins <-> cash is **two-way at 1 coin = 100 cash** (cash is the smaller denomination).
+- **Failure:** chosen **per save** at unlock: *Soft* (debt + recovery path) or *True hard* (permadeath, and true homelessness:
+  you can lose everything and work up from sleeping in parks).
+- **Police:** **full escalation** - patrols, wanted levels, witnesses, evidence, arrest/jail as scheduled time, trials, fines, bribes,
+  corrupt vs honest officers, raids.
+- **Combat:** **side-view brawler** in the rooms (punch, dodge, grab, throw; item physics become weapons).
+- **Household:** **one shared household** (up to 6 people, shared cash) for now.
+- **Starts:** **pick a scenario** (flat, park with nothing, inherited house with debts...).
+- **Citizens:** **full factions** - schedule-driven named NPCs plus gangs, rival crews, territory, a changing town.
+- **Tone:** **cartoon ink, no gore** - slapstick-scale injuries (stars, bruises, knock-outs), dark themes, soft visuals.
+- **Survival:** **full survival** - weather and seasons, safe places to sleep, being moved on, theft, begging, scavenging, health.
+- **Trade:** **supply chain** in the fictional plants (grow, process, package, stash, distribute, suppliers, customers, debts, rivals).
+
+Consequences: sections 3.7/3.8 grow into their own systems (see 3.9-3.13 below); the build order in section 6 is re-cut for them.
+
 ## 1. Principles
 
 1. **One game, one save, a mode flag.** `save.mode: 'kid' | 'hard'` (default `'kid'`). Hard-mode state lives in a
@@ -134,9 +152,6 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 7. **Growing:** plots, crop data, legal crops, then the fictional restricted line with heat/inspection.
 8. **Cars and the garage**, careers 3+, balance pass and a "does a normal week survive" simulation test.
 
-## 7. Open questions for you
-- Day length: ~24 real minutes per game day OK, or shorter/longer?
-- Should coins → cash be one-way (carry child progress in) or two-way?
-- Failure: soft (debt + recovery job) as planned, or true hard mode (permadeath option)?
-- Heat/inspections: keep as a light risk system, or go deeper (informants, rival dealers)?
-- Single household (up to 6 people) sharing cash, or per-character wallets?
+## 7. Open questions still to settle
+Asked in conversation; answers get folded into section 0. (Pending: combat depth and weapons, how factions and territory work on the
+map, scenario list, the legal-career ladder vs crime balance, multiplayer/sharing, accessibility and content-warning wording.)
