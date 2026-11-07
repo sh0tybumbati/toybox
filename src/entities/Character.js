@@ -29,12 +29,12 @@ export default class Character extends Phaser.GameObjects.Container {
     const layer = () => scene.add.graphics().setPosition(0, -this.F);
     this.hairBack = layer();
     this.legs = layer();                          // redrawn every frame (noodles + shoes)
+    this.arms = layer();                          // redrawn every frame; behind the body, so they hang off its sides
     this.body = layer();
-    this.arms = layer();                          // redrawn every frame
     this.head = layer();
     this.hairFront = layer();
     this.face = layer();                          // redrawn every frame (dot eyes, blush, mouth)
-    this.layers = [this.hairBack, this.legs, this.body, this.arms, this.head, this.hairFront, this.face];
+    this.layers = [this.hairBack, this.legs, this.arms, this.body, this.head, this.hairFront, this.face];
     this.rig.add(this.layers);
     this.add(this.rig);
 
@@ -192,7 +192,7 @@ export default class Character extends Phaser.GameObjects.Container {
     for (const side of [-1, 1]) {
       const hand = this.tips[side < 0 ? 'handL' : 'handR'];
       const shoulder = { x: side * L.shoulder.x, y: L.shoulder.y };
-      const curve = limbCurve(shoulder, hand, L.arm.bow, side, 10);
+      const curve = limbCurve(shoulder, hand, L.arm.bow, -side, 10);     // arms bow outward, away from the body, like the legs
       inkTube(arms, curve, bulge(L.arm.w0, L.arm.w1), look.shirt, { w: 4, seed: 60 + side });
       // a nubby little hand with three stubby fingers, pointing the way the arm ends
       const end = curve[curve.length - 1], prev = curve[curve.length - 3], ang = Math.atan2(end.y - prev.y, end.x - prev.x);
