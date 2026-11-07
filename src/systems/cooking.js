@@ -6,6 +6,7 @@ import { CATALOG } from './../data/items.js';
 import { MAX_INGREDIENTS, cookOutcome } from '../data/recipes.js';
 import { puff, floatText } from './interactions.js';
 import { spawnFront } from './spawn.js';
+import { itemIcon } from './itemTextures.js';
 
 const WAIT_MS = 2200;      // after the last ingredient, before cooking starts by itself
 const COOK_MS = 2400;
@@ -28,7 +29,7 @@ function refreshUI(scene, oven) {
     .lineStyle(3, 0x4a3426, 1).strokeRoundedRect(x - w / 2, y - 26, w, 58, 12)
     .fillStyle(0xffffff, 0.96).fillTriangle(x + 6, y + 31, x + 24, y + 31, x + 16, y + 44);
   oven.contents.forEach((key, i) => {
-    add(scene.add.text(x - w / 2 + 9 + SLOT / 2 + i * SLOT, y - 8, CATALOG[key].emoji, { fontSize: '28px' }).setOrigin(0.5));
+    add(itemIcon(scene, key, x - w / 2 + 9 + SLOT / 2 + i * SLOT, y - 6, 40));
   });
   oven.bar = add(scene.add.graphics());
   oven.barBox = { x: x - w / 2 + 12, y: y + 18, w: w - 24 };

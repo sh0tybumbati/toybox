@@ -30,7 +30,7 @@ tests/                   node:test suites; tests/e2e/ = the headless-browser smo
 ```
 
 ## Adding things
-- **Item:** add an entry to `CATALOG` in `data/items.js`, then list its key on a shelf in `data/rooms.js`.
+- **Item:** add an entry to `CATALOG` in `data/items.js`, draw it in `data/itemart.js` (a function of the ink pen, 128px box, standing on y≈118), then list its key on a shelf in `data/rooms.js`. A test checks every item has art.
 - **Furniture:** add a type to `PROP_TYPES` in `data/props.js` (`name`, `mount`, `behaviour`, size, `draw`; storage also needs `slots`). It appears in the catalogue automatically; list it in a room's `props` to have it there from the start.
 - **Recipe:** add to `RECIPES` in `data/recipes.js` (1–3 ingredients, any order; ingredients and result must exist in `CATALOG`). It shows up in the recipe book automatically; the tests check that it's cookable.
 - **Item combo** (drop one item on another): `COMBOS` in the same file.

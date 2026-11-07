@@ -4,6 +4,7 @@ import { W, H } from '../config.js';
 import { iconButton } from '../ui.js';
 import { CATALOG } from '../data/items.js';
 import { RECIPES } from '../data/recipes.js';
+import { itemIcon } from '../systems/itemTextures.js';
 
 const ink = '#4a3426';
 const text = (size, extra = {}) => ({ fontSize: `${size}px`, color: ink, ...extra });
@@ -28,11 +29,13 @@ export default class BookScene extends Phaser.Scene {
       const x = 50 + col * 440, y = 130 + row * 52;
       const got = known.has(r.id);
       this.add.rectangle(x + 205, y + 22, 420, 46, got ? 0xffffff : 0xefe3cc).setStrokeStyle(2, got ? 0xe0a030 : 0xcdbd9e);
-      const result = this.add.text(x + 28, y + 22, got ? CATALOG[r.result].emoji : '❓', { fontSize: '30px' }).setOrigin(0.5);
-      if (!got) result.setAlpha(0.6);
+      const result = got ? itemIcon(this, r.result, x + 28, y + 22, 42) : this.add.text(x + 28, y + 22, '❓', { fontSize: '30px' }).setOrigin(0.5).setAlpha(0.6);
       this.add.text(x + 56, y + 6, got ? r.name : '???', text(15, { fontStyle: 'bold' }));
       if (got) {
-        this.add.text(x + 56, y + 25, r.ingredients.map(k => CATALOG[k].emoji).join(' + '), { fontSize: '17px', color: ink });
+        r.ingredients.forEach((k, n) => {
+          itemIcon(this, k, x + 68 + n * 52, y + 34, 28);
+          if (n) this.add.text(x + 42 + n * 52, y + 33, '+', text(14, { fontStyle: 'bold' })).setOrigin(0.5);
+        });
       } else {
         this.add.text(x + 56, y + 25, `${r.ingredients.length} ingredient${r.ingredients.length > 1 ? 's' : ''} — ${r.hint}`, text(12));
       }

@@ -1,16 +1,22 @@
 import { CATALOG } from '../data/items.js';
-import { FLOOR_TOP, FONT } from '../config.js';
+import { FLOOR_TOP } from '../config.js';
+import { ART_BOX } from '../data/itemart.js';
+import { TEX_SIZE, ensureItemTexture } from '../systems/itemTextures.js';
 
-// A draggable emoji item. Physics state follows the fake-3D model in
+// A draggable, hand-inked item (data/itemart.js). A Container (centred on the item) holding one image, so scale,
+// alpha and tweens work on the whole item. Physics state follows the fake-3D model in
 // systems/physics.js: `lane` is the floor y the item's bottom touches, `z` its height.
-export default class Item extends Phaser.GameObjects.Text {
+export default class Item extends Phaser.GameObjects.Container {
   constructor(scene, key, x, contactY, { onShelf = false } = {}) {
     const def = CATALOG[key];
-    const size = def.size || 64;
-    const footBase = size * 0.44;                       // origin -> bottom of the glyph
-    super(scene, x, contactY - footBase, def.emoji, { fontFamily: FONT, fontSize: `${size}px` });
+    const size = def.size || 72;                        // on-screen size of the art's 128px box
+    const footBase = size * (56 / ART_BOX);             // origin -> where the art stands (y=120 of 128)
+    super(scene, x, contactY - footBase);
+    this.art = scene.add.image(0, 0, ensureItemTexture(scene, key)).setScale(size / TEX_SIZE);
+    this.add(this.art);
+    this.setSize(size * 0.84, size * 0.84);
     scene.add.existing(this);
-    this.setOrigin(0.5).setInteractive({ draggable: true, useHandCursor: true });
+    this.setInteractive({ draggable: true, useHandCursor: true });
 
     this.key = key;
     this.kind = def.kind;

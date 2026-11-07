@@ -1,5 +1,5 @@
-// Item catalog. `kind` decides what happens on a drop (see SLOTS_FOR / handleDrop).
-// Optional: size (font px), bounce (restitution), gscale (gravity multiplier),
+// Item catalog (`emoji` is just a label now; the art is hand-inked in data/itemart.js). `kind` decides what happens on a drop (see SLOTS_FOR / handleDrop).
+// Optional: size (on-screen px of the art's box, default 72; see data/itemart.js), bounce (restitution), gscale (gravity multiplier),
 // reaction (food only: yum | sour | spicy | yuck — see data/expressions.js).
 export const CATALOG = {
   apple:    { emoji: '🍎',   kind: 'food' },
@@ -62,7 +62,7 @@ export const CATALOG = {
   kite:     { emoji: '🪁',   kind: 'toy', gscale: 0.3 },
   gradcap:  { emoji: '🎓',   kind: 'hat' },
   sunhat:   { emoji: '👒',   kind: 'hat' },
-  goggles:  { emoji: '🥽',   kind: 'glasses', size: 56 },
+  goggles:  { emoji: '🥽',   kind: 'glasses', size: 64 },
   // Premium: unlocked once with coins at the shop (prices in data/economy.js).
   dog:      { emoji: '🐶',   kind: 'toy' },
   cat:      { emoji: '🐱',   kind: 'toy' },
@@ -75,16 +75,16 @@ export const CATALOG = {
   elephant: { emoji: '🐘',   kind: 'toy' },
   crystal:  { emoji: '🔮',   kind: 'toy' },
   helmet:   { emoji: '⛑️',   kind: 'hat' },
-  heels:    { emoji: '👠👠', kind: 'shoes', size: 30 },
-  dressshoes: { emoji: '👞👞', kind: 'shoes', size: 30 },
+  heels:    { emoji: '👠👠', kind: 'shoes', size: 78 },
+  dressshoes: { emoji: '👞👞', kind: 'shoes', size: 78 },
   cap:      { emoji: '🧢',   kind: 'hat' },
   tophat:   { emoji: '🎩',   kind: 'hat' },
   crown:    { emoji: '👑',   kind: 'hat' },
   bow:      { emoji: '🎀',   kind: 'hat' },
-  shades:   { emoji: '🕶️',   kind: 'glasses', size: 56 },
-  specs:    { emoji: '👓',   kind: 'glasses', size: 56 },
-  sneakers: { emoji: '👟👟', kind: 'shoes', size: 30 },
-  boots:    { emoji: '🥾🥾', kind: 'shoes', size: 30 },
+  shades:   { emoji: '🕶️',   kind: 'glasses', size: 64 },
+  specs:    { emoji: '👓',   kind: 'glasses', size: 64 },
+  sneakers: { emoji: '👟👟', kind: 'shoes', size: 78 },
+  boots:    { emoji: '🥾🥾', kind: 'shoes', size: 78 },
 };
 
 // Which character slots (drop zones) accept which kind of item.
