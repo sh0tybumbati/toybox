@@ -24,6 +24,8 @@ export const ROOMS = {
       { type: 'fridge', x: 372, y: 434 },
       { type: 'oven', x: 590, y: 434 },
       { type: 'pantry', x: 200, y: 520 },
+      { type: 'table', x: 745, y: 540 },
+      { type: 'chair', x: 590, y: 540 },
       { type: 'lightswitch', x: 890, y: 168 },
     ],
     windows: [{ x: 690, y: 70, w: 140, h: 120 }],      // painted dark at night
@@ -87,6 +89,7 @@ export const ROOMS = {
       { type: 'shelf', x: 165, y: 309, stock: ['puzzle', 'guitar', 'popcorn'] },
       { type: 'shelf', x: 795, y: 309, stock: ['ball', 'duck', 'kite'] },
       { type: 'bookcase', x: 372, y: 434 },
+      { type: 'armchair', x: 640, y: 530 },
       { type: 'lightswitch', x: 890, y: 168 },
     ],
     windows: [{ x: 90, y: 70, w: 190, h: 150 }],

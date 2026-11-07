@@ -294,6 +294,44 @@ export const PROP_TYPES = {
       g.fillStyle(0xfff3a0, 0.5).fillCircle(0, -60, 44);
     },
   },
+  chair: {
+    name: 'Chair', cat: 'home', mount: 'floor', behaviour: 'play', w: 84, h: 112, blurb: 'Take a seat',
+    ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: 0, y: 0 }] }] },
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRect(-34, 12, 8, 44).fillRect(26, 12, 8, 44);                          // legs
+      g.fillStyle(0xb5835a, 1).fillRoundedRect(-38, -50, 8, 58, 3).fillRoundedRect(30, -50, 8, 58, 3);   // the back posts
+      g.fillStyle(0xc99466, 1).fillRoundedRect(-34, -46, 68, 10, 3).fillRoundedRect(-34, -28, 68, 10, 3); // the slats
+      g.fillStyle(0xd9aa72, 1).fillRoundedRect(-40, -2, 80, 14, 5);                                      // the seat
+    },
+  },
+  stool: {
+    name: 'Stool', cat: 'home', mount: 'floor', behaviour: 'play', w: 64, h: 76, blurb: 'A little seat',
+    ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: 0, y: 0 }] }] },
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRect(-24, 8, 7, 30).fillRect(17, 8, 7, 30).fillRect(-3, 8, 6, 30);
+      g.fillStyle(0xf59ab4, 1).fillRoundedRect(-30, -6, 60, 16, 8);                                      // a round cushion
+    },
+  },
+  armchair: {
+    name: 'Armchair', cat: 'home', mount: 'floor', behaviour: 'play', w: 116, h: 112, blurb: 'Sink right in',
+    surface: { top: -2, people: false },
+    ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: 0, y: 0 }] }] },
+    draw(g) {
+      g.fillStyle(0x7bd88f, 1).fillRoundedRect(-52, -50, 104, 70, 14);                                    // the back
+      g.fillStyle(0x62c077, 1).fillRoundedRect(-58, -16, 24, 56, 10).fillRoundedRect(34, -16, 24, 56, 10);   // the arms
+      g.fillStyle(0x93e4a5, 1).fillRoundedRect(-36, -8, 72, 34, 10);                                      // the cushion
+      g.fillStyle(0x8a5e3b, 1).fillRect(-50, 40, 9, 12).fillRect(41, 40, 9, 12);
+    },
+  },
+  table: {
+    name: 'Table', cat: 'home', mount: 'floor', behaviour: 'none', w: 200, h: 96, blurb: 'Put things on it',
+    surface: { top: -8 },
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRect(-86, 4, 10, 44).fillRect(76, 4, 10, 44);                          // legs
+      g.fillStyle(0xb5835a, 1).fillRoundedRect(-84, 22, 168, 8, 3);                                       // a low rail
+      g.fillStyle(0xd9aa72, 1).fillRoundedRect(-100, -8, 200, 16, 5);                                     // the top
+    },
+  },
   mailbox: {
     name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', w: 84, h: 136,
     draw(g, flag) {

@@ -465,6 +465,34 @@ try {
     await wait(1500);
   });
 
+  await step('furniture: a friend sits on a chair, things land on a table and pile up, and the pile moves as one', async () => {
+    await g.room("r.goToZone('0.0');");
+    await wait(2000);
+    await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.characters[0].x = 300; r.characters[0].lane = 520;");
+    const chair = await g.room("const p = r.props.find(p => p.type === 'chair'); return [Math.round(p.x), Math.round(p.y)];");
+    for (let attempt = 0; attempt < 3 && !(await g.room('return Boolean(r.characters[0].riding);')); attempt++) await g.click(chair[0], chair[1], 3000);
+    assert.ok(await g.room('return r.characters[0].sitting;'), 'sitting on the chair');
+    await g.room("r.dismount(r.characters[0], true); r.cameras.main.scrollX = 0;");
+    await g.room("const t = r.props.find(p => p.type === 'table'); window.__tb = t; window.__ball = r.createItem('ball', 150, 540); window.__apple = r.createItem('apple', 250, 540);");
+    await wait(700);
+    const spot = k => g.room(`const i = window.__${k}, sx = r.cameras.main.scrollX; return [Math.round(i.x - sx), Math.round(i.y), Math.round(i.z), i.base ? 1 : 0];`);
+    const table = await g.room('const t = window.__tb, sx = r.cameras.main.scrollX; return [Math.round(t.x - sx), Math.round(t.y - t.def.h / 2)];');
+    let b = await spot('ball');
+    await g.drag(b[0], b[1], table[0], table[1] - 40, 700);
+    await wait(900);
+    b = await spot('ball');
+    assert.ok(b[2] > 30 && b[3] === 1, `the ball rests on the table (z=${b[2]})`);
+    let a = await spot('apple');
+    await g.drag(a[0], a[1], b[0], b[1] - 60, 700);
+    await wait(900);
+    a = await spot('apple'); b = await spot('ball');
+    assert.ok(a[2] > b[2] + 20 && a[3] === 1, `the apple is stacked on the ball (z=${a[2]} over ${b[2]})`);
+    await g.drag(b[0], b[1], 160, 540, 800);                       // pick up the ball: the apple comes too
+    await wait(1400);
+    a = await spot('apple'); b = await spot('ball');
+    assert.ok(b[2] === 0 && a[2] > 20 && Math.abs(a[0] - b[0]) < 30, `the pile moved as one (ball ${b}, apple ${a})`);
+  });
+
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });
 } finally {
   await g.close();
