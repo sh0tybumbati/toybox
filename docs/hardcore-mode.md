@@ -172,7 +172,7 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 0. **Hard-mode shell (BUILT, 2026-11-08):** the flag, hidden unlock + PIN + setup (failure mode, content toggles, scenario), `hard` save block, adult-only creator,
    separate saves, coins <-> cash at 1:100.
 1. **Clock + needs (BUILT, 2026-11-08):** 1 min = 1 hour clock driving day/night, pause + 3 speeds, hunger/energy/hygiene/mood, free-will autonomy and an action queue.
-2. **Survival home-less core:** the *Park bench* scenario: weather/seasons, places to sleep, being moved on, scavenging/begging, shelter, day labour.
+2. **Survival home-less core (BUILT, 2026-11-08):** the *Park bench* scenario: weather/seasons, places to sleep, being moved on, scavenging/begging, shelter, day labour.
 3. **Food, shops and bills:** finite shop stock and prices, pantry/fridge stock and spoilage, rent/bills in the mailbox, the phone.
 4. **Wear + maintenance** (paint, floors, furniture, clothes, cars) and the *Cheap flat* + *Inherited house* scenarios.
 5. **Jobs:** job board, shifts as scheduled blocks, tardiness, skills, retail/service then trades/makers and farming/food careers.
@@ -199,6 +199,16 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 - Free will (`wantsToDo`): an idle person (no queue/goal) waits 10 game minutes, then does the most urgent thing they can (needs below 40/30/30/35). Switch in `hard.autonomy`.
 - No coin rewards, no park coins and no mini-game coins in hard mode (money comes from work, later).
 - Saved: `hard.clock`, `hard.needs` per person, `hard.autonomy`. Code: `scenes/room/hard.js`, tests `hardclock.test.mjs` and `hard.e2e.mjs`.
+
+### Slice 2 as built
+- Seasons: 28 days each (112-day year), weather deterministic from the day (`systems/hard/weather.js`): clear/cloudy/rain/snow and a temperature that follows season, a daily warm/cold spell and the time of day. Rain and snow fall (and the light dulls) in open-air rooms; the HUD shows weather, temperature, season and day.
+- **Warmth** is a fifth need: indoors +10/h; outdoors it falls with the cold (0.55 per degree below 16 C), rain (-3) and snow (-4), worse asleep outside; below 25 it drains mood; at 0 you collapse ("frozen") for up to 90 game minutes. Setup toggle "Harsh survival" off = no weather effects and no theft.
+- Places to sleep: bed, **shelter cot** (open 17:00-09:00), a bench (sleep rough: +8 energy/h), the floor after a collapse (+6/h). Sleeping rough outside risks being moved on (small hours, public place, "Police and crime" on: -8 mood) and being robbed (10% an hour, 30% of cash; "Harsh survival" on).
+- Opening hours (`hours` on props, `openNow`): the shelter meal line (07:00-08:00, 18:00-19:00, free), the day-labour board (06:00-09:00, 4 hours, $1200), cots (evening/night). Closed places say "Closed until HH:00".
+- Scavenging bins (dumpsters in the park and behind the shop): scraps (+6..15 hunger, hygiene falls), a little cash ($50-250) or nothing. Begging: a short mini-game (30 s, costs an hour): ask people when the ❗ shows; three annoyed ends it; clean and cheerful earns more.
+- Free will extends to these: hungry + no fridge = the meal line, then (under 15) a bin; tired + no bed = a bench.
+- Every scenario's city now has a Shelter; the park has a fountain, a dumpster, a cardboard sign and the labour board.
+- Not yet: real police patrols (move-on is a dice roll), health/death (frozen people are rescued after 90 min), clothes warmth, the shelter's bed limit/queue.
 
 ## 7. Still open
 Asked in conversation as we go: faction/territory mechanics on the map, weapons list and skill trees, the legal-career ladder vs crime balance,

@@ -14,6 +14,7 @@ async function step(name, fn) {
 
 const g = await launch();
 console.log('e2e hard mode:');
+let window_cash = 0;
 const S = name => `__toybox.scene.getScene('${name}')`;
 const active = name => g.ev(`__toybox.scene.isActive('${name}')`);
 const pinIn = async digits => { for (const d of digits) await g.ev(`${S('Pin')}.press('${d}')`); await wait(500); };
@@ -96,20 +97,89 @@ try {
     assert.equal(await g.room('return r.tipShown ? 1 : 0;'), 0);
   });
 
+  await step('survival: the cold bites outdoors and warms indoors, bins, day labour (open 6-9) and a meal line (opens at set hours)', async () => {
+    await g.room("r.hard.autonomy = false; r.setSpeed(1); r.characters.forEach(c => { c.needs.hunger = 90; c.needs.energy = 90; c.needs.hygiene = 90; c.needs.mood = 90; c.needs.warmth = 80; }); r.clock.day = 90; r.clock.minute = 3 * 60; r.goToZone('1.0');");
+    await wait(2200);
+    assert.deepEqual(await g.room('const w = r.weatherNow(); return [w.season, r.isOutdoors(r.characters[0])];'), ['Winter', true], 'a winter night in the park');
+    const w0 = await g.room('return r.characters[0].needs.warmth;');
+    await g.room('r.passTime(120);');
+    const w1 = await g.room('return r.characters[0].needs.warmth;');
+    assert.ok(w1 < w0 - 10, `the cold takes its toll outdoors (${w0} -> ${w1})`);
+    await g.room("r.goToZone('0.0');");                                                                     // inside, at home
+    await wait(1800);
+    await g.room('r.characters.forEach(c => { c.needs.warmth = 20; }); r.passTime(120);');
+    assert.ok(await g.room('return r.characters[0].needs.warmth > 35;'), 'and indoors it comes back');
+    // day labour: the board is only open 6 to 9
+    await g.room("r.goToZone('1.0');");
+    await wait(1800);
+    await g.room("const c = r.characters[0], b = r.props.find(p => p.type === 'labourboard'); window.__board = b; const f = r.frontOf(b); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.day = 10; r.clock.minute = 12 * 60;");
+    const cash0 = await g.room('return r.cash;');
+    await g.room("r.queueAction(r.characters[0], 'labour', window.__board); r.passTime(10);");
+    assert.equal(await g.room('return r.characters[0].current ? 1 : 0;'), 0, 'no work at midday');
+    await g.room("r.clock.minute = 7 * 60 + 30; r.queueAction(r.characters[0], 'labour', window.__board); r.passTime(30);");
+    assert.equal(await g.room("return r.characters[0].current ? r.characters[0].current.type : null;"), 'labour', 'work at 07:30');
+    await g.room('r.passTime(250);');
+    assert.equal(await g.room('return r.cash;'), cash0 + 1200, 'paid for the day');
+    // a bin
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'dumpster'); const f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'scavenge', d); r.passTime(30);");
+    assert.equal(await g.room('return r.characters[0].current || r.characters[0].queue.length ? 1 : 0;'), 0, 'the search is over');
+    // the meal line at the shelter opens at 07:00 and 18:00
+    await g.room("r.goToZone('4.0');");
+    await wait(1800);
+    await g.room("const c = r.characters[0], m = r.props.find(p => p.type === 'servery'); window.__line = m; c.needs.hunger = 10; const f = r.frontOf(m); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.minute = 12 * 60; r.queueAction(c, 'queue', m); r.passTime(5);");
+    assert.equal(await g.room('return r.characters[0].current ? 1 : 0;'), 0, 'closed at noon');
+    await g.room("r.clock.minute = 18 * 60 + 5; r.queueAction(r.characters[0], 'queue', window.__line); r.passTime(30);");
+    assert.ok(await g.room('return r.characters[0].needs.hunger > 25;'), 'a hot meal at 18:05');
+  });
+
+  await step('begging is a short mini-game that costs an hour; sleeping rough on a bench; the shelter cot opens in the evening', async () => {
+    await g.room("r.goToZone('1.0');");
+    await wait(1800);
+    await g.room("const c = r.characters[0], b = r.props.find(p => p.type === 'begspot'); const f = r.frontOf(b); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.minute = 12 * 60; window.__t0 = r.clock.day * 1440 + r.clock.minute; r.queueAction(c, 'beg', b); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Beg'), 'the begging game opened');
+    const cash0 = await g.room('return r.cash;');
+    await g.ev(`(b => { b.g.earned = 340; b.g.t = 999; })(${S('Beg')})`);
+    await wait(900);
+    await g.ev(`(b => b.finish({ cash: 340, minutes: 60 }))(${S('Beg')})`);
+    await wait(700);
+    assert.equal(await g.room('return r.cash;'), cash0 + 340);
+    assert.ok(await g.room('return r.clock.day * 1440 + r.clock.minute - window.__t0 >= 60;'), 'an hour went by');
+    // sleep on the bench
+    await g.room("const c = r.characters[0], b = r.props.find(p => p.type === 'bench'); c.needs.energy = 20; const f = r.frontOf(b); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.day = 3; r.clock.minute = 22 * 60; r.hard.setup.toggles.police = false; r.hard.setup.toggles.survival = false; r.queueAction(c, 'rough', b); r.passTime(20);");
+    assert.ok(await g.room('return Boolean(r.characters[0].rough);'), 'lying on the bench ' + JSON.stringify(await g.room("const c = r.characters[0]; return [c.x, c.lane, c.goal, c.current && c.current.type, c.current && c.current.phase, c.queue.length, c.collapsed, c.held, c.sleeping && 1, c.riding && 1, r.zoneKey, r.props.filter(p => p.type === 'bench').map(p => [p.x, p.y])];")));
+    await g.room('r.passTime(240);');
+    assert.ok(await g.room('return r.characters[0].needs.energy > 45;'), 'it is rest of a kind');
+    await g.room('r.cancelCurrent(r.characters[0]); r.hard.setup.toggles.police = true; r.hard.setup.toggles.survival = true;');
+    assert.ok(!(await g.room('return r.characters[0].rough;')));
+    // the shelter's cots are for the night
+    await g.room("r.goToZone('4.0');");
+    await wait(1800);
+    await g.room("const c = r.characters[0], cot = r.props.find(p => p.type === 'cot'); window.__cot = cot; c.needs.energy = 20; const f = r.frontOf(cot); c.x = cot.x - 50; c.lane = f.lane; c.goal = null; r.clock.minute = 13 * 60; r.queueAction(c, 'sleep', cot); r.passTime(5);");
+    assert.equal(await g.room('return r.characters[0].sleeping ? 1 : 0;'), 0, 'no cots in the afternoon');
+    await g.room("r.clock.minute = 21 * 60; r.queueAction(r.characters[0], 'sleep', window.__cot); r.passTime(20);");
+    assert.ok(await g.room('return Boolean(r.characters[0].sleeping);'), 'a cot at 21:00');
+    await g.room('r.passTime(480);');
+    assert.ok(await g.room('return r.characters[0].needs.energy > 75;'), 'a night in a bed');
+    await g.room('r.hard.autonomy = true;');
+  });
+
   await step('the bank swaps kid-mode coins and cash at 1 coin = 100 cash, both ways', async () => {
     await g.room('r.openBank();');
     await wait(900);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 7, 'the kid world has its 7 coins');
+    const cash0 = await g.room('return r.cash;');
+    window_cash = cash0;
     await g.ev(`${S('Bank')}.swap('toCash', 5)`);
     await wait(500);
-    assert.equal(await g.room('return r.cash;'), 60500);
+    assert.equal(await g.room('return r.cash;'), cash0 + 500);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 2);
     await g.ev(`${S('Bank')}.swap('toCash', 5)`);                                        // can't: only 2 left
     await wait(300);
-    assert.equal(await g.room('return r.cash;'), 60500);
+    assert.equal(await g.room('return r.cash;'), cash0 + 500);
     await g.ev(`${S('Bank')}.swap('toCoins', 1)`);
     await wait(500);
-    assert.equal(await g.room('return r.cash;'), 60400);
+    assert.equal(await g.room('return r.cash;'), cash0 + 400);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 3);
     await g.ev(`(c => { c.scene.resume('Room'); c.scene.stop(); })(${S('Bank')})`);
   });
@@ -140,7 +210,7 @@ try {
     await g.open();
     await wait(2500);
     const back = await g.room('return { hard: Boolean(r.hard), cash: r.cash, home: r.city[0] && r.city[0].name };');
-    assert.equal(back.hard, true); assert.equal(back.cash, 60400); assert.equal(back.home, 'Flat');
+    assert.equal(back.hard, true); assert.equal(back.cash, window_cash + 400); assert.equal(back.home, 'Flat');
   });
 
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });

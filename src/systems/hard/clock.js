@@ -21,6 +21,19 @@ export const pad = n => String(n).padStart(2, '0');
 export const timeLabel = c => `${pad(hourOf(c))}:${pad(Math.floor(c.minute % 60))}`;
 export const label = c => `${dayName(c)} ${timeLabel(c)}`;
 
+// Is a place open now? `hours` = [[from, to], ...] in hours of the day (to is exclusive); none = always open.
+export function openNow(hours, minute) {
+  if (!hours) return true;
+  const h = minute / 60;
+  return hours.some(([from, to]) => h >= from && h < to);
+}
+
+// The next opening time (hours, 0..24) after `minute`, for "Closed until 18:00".
+export function nextOpen(hours, minute) {
+  const h = minute / 60, starts = (hours || []).map(([from]) => from).sort((a, b) => a - b);
+  return starts.find(s => s > h) ?? starts[0] ?? 0;
+}
+
 export function cleanClock(raw) {
   const ok = v => Number.isFinite(v);
   return raw && typeof raw === 'object' && ok(raw.day) && ok(raw.minute)

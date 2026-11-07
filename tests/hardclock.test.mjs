@@ -66,7 +66,7 @@ test('actions restore needs and stay within 0..100', () => {
   apply(n, { hunger: 40, energy: -20, hygiene: 10, nonsense: 5 });
   assert.deepEqual(n, { hunger: 100, energy: 0, hygiene: 60, mood: 50 });
   assert.ok(ACTIONS.wash.perMin.hygiene * ACTIONS.wash.minutes >= 80, 'a wash makes you clean');
-  assert.deepEqual(ACTION_IDS, ['eat', 'sleep', 'wash', 'sit']);
+  assert.deepEqual(ACTION_IDS.slice(0, 4), ['eat', 'sleep', 'wash', 'sit']);
 });
 
 test('free will: the most urgent want that has somewhere to happen wins', () => {
@@ -84,5 +84,5 @@ test('every food has a nutrition value and saved needs are repaired', () => {
   assert.equal(nutritionOf('teddy'), 25, 'unknown things count as a snack');
   for (const k of ['apple', 'burger', 'pancakes']) assert.ok(nutritionOf(k) > 0);
   assert.deepEqual(cleanNeeds(null), START_NEEDS);
-  assert.deepEqual(cleanNeeds({ hunger: 500, energy: -5, hygiene: 'x' }), { hunger: 100, energy: 0, hygiene: START_NEEDS.hygiene, mood: START_NEEDS.mood });
+  assert.deepEqual(cleanNeeds({ hunger: 500, energy: -5, hygiene: 'x' }), { hunger: 100, energy: 0, hygiene: START_NEEDS.hygiene, warmth: START_NEEDS.warmth, mood: START_NEEDS.mood });
 });

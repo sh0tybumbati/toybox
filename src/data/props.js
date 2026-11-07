@@ -357,6 +357,54 @@ export const PROP_TYPES = {
       g.fillStyle(0x8cc4f4, 1).fillRect(-3, -42, 6, 34).fillTriangle(-9, -42, 9, -42, 0, -56);   // the spout
     },
   },
+  dumpster: {
+    name: 'Dumpster', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['scavenge'], w: 118, h: 104, blurb: 'Search it',
+    draw(g) {
+      g.fillStyle(0x4f7a58, 1).fillRoundedRect(-58, -34, 116, 76, 6);                        // the bin
+      g.fillStyle(0x3f6648, 1).fillRoundedRect(-62, -44, 124, 16, 5);                        // its lid, a little ajar
+      g.fillStyle(0x2f4d36, 1).fillRect(-50, -26, 6, 60).fillRect(-26, -26, 6, 60).fillRect(-2, -26, 6, 60).fillRect(22, -26, 6, 60).fillRect(44, -26, 6, 60);
+      g.fillStyle(0xe8e2d0, 1).fillTriangle(30, -44, 52, -52, 46, -34);                      // a bit of paper hanging out
+      g.fillStyle(0x4a5368, 1).fillCircle(-40, 46, 7).fillCircle(40, 46, 7);
+    },
+  },
+  cot: {
+    name: 'Shelter Cot', cat: 'home', mount: 'floor', behaviour: 'bed', hardOnly: true, hardActions: ['sleep'], hours: [[17, 24], [0, 9]], w: 150, h: 66, blurb: 'A bed for the night',
+    draw(g) {
+      g.fillStyle(0x8a94a0, 1).fillRect(-72, 6, 8, 30).fillRect(64, 6, 8, 30);                // metal legs
+      g.fillStyle(0x6b7482, 1).fillRoundedRect(-76, 0, 152, 14, 5);                           // the frame
+      g.fillStyle(0xd9d4c4, 1).fillRoundedRect(-72, -14, 144, 18, 8);                         // a thin mattress
+      g.fillStyle(0xf1ebdc, 1).fillRoundedRect(-68, -22, 40, 14, 7);                          // a flat pillow
+    },
+  },
+  servery: {
+    name: 'Meal Line', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['queue'], hours: [[7, 8], [18, 19]], w: 190, h: 112, blurb: 'A free hot meal',
+    pool: ['rice', 'potato', 'bread', 'carrot'],
+    draw(g) {
+      g.fillStyle(0xb5835a, 1).fillRoundedRect(-95, -4, 190, 54, 6);                         // the counter
+      g.fillStyle(0xaab4c0, 1).fillRoundedRect(-80, -34, 56, 32, 8).fillRoundedRect(-14, -34, 56, 32, 8);   // the big pots
+      g.fillStyle(0xe8913a, 1).fillEllipse(-52, -34, 46, 10).fillStyle(0xf5c14a, 1).fillEllipse(14, -34, 46, 10);
+      g.fillStyle(0xe8e2d0, 1).fillRoundedRect(54, -22, 28, 20, 4);                          // a stack of bowls
+      g.fillStyle(0x6b7482, 1).fillRect(-92, -60, 6, 56).fillRect(-92, -64, 40, 6);          // a sign post
+    },
+  },
+  labourboard: {
+    name: 'Day Labour Board', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['labour'], hours: [[6, 9]], w: 130, h: 150, blurb: 'Cash-in-hand work',
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRect(-50, 20, 10, 56).fillRect(40, 20, 10, 56);          // posts
+      g.fillStyle(0xd9aa72, 1).fillRoundedRect(-60, -64, 120, 90, 6);                       // the board
+      g.fillStyle(0xfff4e0, 1).fillRect(-46, -52, 34, 28).fillRect(-4, -48, 36, 32).fillRect(-30, -12, 40, 28);   // notices
+      g.fillStyle(0xe5685c, 1).fillCircle(-44, -54, 4).fillCircle(30, -50, 4).fillCircle(-26, -10, 4);
+    },
+  },
+  begspot: {
+    name: 'Cardboard Sign', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['beg'], w: 96, h: 70, blurb: 'Ask for change',
+    draw(g) {
+      g.fillStyle(0xc99466, 1).fillRoundedRect(-34, -22, 68, 46, 4);                         // a scrap of cardboard
+      g.fillStyle(0x4a3426, 1).fillRect(-24, -12, 48, 5).fillRect(-18, 0, 36, 5);            // scrawled words
+      g.fillStyle(0x6b4a3a, 1).fillEllipse(0, 34, 52, 14);                                    // the hat for change
+      g.fillStyle(0xf0c868, 1).fillCircle(-8, 32, 4).fillCircle(8, 33, 4);
+    },
+  },
   mailbox: {
     name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', w: 84, h: 136,
     draw(g, flag) {
@@ -538,7 +586,7 @@ export const PROP_TYPES = {
   // --- Playground gear ------------------------------------------------------------------------------------------
   bench: {
     name: 'Park Bench', cat: 'play', mount: 'floor', behaviour: 'play', w: 170, h: 86, blurb: 'Sit and chat',
-    hardActions: ['sit'],
+    hardActions: ['sit', 'rough'],
     surface: { top: -4, people: false },
     ride: { parts: [{ pivot: { x: 0, y: 0 }, seats: [{ x: -40, y: 0 }, { x: 40, y: 0 }] }] },
     draw(g) {

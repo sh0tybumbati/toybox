@@ -28,6 +28,11 @@ export const BLUEPRINTS = {
     exterior: { wall: 'sky', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
     floors: [{ id: 0, rooms: [room(0, 'kitchen'), room(1, 'bedroom')] }],
   },
+  shelter: {                                  // hard mode only: a night shelter
+    name: 'Shelter', cost: null, unique: true,
+    exterior: { wall: 'blush', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
+    floors: [{ id: 0, rooms: [room(0, 'shelter')] }],
+  },
   park: {
     name: 'Park', cost: 10,
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },

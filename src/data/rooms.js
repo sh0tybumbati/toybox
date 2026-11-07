@@ -217,6 +217,16 @@ export const ROOMS = {
     ],
     windows: [{ x: 380, y: 60, w: 200, h: 110 }],
   },
+  shelter: {
+    label: '🏠 Shelter',
+    style: { wall: 'cream', floor: 'concrete' },
+    shelves: [],
+    props: [
+      { type: 'cot', x: 130, y: 540 }, { type: 'cot', x: 310, y: 540 }, { type: 'cot', x: 490, y: 540 },
+      { type: 'servery', x: 700, y: 500 }, { type: 'lightswitch', x: 890, y: 168 },
+    ],
+    windows: [{ x: 360, y: 60, w: 150, h: 110 }],
+  },
   pond: {
     label: '🎣 Fishing pond',
     outdoor: true,

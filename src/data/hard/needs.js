@@ -1,12 +1,16 @@
 // Hard-mode tuning for needs and the things people do to meet them (docs/hardcore-mode.md). All values are per
 // GAME hour unless a name says otherwise; 1 real minute = 1 game hour. "Tight like The Sims": a person who does
 // nothing is starving in about 20 hours, exhausted in about 25, and miserable well before that.
-export const NEEDS = ['hunger', 'energy', 'hygiene', 'mood'];     // 0 (bad) .. 100 (good)
-export const START_NEEDS = { hunger: 70, energy: 80, hygiene: 80, mood: 70 };
+export const NEEDS = ['hunger', 'energy', 'hygiene', 'warmth', 'mood'];     // 0 (bad) .. 100 (good)
+export const START_NEEDS = { hunger: 70, energy: 80, hygiene: 80, warmth: 80, mood: 70 };
 
-export const DECAY = { hunger: -5, energy: -4, hygiene: -2.8, mood: -2 };           // awake
-export const SLEEP_DECAY = { hunger: -2, energy: 14, hygiene: -1, mood: 0 };         // in a bed
-export const FLOOR_SLEEP = { hunger: -2.5, energy: 6, hygiene: -3, mood: -3 };        // asleep on the ground (slept rough)
+export const DECAY = { hunger: -5, energy: -4, hygiene: -2.8, warmth: 0, mood: -2 };           // awake (warmth comes from the weather, below)
+export const SLEEP_DECAY = { hunger: -2, energy: 14, hygiene: -1, warmth: 0, mood: 0 };         // in a bed
+export const FLOOR_SLEEP = { hunger: -2.5, energy: 6, hygiene: -3, warmth: 0, mood: -3 };        // asleep on the ground (slept rough)
+export const BENCH_SLEEP = { hunger: -2.5, energy: 8, hygiene: -2, warmth: 0, mood: -2 };        // asleep on a bench
+
+// Warmth (per game hour). Indoors you warm up; outdoors it depends on the temperature and the rain; asleep outside is colder.
+export const WARM = { indoor: 10, comfortableFrom: 16, outdoorWarm: 4, coldPerDegree: 0.55, rain: 3, snow: 4, sleepingOutside: 1.3 };
 export const LOW = 25;                                                              // below this a need hurts the mood
 export const LOW_MOOD_COST = 3;                                                     // mood lost per hour for each need below LOW
 
@@ -24,6 +28,11 @@ export const ACTIONS = {
   sleep: { label: 'Sleep', icon: '💤', minutes: 600, until: { energy: 95 } },
   wash:  { label: 'Wash',  icon: '🚿', minutes: 25, perMin: { hygiene: 3.6 } },
   sit:   { label: 'Relax', icon: '🛋️', minutes: 30, perMin: { mood: 0.5, energy: 0.1 } },
+  rough: { label: 'Sleep rough', icon: '🛏️', minutes: 480, until: { energy: 85 } },       // on a bench
+  scavenge: { label: 'Search', icon: '🗑️', minutes: 15, perMin: { hygiene: -0.35, mood: -0.1 } },
+  beg:   { label: 'Beg',   icon: '🪙', minutes: 60, minigame: 'beg' },
+  labour: { label: 'Day labour', icon: '🧱', minutes: 240, perMin: { energy: -0.12, hunger: -0.03, hygiene: -0.05 }, pay: 1200 },
+  queue: { label: 'Meal line', icon: '🍲', minutes: 20 },
 };
 export const ACTION_IDS = Object.keys(ACTIONS);
 export const MAX_QUEUE = 5;

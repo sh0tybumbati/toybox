@@ -23,6 +23,7 @@ export const gameMethods = {
   // A game finished (result = null if the player just closed it). Hand out what was won.
   onGameResult(id, result, prop) {
     if (prop && prop.active) prop.setState(false);
+    if (this.hard && id === 'beg') { this.hardGameResult(id, result); this.refreshTip(); return; }
     this.lastActive = this.time.now;
     this.refreshTip();
     if (!result) return;
