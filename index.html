@@ -38,7 +38,7 @@
         ? "Couldn't load the game engine. Check your internet connection and reload."
         : location.protocol === 'file:'
           ? 'Open this through a web server (for example: npm start), not straight from the file.'
-          : 'The game did not start. Try reloading; if it keeps happening, check the browser console.';
+          : 'The game did not start. Try a hard reload (Ctrl+Shift+R): old cached files can clash with new ones. If it keeps happening, check the browser console.';
       box.setAttribute('data-show', '');
     }, 5000);
     document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
