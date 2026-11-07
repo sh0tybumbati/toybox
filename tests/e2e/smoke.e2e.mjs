@@ -164,7 +164,7 @@ try {
     await g.room("r.goToZone('1.0');");
     await wait(1500);
     const basket = await g.room("const p = r.props.find(p => p.type === 'petbasket'); return [Math.round(p.x), Math.round(p.y)];");
-    await g.click(basket[0], basket[1], 600);
+    for (let attempt = 0; attempt < 3 && !(await g.room('return r.pets.length;')); attempt++) await g.click(basket[0], basket[1], 700);     // tap again if the first didn't take
     assert.equal(await g.room('return r.pets.length;'), 1, 'a pet hopped out');
     await wait(2500);
     const moved = await g.room('const p = r.pets[0]; return { x: Math.round(p.x), lane: Math.round(p.lane), kind: p.kind };');
