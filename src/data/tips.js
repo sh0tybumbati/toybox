@@ -15,6 +15,7 @@ export const TIPS = [
   { id: 'build',     done: 'build',     text: '🏗️ Build somewhere new: open the Map and tap an empty plot.' },
   { id: 'play',      done: 'play',      text: '🕹️ Tap a game station — the fishing dock, the TV, the sewing machine…' },
   { id: 'decorate',  done: 'decorate',  text: '🎨 Open furniture mode, then Decorate, to repaint walls and floors.' },
+  { id: 'box',       done: 'open',      room: 'bedroom', text: '📦 Tap a box or a backpack to open it, then drop things inside. Tap it again to take one out!' },
   { id: 'groceries', done: 'groceries', room: 'market', text: '🛒 Groceries cost coins — take one off the shelf to buy it.' },
   { id: 'deliver',   done: 'deliver',   room: 'market', text: '🚚 Drop groceries in the delivery cart and a van takes them to another building.' },
   { id: 'cashier',   done: 'cashier',   room: 'market', text: '🧾 Tap the checkout till: scan the shopping, then give the right change!' },

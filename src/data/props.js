@@ -86,7 +86,7 @@ export const PROP_TYPES = {
     name: 'Surprise Toy Chest', cat: 'home', mount: 'floor',
     surface: { top: -6 },
     behaviour: 'dispenser', w: 112, h: 76, sfx: 'creak',
-    pool: ['teddy', 'ball', 'car', 'balloon', 'duck', 'guitar', 'rocket', 'puzzle', 'robot', 'kite'],
+    pool: ['teddy', 'ball', 'car', 'balloon', 'duck', 'guitar', 'rocket', 'puzzle', 'robot', 'kite', 'box', 'backpack'],
     kinds: ['toy'],
     draw(g, open) {
       g.fillStyle(0xb5835a, 1).fillRoundedRect(-56, -6, 112, 44, 6);                  // base

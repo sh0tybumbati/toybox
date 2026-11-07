@@ -84,6 +84,7 @@ export function handleDrop(scene, item) {
     }
     if (item.kind === 'toy' && c.getZone('body').contains(item.x, item.y)) return cuddle(scene, item, c);
   }
+  if (scene.dropInContainer(item)) return;
   if (dropOnProps(scene, item)) return;
   if (storeInFurniture(scene, item)) return;
   if (tryCombo(scene, item)) return;

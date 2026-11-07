@@ -9,7 +9,8 @@ const stubGraphics = () => { const calls = []; const g = new Proxy({}, { get: (_
 
 test('every item in the catalogue has hand-drawn art, and nothing extra', () => {
   assert.deepEqual(Object.keys(CATALOG).filter(k => !ITEM_ART[k]), []);
-  assert.deepEqual(Object.keys(ITEM_ART).filter(k => !CATALOG[k]), []);
+  assert.deepEqual(Object.keys(ITEM_ART).filter(k => !CATALOG[k] && !k.endsWith('_open')), [], 'only open containers are art without an item');
+  for (const [k, d] of Object.entries(CATALOG)) if (d.kind === 'container') assert.ok(ITEM_ART[`${k}_open`], `${k} has open art`);
 });
 
 test('every drawing paints something and stays inside its box', () => {

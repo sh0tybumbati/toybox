@@ -4,7 +4,7 @@
 // Schema v12 (the world is a city of buildings; a zone is one floor of one, see systems/world.js):
 //   { v: 12, shirts: [{ color, pattern }], toys: [toy design (data/toys.js)], zone: "slot.floor", city: [buildingKey | null], looks: { sectionId: { wall, floor, windows } },
 //     pets: [petKind], tips: [seenTipId], furniture: { sectionId: [{ type, x, y, items: [{ s: slot, k: itemKey }] }] | null },
-//     night: bool, coins: int, unlocked: [premiumKey], recipes: [recipeId], floors: { sectionId: [{ k, x, l, z? }] },
+//     night: bool, coins: int, unlocked: [premiumKey], recipes: [recipeId], floors: { sectionId: [{ k, x, l, z?, c?: [itemKey], o?: 1 }] },
 //     characters: [{ id, name, look, x, lane, worn: { slot: itemKey } }] }
 // Furniture and floor items are stored per room (section) in that room's own 0..960 coordinates;
 // characters use zone (world) x.
@@ -131,7 +131,7 @@ export function sanitize(raw) {
     const list = d.floors && d.floors[sec.id];
     floors[sec.id] = (Array.isArray(list) ? list : [])
       .filter(f => f && CATALOG[f.k] && ok(f.x) && ok(f.l))
-      .map(f => ({ k: f.k, x: clamp(f.x, 30, sec.w - 30), l: clamp(f.l, FLOOR_TOP, FLOOR_BOTTOM), ...(ok(f.z) && f.z > 0 ? { z: clamp(Math.round(f.z), 1, 400) } : {}) }));
+      .map(f => ({ k: f.k, x: clamp(f.x, 30, sec.w - 30), l: clamp(f.l, FLOOR_TOP, FLOOR_BOTTOM), ...(ok(f.z) && f.z > 0 ? { z: clamp(Math.round(f.z), 1, 400) } : {}), ...(CATALOG[f.k].kind === 'container' ? { c: (Array.isArray(f.c) ? f.c : []).filter(k => CATALOG[k] && CATALOG[k].kind !== 'container').slice(0, CATALOG[f.k].cap), ...(f.o ? { o: 1 } : {}) } : {}) }));
   }
   const coins = Number.isFinite(d.coins) ? clamp(Math.floor(d.coins), 0, 999999) : 0;
   const unlocked = [...new Set(Array.isArray(d.unlocked) ? d.unlocked.filter(k => isPremium(k)) : [])];

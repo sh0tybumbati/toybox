@@ -14,6 +14,7 @@ export const storageFor = (scene, item) => scene.props.filter(p => isStorage(p) 
 
 // An item was released: if it's over a storage piece with a free slot, put it away.
 export function storeInFurniture(scene, item) {
+  if (item.contents && item.contents.length) return false;                // a full box can't be put away (its things would be lost)
   const targets = storageFor(scene, item).filter(p => p.zone().contains(item.x, item.y)).sort((a, b) => b.depth - a.depth);
   for (const prop of targets) {
     const slot = nearestFreeSlot(prop.def.slots, prop.stored, item.x - prop.x, item.y - prop.y);

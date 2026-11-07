@@ -44,7 +44,7 @@ export const ROOMS = {
     style: { wall: 'cream', floor: 'honey' },
     shelves: [],
     props: [
-      { type: 'shelf', x: 165, y: 309, stock: ['teddy', 'ball', 'car'] },
+      { type: 'shelf', x: 165, y: 309, stock: ['teddy', 'ball', 'car', 'box'] },
       { type: 'shelf', x: 795, y: 309, stock: ['cap', 'crown', 'shades'] },
       { type: 'wardrobe', x: 372, y: 434 },
       { type: 'chest', x: 590, y: 434 },
@@ -86,7 +86,7 @@ export const ROOMS = {
     style: { wall: 'sage', floor: 'warm' },
     shelves: [],
     props: [
-      { type: 'shelf', x: 165, y: 309, stock: ['puzzle', 'guitar', 'popcorn'] },
+      { type: 'shelf', x: 165, y: 309, stock: ['puzzle', 'guitar', 'backpack'] },
       { type: 'shelf', x: 795, y: 309, stock: ['ball', 'duck', 'kite'] },
       { type: 'bookcase', x: 372, y: 434 },
       { type: 'armchair', x: 640, y: 530 },

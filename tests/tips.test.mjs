@@ -46,7 +46,7 @@ test('saves: existing players have seen every tip; unknown ids are dropped', () 
 });
 
 test('the shop tips only show in the supermarket and the furniture store, after the basics', () => {
-  const seen = new Set(['grab', 'dress', 'walk', 'map', 'eat', 'cook', 'book', 'furniture', 'shop', 'build', 'play', 'decorate']);
+  const seen = new Set(['grab', 'dress', 'walk', 'map', 'eat', 'cook', 'book', 'furniture', 'shop', 'build', 'play', 'decorate', 'box']);
   assert.equal(currentTip(seen, 'bedroom'), null);
   assert.equal(currentTip(seen, 'market').id, 'groceries');
   assert.equal(currentTip(seen, 'ikea').id, 'ikea');

@@ -331,6 +331,8 @@ try {
     await g.room("for (const k of ['__dock', '__tv']) if (window[k] && window[k].active) r.removeFurniture(window[k]);");
     await g.room("r.detached = true; r.cameras.main.scrollX = 0; window.__sew = r.addFurniture('sewing'); window.__clay = r.addFurniture('claytable'); window.__sew.setPosition(140, 470); window.__clay.setPosition(830, 470);");
     await wait(400);
+    await g.room('r.characters[0].x = 800; r.characters[0].lane = 520;');          // friends and pets gather by the kid, away from the machine
+    await wait(500);
     const sew = await g.room('const p = window.__sew; return [Math.round(p.x), Math.round(p.y)];');
     for (let attempt = 0; attempt < 3 && !(await g.ev("__toybox.scene.isActive('ShirtShop')")); attempt++) await g.click(sew[0], sew[1], 1000);     // tap again if the first didn't take
     assert.ok(await g.ev("__toybox.scene.isActive('ShirtShop')"), 'the shirt factory opened');
@@ -338,6 +340,8 @@ try {
     await wait(900);
     const worn = await g.room("const c = r.characters[0]; return { shirt: c.look.shirt, pattern: c.look.pattern && c.look.pattern.id, saved: r.shirtDesigns.length };");
     assert.equal(worn.shirt, 0xff5d5d); assert.equal(worn.pattern, 'stars'); assert.equal(worn.saved, 1);
+    await g.room('r.characters[0].x = 140; r.characters[0].lane = 520;');
+    await wait(500);
     const clay = await g.room('const p = window.__clay; return [Math.round(p.x), Math.round(p.y)];');
     for (let attempt = 0; attempt < 3 && !(await g.ev("__toybox.scene.isActive('Sculpt')")); attempt++) await g.click(clay[0], clay[1], 1000);     // tap again if the first didn't take
     assert.ok(await g.ev("__toybox.scene.isActive('Sculpt')"), 'the workshop opened');
@@ -491,6 +495,31 @@ try {
     await wait(1400);
     a = await spot('apple'); b = await spot('ball');
     assert.ok(b[2] === 0 && a[2] > 20 && Math.abs(a[0] - b[0]) < 30, `the pile moved as one (ball ${b}, apple ${a})`);
+  });
+
+  await step('containers: tap a box to open it, drop things in, carry it with its contents, tap to take one out, and it survives a reload', async () => {
+    await g.room("r.goToZone('0.1');");
+    await wait(2000);
+    await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.characters.forEach(c => { c.x = 820; c.lane = 520; }); window.__cb = r.createItem('box', 300, 540); window.__ca = r.createItem('apple', 420, 540); window.__cd = r.createItem('duck', 480, 540);");
+    await wait(900);
+    const at = k => g.room(`const i = window.__${k}, s = r.cameras.main.scrollX; return [Math.round(i.x - s), Math.round(i.y)];`);
+    let b = await at('cb');
+    await g.click(b[0], b[1], 600);
+    assert.equal(await g.room('return window.__cb.open;'), true, 'a tap opens it');
+    for (const k of ['ca', 'cd']) { const a = await at(k); b = await at('cb'); await g.drag(a[0], a[1], b[0], b[1] - 20, 600); await wait(700); }
+    assert.equal(await g.room('return window.__cb.contents.join();'), 'apple,duck', `dropped things go inside ${JSON.stringify(await g.room('const b = window.__cb; return [b.x, b.y, b.open, b.z, window.__ca.x, window.__ca.y, window.__ca.dead, r.cameras.main.scrollX];'))}`);
+    b = await at('cb');
+    await g.drag(b[0], b[1], 700, 530, 700);
+    await wait(1000);
+    assert.equal(await g.room('return window.__cb.contents.length;'), 2, 'what is inside goes where the box goes');
+    b = await at('cb');
+    await g.click(b[0], b[1], 900);
+    assert.equal(await g.room('return window.__cb.contents.length;'), 1, 'tapping an open box takes something out');
+    await g.room('r.save();');
+    await wait(600);
+    await g.open();
+    await wait(1800);
+    assert.deepEqual(await g.room("const i = r.bodies.find(b => b.key === 'box' && !b.onShelf && !b.storedIn && !b.dead); return i ? [i.contents.join(), i.open] : null;"), ['apple', true], 'still open, still holding the apple');
   });
 
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });

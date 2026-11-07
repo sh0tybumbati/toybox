@@ -51,6 +51,7 @@ export const dragMethods = {
         obj.snapping = false;
       }
       if (obj.storedIn) takeOut(obj);           // taking something out of a cabinet
+      obj.tapAt = { t: performance.now(), x: obj.x, y: obj.y };
       this.pickUpStack(obj);                    // anything piled on top of it comes along
       // Grabbing from a shelf leaves a fresh copy behind.
       if (obj.onShelf) {
@@ -127,7 +128,8 @@ export const dragMethods = {
       this.dropStack(obj);
       if (obj.z <= 0) obj.vz = Math.max(0, obj.vz);
 
-      handleDrop(this, obj);                      // may override velocity / consume item
+      if (this.isContainer(obj) && obj.tapAt && performance.now() - obj.tapAt.t < 450 && Math.hypot(obj.x - obj.tapAt.x, obj.y - obj.tapAt.y) < 10) this.tapContainer(obj);       // a tap, not a drag
+      else handleDrop(this, obj);                      // may override velocity / consume item
       if (!obj.dead && !obj.worn && obj.z <= 0 && inBin(obj, this.binXs())) trash(this, obj);
 
       // Dropped on the floor with no interaction: tiny landing thud.

@@ -11,6 +11,7 @@ import Character from '../entities/Character.js';
 import Item from '../entities/Item.js';
 import { Sfx } from '../systems/sfx.js';
 import { stepBody, isMoving, inBin } from '../systems/physics.js';
+import { containerMethods } from './room/containers.js';
 import { itemSurface, propSurface } from '../systems/support.js';
 import { land, trash, floatText } from '../systems/interactions.js';
 import { tickProps } from '../systems/props.js';
@@ -222,4 +223,4 @@ export default class RoomScene extends Phaser.Scene {
   }
 }
 
-Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods, playMethods);
+Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods, playMethods, containerMethods);

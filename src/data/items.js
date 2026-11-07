@@ -1,4 +1,5 @@
 // Item catalog (`emoji` is just a label now; the art is hand-inked in data/itemart.js). `kind` decides what happens on a drop (see SLOTS_FOR / handleDrop).
+// `kind: 'container'` (box, backpack): tap to open/close, drop things in; `cap` is how many it holds, and its open art is `<key>_open`.
 // Optional: size (on-screen px of the art's box, default 72; see data/itemart.js), bounce (restitution), gscale (gravity multiplier),
 // reaction (food only: yum | sour | spicy | yuck — see data/expressions.js).
 export const CATALOG = {
@@ -26,6 +27,8 @@ export const CATALOG = {
   pepper:   { emoji: '🌶️',   kind: 'food', reaction: 'spicy' },
   berry:    { emoji: '🍓',   kind: 'food' },
   broccoli: { emoji: '🥦',   kind: 'food', reaction: 'yuck' },
+  box:      { emoji: '📦',   kind: 'container', size: 96, cap: 10 },
+  backpack: { emoji: '🎒',   kind: 'container', size: 84, cap: 6 },
   // Not on any shelf: these come out of props (fridge, oven, chest, wardrobe) or combos.
   // Raw ingredients (pantry crate) — the oven turns combinations of these into dishes.
   flour:    { emoji: '🌾',   kind: 'food' },
