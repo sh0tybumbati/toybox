@@ -33,6 +33,9 @@ function plush(p, o) {
   tiny(p, () => e(p, 64, 56, 5, 3.4, o.nose || 0x2a1f24));
 }
 
+// Shared with data/spriteart.js (pets, bin, icons): the same helpers and palette.
+export const H = { e, c, r, t, poly, ln, tiny, dots, eyes, plate, COLORS: { RED, ORANGE, YELLOW, GREEN, DKGREEN, BROWN, TAN, CREAM, WHITE, PINK, BLUE, PURPLE, GREY, DKGREY, CHOC } };
+
 export const ITEM_ART = {
   // ---- fruit and veg ----
   apple: p => { e(p, 64, 72, 36, 36, RED); e(p, 50, 62, 8, 6, 0xf27a6e); ln(p, 64, 38, 66, 24, 4); tiny(p, () => e(p, 80, 28, 14, 7, GREEN)); },

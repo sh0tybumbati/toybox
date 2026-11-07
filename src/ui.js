@@ -1,4 +1,5 @@
 // Small UI helpers shared by the scenes.
+import { spriteImage } from './systems/itemTextures.js';
 
 // Make an object easy to hit with a finger: the hit area is the object plus `pad`
 // pixels on every side. (Phaser hit areas are in the object's top-left local space.)
@@ -12,6 +13,8 @@ export function touchable(obj, pad = 10) {
 
 // A round-ish icon button for overlays (✖ close buttons and the like).
 export function iconButton(scene, x, y, glyph, onTap, depth = 10000) {
-  const b = scene.add.text(x, y, glyph, { fontSize: '30px' }).setOrigin(0.5).setDepth(depth);
+  const b = glyph === '✖'
+    ? spriteImage(scene, 'icon-close', x, y, 44).setDepth(depth)                        // the drawn close button
+    : scene.add.text(x, y, glyph, { fontSize: '30px' }).setOrigin(0.5).setDepth(depth);
   return touchable(b, 12).on('pointerdown', onTap);
 }

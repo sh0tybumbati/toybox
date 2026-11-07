@@ -7,6 +7,8 @@ import { findCombo } from '../data/recipes.js';
 import { dropOnProps } from './props.js';
 import { storeInFurniture } from './storage.js';
 import { clamp } from '../util.js';
+import { EMOJI_SPRITE } from '../data/spriteart.js';
+import { spriteImage } from './itemTextures.js';
 
 // --- Small effects -----------------------------------------------------------
 
@@ -33,9 +35,23 @@ export function puff(scene, x, y, color = 0xffffff, n = 5) {
   }
 }
 
+// Floating text. Emoji that have a hand-drawn sprite (data/spriteart.js EMOJI_SPRITE) become that sprite, so
+// "+1 🪙" is the words and a drawn coin, and a lone "💖" is a drawn heart.
+const TOKEN = new RegExp(`(${Object.keys(EMOJI_SPRITE).join('|')})`, 'u');
 export function floatText(scene, x, y, str, size = 48) {
-  const t = scene.add.text(x, y, str, { fontSize: `${size}px`, ...(size < 40 && { fontStyle: 'bold', color: '#ffffff', stroke: '#4a3426', strokeThickness: 4 }) }).setOrigin(0.5).setDepth(9999);
-  scene.tweens.add({ targets: t, y: y - 70, alpha: 0, duration: 900, onComplete: () => t.destroy() });
+  const parts = String(str).split(TOKEN).map(s => (EMOJI_SPRITE[s] ? s : s.trim())).filter(Boolean);
+  const wordy = size < 40, px = wordy ? size * 1.15 : size * 1.05, gap = 4, items = [];
+  for (const part of parts) {
+    items.push(EMOJI_SPRITE[part]
+      ? spriteImage(scene, EMOJI_SPRITE[part], 0, 0, px)
+      : scene.add.text(0, 0, part, { fontSize: `${size}px`, ...(wordy && { fontStyle: 'bold', color: '#ffffff', stroke: '#4a3426', strokeThickness: 4 }) }).setOrigin(0.5));
+  }
+  const total = items.reduce((n, o) => n + o.displayWidth + gap, -gap);
+  let at = -total / 2;
+  for (const o of items) { o.setPosition(at + o.displayWidth / 2, 0); at += o.displayWidth + gap; }
+  const row = scene.add.container(x, y, items).setDepth(9999);
+  scene.tweens.add({ targets: row, y: y - 70, alpha: 0, duration: 900, onComplete: () => row.destroy() });
+  return row;
 }
 
 // An object hit the floor with `impact` px/s of downward speed.

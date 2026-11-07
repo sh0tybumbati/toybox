@@ -1,6 +1,7 @@
 // Room scene mixin — Walking: tap the floor and the selected character strolls over.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
 import { STRIDE, clampGoal, isFloorTap, stepWalk } from '../../systems/walk.js';
+import { spriteImage } from '../../systems/itemTextures.js';
 
 export const walkingMethods = {
   // Called from the scene's pointerdown with the list of things under the pointer.
@@ -43,7 +44,7 @@ export const walkingMethods = {
   },
 
   refreshSelectMarker() {
-    if (!this.selectMarker) this.selectMarker = this.add.text(0, 0, '🔻', { fontSize: '26px' }).setOrigin(0.5).setDepth(8500);
+    if (!this.selectMarker) this.selectMarker = spriteImage(this, 'marker', 0, 0, 34).setDepth(8500);
   },
 
   // Every frame: advance walks, animate steps, keep the selection marker on its head.

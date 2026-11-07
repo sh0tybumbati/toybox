@@ -3,6 +3,7 @@
 import { W } from '../../config.js';
 import { saveStore } from '../../systems/save.js';
 import { touchable } from '../../ui.js';
+import { ensureSpriteTexture, spriteImage } from '../../systems/itemTextures.js';
 
 export const hudMethods = {
   createHud(hasSave) {
@@ -18,22 +19,23 @@ export const hudMethods = {
     this.refreshTip();
 
     // Icon buttons along the top right, 52px apart so finger-sized hit areas don't overlap.
-    const icon = (n, glyph, onTap) => {
-      const t = fixed(this.add.text(W - 34 - n * 52, 30, glyph, { fontSize: '28px' }).setOrigin(0.5).setDepth(10000));
+    const icon = (n, key, onTap) => {
+      const t = fixed(spriteImage(this, key, W - 34 - n * 52, 30, 44).setDepth(10000));
       return touchable(t, 8).on('pointerdown', onTap);
     };
-    const mute = icon(0, this.sfx.muted ? '🔇' : '🔊', () => {
-      mute.setText(this.sfx.toggle() ? '🔇' : '🔊');
+    const show = (img, key) => img.setTexture(ensureSpriteTexture(this, key));
+    const mute = icon(0, this.sfx.muted ? 'icon-mute' : 'icon-sound', () => {
+      show(mute, this.sfx.toggle() ? 'icon-mute' : 'icon-sound');
       this.sfx.pop();
     });
 
     // Reset: two taps (the first one arms it) wipes the saved toybox.
     let armed = false;
-    const reset = icon(1, '🧹', async () => {
+    const reset = icon(1, 'icon-broom', async () => {
       if (!armed) {
         armed = true;
-        reset.setText('❓');
-        this.time.delayedCall(2000, () => { armed = false; reset.setText('🧹'); });
+        show(reset, 'icon-trash');                                  // tap again to really wipe everything
+        this.time.delayedCall(2000, () => { armed = false; show(reset, 'icon-broom'); });
         return;
       }
       this.noSave = true;
@@ -41,9 +43,9 @@ export const hudMethods = {
       location.reload();
     });
 
-    icon(2, '🎨', () => this.openCreator());
-    icon(3, '📖', () => this.openBook());
-    icon(4, '🛋️', () => this.toggleEdit());
+    icon(2, 'icon-palette', () => this.openCreator());
+    icon(3, 'icon-book', () => this.openBook());
+    icon(4, 'icon-furniture', () => this.toggleEdit());
   },
 
   updateNav() {

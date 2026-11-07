@@ -2,6 +2,7 @@
 // at 2x resolution, then reused by every copy of the item, by the oven's ingredient list and by the recipe book.
 import { ART_BOX, drawItem } from '../data/itemart.js';
 import { InkPen } from '../data/inkpen.js';
+import { SPRITE_ART } from '../data/spriteart.js';
 
 export const TEX_RES = 2;
 export const TEX_SIZE = ART_BOX * TEX_RES;
@@ -23,4 +24,22 @@ export function ensureItemTexture(scene, key) {
 // A small picture of an item for menus (the oven's ingredient bubble, the recipe book): `px` wide.
 export function itemIcon(scene, key, x, y, px = 36) {
   return scene.add.image(x, y, ensureItemTexture(scene, key)).setDisplaySize(px, px);
+}
+
+// --- sprites that aren't items (pets, the bin, coins, reaction faces, icons): data/spriteart.js -------------
+export const spriteTextureKey = key => `sprite:${key}`;
+export function ensureSpriteTexture(scene, key) {
+  const tk = spriteTextureKey(key), art = SPRITE_ART[key];
+  if (scene.textures.exists(tk)) return tk;
+  const g = scene.make.graphics({ x: 0, y: 0, add: false });
+  g.scaleCanvas(TEX_RES, TEX_RES);
+  art.draw(new InkPen(g, seedOf(key), { weight: art.weight }));
+  g.generateTexture(tk, art.box * TEX_RES, art.box * TEX_RES);
+  g.destroy();
+  return tk;
+}
+
+// A sprite as an image, `px` wide and tall (the drawing's whole box).
+export function spriteImage(scene, key, x, y, px) {
+  return scene.add.image(x, y, ensureSpriteTexture(scene, key)).setDisplaySize(px, px);
 }

@@ -40,3 +40,24 @@ test('an unknown key draws a placeholder instead of throwing', () => {
   const { g } = stubGraphics();
   assert.doesNotThrow(() => drawItem(new InkPen(g, 1), 'no-such-item'));
 });
+
+import { SPRITE_ART, EMOJI_SPRITE } from '../src/data/spriteart.js';
+import { PETS } from '../src/data/pets.js';
+import { REACTIONS } from '../src/data/expressions.js';
+
+test('sprites: every pet, the bin, the coin and the reaction faces have art, inside their box', () => {
+  for (const kind of Object.keys(PETS)) assert.ok(SPRITE_ART[`pet-${kind}`], `pet ${kind}`);
+  for (const k of ['bin', 'coin', 'heart', 'zzz', 'sparkle', 'fire', 'laugh', 'yum', 'sour', 'spicy', 'yuck', 'marker']) assert.ok(SPRITE_ART[k], k);
+  for (const [key, art] of Object.entries(SPRITE_ART)) {
+    const { g, calls } = stubGraphics();
+    assert.doesNotThrow(() => art.draw(new InkPen(g, 3, { weight: art.weight })), key);
+    const pts = calls.filter(c => c[0] === 'fillPoints' || c[0] === 'strokePoints').flatMap(c => c[1]);
+    assert.ok(pts.length > 4, `${key} draws something`);
+    for (const p of pts) assert.ok(p.x > -6 && p.x < art.box + 6 && p.y > -6 && p.y < art.box + 6, `${key}: ${JSON.stringify(p)} fits its ${art.box} box`);
+  }
+});
+
+test('every emoji the game floats up has a hand-drawn replacement', () => {
+  for (const [emoji, sprite] of Object.entries(EMOJI_SPRITE)) assert.ok(SPRITE_ART[sprite], `${emoji} -> ${sprite}`);
+  for (const r of Object.values(REACTIONS)) { assert.ok(EMOJI_SPRITE[r.emoji], r.emoji); if (r.extra) assert.ok(EMOJI_SPRITE[r.extra], r.extra); }
+});

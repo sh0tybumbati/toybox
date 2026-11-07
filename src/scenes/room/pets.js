@@ -6,16 +6,18 @@ import { PET_SPEED, PET_STRIDE, petGoal, thinkDelay } from '../../systems/pets.j
 import { floatText, puff } from '../../systems/interactions.js';
 import { stepWalk } from '../../systems/walk.js';
 import { flightStretch } from '../../systems/squash.js';
+import { TEX_SIZE, ensureSpriteTexture } from '../../systems/itemTextures.js';
 import { clamp } from '../../util.js';
 
-const SIZE = 80;
+const SIZE = 92;                       // on-screen px of a pet's drawing
 
 export const petMethods = {
   // A new pet of `kind` hopping into the room at (x, lane).
   addPet(kind, x = this.cameras.main.scrollX + Phaser.Math.Between(150, 800), lane = Phaser.Math.Between(FLOOR_TOP + 20, FLOOR_BOTTOM - 20)) {
     if (!PETS[kind]) return null;
-    const pet = this.add.text(x, lane, PETS[kind].emoji, { fontSize: `${SIZE}px` }).setOrigin(0.5, 0.85)
+    const pet = this.add.image(x, lane, ensureSpriteTexture(this, `pet-${kind}`)).setOrigin(0.5, 0.92)
       .setInteractive({ draggable: true, useHandCursor: true });
+    pet.base = SIZE / TEX_SIZE;                                // so the scale below is 1 = full size
     pet.isPet = true; pet.kind = kind;
     pet.lane = lane; pet.z = 0; pet.vz = 0; pet.goal = null; pet.held = false;
     pet.phase = 0; pet.nextThink = this.time.now + 800; pet.moved = false;
@@ -112,7 +114,7 @@ export const petMethods = {
       pet.setAngle(r.moved ? Math.sin(pet.phase) * 6 : 0);
       pet.land = (pet.land || 0) * Math.pow(0.02, dt);                            // a squash when it lands, fading fast
       const air = flightStretch(0, pet.vz * 1.4, { max: 0.2, ref: 900 }), br = 1 + Math.sin(now / 500 + pet.lane) * 0.015;
-      pet.setScale(br * air.x * (1 + 0.22 * pet.land), br * air.y * (1 - 0.2 * pet.land));
+      pet.setScale(pet.base * br * air.x * (1 + 0.22 * pet.land), pet.base * br * air.y * (1 - 0.2 * pet.land));
       pet.setDepth(4 + pet.lane / 1000);                          // low: behind the kids and the items (a kid's click area ignores spots where a pet stands: see Character.petAt)
       const k = 1 / (1 + pet.z / 200);
       pet.shadow.setPosition(pet.x, pet.lane + 2).setScale(k).setAlpha(0.28 * k);

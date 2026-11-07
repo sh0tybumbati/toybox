@@ -183,7 +183,7 @@ export default class RoomScene extends Phaser.Scene {
     for (const bin of this.binObjs) {
       const over = Boolean(this.heldItem) && inBin(this.heldItem, [bin.x]);
       bin.k += ((over ? 1.25 : 1) - bin.k) * 0.25;
-      bin.text.setScale(bin.k).setAngle(over ? Math.sin(time / 60) * 6 : 0);
+      bin.text.setScale(bin.base * bin.k).setAngle(over ? Math.sin(time / 60) * 6 : 0);
     }
   }
 

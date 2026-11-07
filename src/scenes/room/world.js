@@ -10,6 +10,7 @@ import { flushProps } from '../../systems/props.js';
 import { sectionAt, zoneInfo, entryZone } from '../../systems/world.js';
 import { SHELF_STEP, SHELF_W } from '../../config.js';
 import { clamp } from '../../util.js';
+import { TEX_SIZE, ensureSpriteTexture } from '../../systems/itemTextures.js';
 
 const SUNBEAMS = false;            // the hand-inked style (art/reference/) is flat: no light effects
 
@@ -206,9 +207,11 @@ export const worldMethods = {
   // A trash bin standing on the floor at world x.
   addBin(x) {
     const shadow = this.add.ellipse(x, BIN.lane, 80, 16, 0x000000).setAlpha(0.28).setDepth(2);
-    const text = this.add.text(x, BIN.lane - 34, '🗑️', { fontSize: '76px' }).setOrigin(0.5).setDepth(3);
+    const text = this.add.image(x, BIN.lane + 2, ensureSpriteTexture(this, 'bin')).setOrigin(0.5, 0.92).setDepth(3);
+    const base = 104 / TEX_SIZE;
+    text.setScale(base);
     this.roomGfx.push(shadow, text);
-    this.binObjs.push({ x, text, k: 1 });
+    this.binObjs.push({ x, text, k: 1, base });
   },
   binXs() { return this.binObjs.map(b => b.x); },
 

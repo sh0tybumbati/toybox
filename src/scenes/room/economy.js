@@ -3,6 +3,7 @@
 import { FLOOR_BOTTOM, FLOOR_TOP } from '../../config.js';
 import { PREMIUM, earnAmount } from '../../data/economy.js';
 import { floatText, puff } from '../../systems/interactions.js';
+import { spriteImage } from '../../systems/itemTextures.js';
 
 export const economyMethods = {
   // Pay out for something the player did (rules + cooldowns in data/economy.js).
@@ -59,10 +60,10 @@ export const economyMethods = {
     if (!parks.length) return;
     const sec = Phaser.Utils.Array.GetRandom(parks);
     const x = sec.offset + Phaser.Math.Between(90, Math.min(860, sec.w - 90)), y = Phaser.Math.Between(FLOOR_TOP + 20, FLOOR_BOTTOM - 20);
-    const coin = this.add.text(x, y - 60, '🪙', { fontSize: '40px' }).setOrigin(0.5).setDepth(3000)
-      .setInteractive({ useHandCursor: true });
+    const base = 48 / 128;                                       // the coin's drawing is 64 units in a 128px texture
+    const coin = spriteImage(this, 'coin', x, y - 60, 48).setDepth(3000).setInteractive({ useHandCursor: true });
     this.tweens.add({ targets: coin, y, duration: 350, ease: 'Bounce.easeOut' });
-    this.tweens.add({ targets: coin, scale: 1.15, duration: 600, yoyo: true, repeat: -1, delay: 400 });
+    this.tweens.add({ targets: coin, scale: coin.scaleX * 1.15, duration: 600, yoyo: true, repeat: -1, delay: 400 });
     coin.on('pointerdown', () => {
       this.earn('pickup', coin.x, coin.y - 40);
       puff(this, coin.x, coin.y, 0xfff3a0, 4);
