@@ -4,23 +4,50 @@ A hidden, adults-only mode of Toybox: the same world, rooms, buildings, items, m
 survival-capitalism life sim (Sims × Schedule 1). **Child mode stays the default and stays exactly as it is.**
 This document is the plan; nothing here is built yet.
 
-## 0. Decisions so far (user, 2026-11-08)
+## 0. Decisions (user, 2026-11-08)
 
-- **Clock:** 1 real minute = 1 game hour (a day = 24 real minutes), like The Sims.
-- **Money:** coins <-> cash is **two-way at 1 coin = 100 cash** (cash is the smaller denomination).
-- **Failure:** chosen **per save** at unlock: *Soft* (debt + recovery path) or *True hard* (permadeath, and true homelessness:
-  you can lose everything and work up from sleeping in parks).
-- **Police:** **full escalation** - patrols, wanted levels, witnesses, evidence, arrest/jail as scheduled time, trials, fines, bribes,
-  corrupt vs honest officers, raids.
-- **Combat:** **side-view brawler** in the rooms (punch, dodge, grab, throw; item physics become weapons).
-- **Household:** **one shared household** (up to 6 people, shared cash) for now.
-- **Starts:** **pick a scenario** (flat, park with nothing, inherited house with debts...).
-- **Citizens:** **full factions** - schedule-driven named NPCs plus gangs, rival crews, territory, a changing town.
-- **Tone:** **cartoon ink, no gore** - slapstick-scale injuries (stars, bruises, knock-outs), dark themes, soft visuals.
-- **Survival:** **full survival** - weather and seasons, safe places to sleep, being moved on, theft, begging, scavenging, health.
-- **Trade:** **supply chain** in the fictional plants (grow, process, package, stash, distribute, suppliers, customers, debts, rivals).
+**Time and money**
+- 1 real minute = 1 game hour (a day = 24 real minutes), like The Sims. **Time pauses when the game is closed** (no offline catch-up).
+- Coins <-> cash is two-way at **1 coin = 100 cash** (cash is the smaller denomination).
+- One shared **household** (up to 6, shared cash) for now.
 
-Consequences: sections 3.7/3.8 grow into their own systems (see 3.9-3.13 below); the build order in section 6 is re-cut for them.
+**Failure, goals, starts**
+- Chosen per save at unlock: *Soft* (debt + recovery path) or *True hard* (permadeath, true homelessness: lose everything, work up from the park).
+- **Open sandbox with life goals**: Sims-style aspirations per person (own a home, run a business, kingpin, honest cop, retire) and a legacy score on death/retirement. No fixed ending.
+- **Scenarios** to build first: *Park bench, nothing* / *Cheap flat, first job* / *Inherited house, debts* / *Just out of jail*.
+- People **age (adult -> older adult -> elder), no children, no births**; new adults join (roommates, partners, friends, recruits). Old age can end a life.
+
+**Characters (content safeguard)**
+- Hard mode is **adult-bodied only**: child characters never exist in hard mode. **Separate casts**: the kid-mode cast stays in the kid save;
+  hard mode has its own household made in an adult-only creator. Only coins carry over (to cash).
+
+**World**
+- A **bigger map with districts** (3-4: park/slums, old town, downtown, docks/industrial; ~40 lots), each with its own rent, police presence, factions, vibe.
+- **Full factions**: ~**60 named citizens** with routines and memories, gangs, rival crews, territory; only nearby ones are simulated in detail, the rest abstracted.
+- The player is **free**: join a crew, found one, stay civilian, or ally with police/council.
+- **Full survival**: weather and seasons, safe places to sleep, being moved on, theft, begging, scavenging, hygiene and health.
+
+**Crime, police, combat, health**
+- **Police: full escalation** - patrols, wanted levels, witnesses, evidence, arrest, bribes, corrupt vs honest officers, raids.
+- **Justice**: arrest -> choose fight / flee / bribe / surrender; **jail is scheduled time** with prison jobs and contacts; **plea and trial are short
+  choice-based events** shaped by lawyer, evidence, reputation.
+- **Combat: side-view brawler** in the rooms: melee + improvised weapons (bottles, chairs, bats, bricks via the item physics), **cartoon firearms**
+  (stylised, no gore), and **skill-tree fighters** (martial-art styles, combos, gear, training). Police carry batons and tasers.
+- **Health**: injuries (bruised, sprained, concussed) heal over days; clinics/hospitals cost money; illness from sleeping rough; medicine.
+  **Addiction** to the fictional substances (with a recovery storyline).
+- **Tone: cartoon ink, no gore** (stars, bruises, knock-outs, slapstick-scale injuries), dark themes with soft visuals.
+- **Content toggles at setup**: granular switches for violence, substances/addiction, police/crime and survival harshness, so someone can play a pure
+  economy/survival game without the rest.
+
+**Economy and work**
+- **Supply chain** in the fictional plants: grow, process, package, stash, distribute via street sellers, suppliers, customers, debts, rivals.
+- **Careers** first: *retail & service*, *trades & makers*, *farming & food*, *public service* (police, paramedic, nurse, council clerk, politician).
+- **Business ownership, deep**: buy a lot, fit it out, hire staff from the town, set prices, manage stock/wages/taxes; legit shops can be fronts.
+
+**Control and interface**
+- **Sims-style free will plus queued orders**: pick a person and queue actions; the others act on their needs and schedules; pause + 3 speeds.
+- A hand-inked **phone** in the HUD (bank, jobs, messages, contacts, map, orders, bills) **plus** walk-in buildings; the phone can be lost, stolen,
+  run out of credit, or be tracked by police.
 
 ## 1. Principles
 
@@ -142,16 +169,21 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 
 ## 6. Build order (each slice shippable and tested)
 
-1. **Mode + clock + cash:** the flag, hidden unlock + PIN, `hard` save block, game clock driving day/night, cash chip,
-   coins→cash bank. *(no needs yet)*
-2. **Needs + food stock:** hunger/energy/hygiene, nutrition and spoilage, finite shop stock, pantry/fridge stock.
-3. **Bills + mail + home costs:** bills in the mailbox, rent, power, late fees, recovery path.
-4. **Wear + maintenance:** wear model, peeling/wear visuals, repair/repaint with supplies and time.
-5. **Jobs:** job board, shifts as scheduled blocks, tardiness, cashier and one more career, skills.
-6. **Making and selling:** quality model, market demand, gadget bench, stalls.
-7. **Growing:** plots, crop data, legal crops, then the fictional restricted line with heat/inspection.
-8. **Cars and the garage**, careers 3+, balance pass and a "does a normal week survive" simulation test.
+0. **Hard-mode shell:** the flag, hidden unlock + PIN + setup (failure mode, content toggles, scenario), `hard` save block, adult-only creator,
+   separate saves, coins <-> cash at 1:100.
+1. **Clock + needs:** 1 min = 1 hour clock driving day/night, pause + 3 speeds, hunger/energy/hygiene/mood, free-will autonomy and an action queue.
+2. **Survival home-less core:** the *Park bench* scenario: weather/seasons, places to sleep, being moved on, scavenging/begging, shelter, day labour.
+3. **Food, shops and bills:** finite shop stock and prices, pantry/fridge stock and spoilage, rent/bills in the mailbox, the phone.
+4. **Wear + maintenance** (paint, floors, furniture, clothes, cars) and the *Cheap flat* + *Inherited house* scenarios.
+5. **Jobs:** job board, shifts as scheduled blocks, tardiness, skills, retail/service then trades/makers and farming/food careers.
+6. **Making and selling:** quality + demand, gadget bench, stalls, farming plots (legal crops).
+7. **Districts + citizens:** bigger scrolling map, 60 named citizens with routines, relationships and memory, abstracted off-screen.
+8. **Combat + health:** the side-view brawler, injuries, clinics, addiction hooks; skill trees.
+9. **Police + justice:** patrols, wanted levels, witnesses/evidence, arrest, jail as scheduled time, plea/trial, bribes, the *Just out of jail* scenario.
+10. **Factions + the fictional trade:** crews, territory, grow/process/package/distribute, suppliers, customers, debts, raids.
+11. **Business ownership + public-service careers + life goals/legacy + aging.**
+12. **Balance + simulation tests:** "a normal week survives", economy closure, faction stability, performance budget for the NPC population.
 
-## 7. Open questions still to settle
-Asked in conversation; answers get folded into section 0. (Pending: combat depth and weapons, how factions and territory work on the
-map, scenario list, the legal-career ladder vs crime balance, multiplayer/sharing, accessibility and content-warning wording.)
+## 7. Still open
+Asked in conversation as we go: faction/territory mechanics on the map, weapons list and skill trees, the legal-career ladder vs crime balance,
+the fictional substance catalogue (names, effects, art), district list and look, phone apps, accessibility and content-warning wording, difficulty presets.
