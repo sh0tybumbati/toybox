@@ -124,3 +124,58 @@ function paintGarden(g, cx, baseY, w, maxH, seed, lw) {
   }
   return { x0: cx - w / 2, x1: cx + w / 2, top: baseY - maxH * 0.75 };
 }
+
+// The building-maker's cut-through: floors stacked bottom to top, each room a wobbly box as wide as it is, floors
+// shifted and leaning a little, crooked supports holding each floor up, and the roof slumping on top (the "stackable
+// rooms" panel of the style guide). Returns the room rectangles for hit-testing: [{ id, x, y, w, h }].
+//   opts: { x, y (top of the roof), width (max floor width in px), rowH, gap, roofH, colorOf(type), selected (room id) }
+export function paintCutaway(g, building, opts) {
+  const { x, y, width, rowH, gap, roofH, colorOf, selected } = opts, seed = hashStr(building.name) + 3;
+  const ex = building.exterior || defaultExterior(), roofColor = ROOF_COLORS[ex.roofColor] ?? ROOF_COLORS.terracotta;
+  const widths = building.floors.map(f => f.rooms.reduce((n, r) => n + r.w, 0));
+  const k = width / Math.max(...widths), rects = [];
+  const floorTop = i => y + roofH + (building.floors.length - 1 - i) * (rowH + gap);          // top floor first, from the top
+  const offs = building.floors.map((_, i) => noise(i * 1.9, seed) * 6);
+
+  // crooked supports first (they sit behind the rooms)
+  building.floors.forEach((f, i) => {
+    if (i === building.floors.length - 1) return;
+    const lowerTop = floorTop(i), upperBottom = floorTop(i + 1) + rowH, w = Math.min(widths[i], widths[i + 1]) * k;
+    const left = x + Math.max(offs[i], offs[i + 1]);
+    for (const u of [0.1, 0.5, 0.9]) {
+      const px = left + w * u, lean = noise(u * 9 + i, seed) * 7;
+      inkLine(g, { x: px + lean, y: upperBottom - 1 }, { x: px, y: lowerTop + 1 }, { w: 6, seed: seed + i * 5 + u * 20, amp: 1.5, heavy: 0 });
+    }
+  });
+  // ground
+  const gy = floorTop(0) + rowH + 4;
+  inkLine(g, { x: x - 14, y: gy }, { x: x + width + 14, y: gy + noise(2, seed) * 3 }, { w: 5, seed, amp: 2, heavy: 1 });
+
+  building.floors.forEach((f, i) => {
+    const top = floorTop(i);
+    let rx = x + offs[i];
+    f.rooms.forEach((r, ri) => {
+      const rw = r.w * k, lean = noise(ri * 2.3 + i * 1.7, seed) * 4, sel = r.id === selected;
+      const quad = [{ x: rx, y: top }, { x: rx + rw - 4, y: top + noise(ri + i, seed) * 2 }, { x: rx + rw - 4 + lean, y: top + rowH }, { x: rx + lean * 0.5, y: top + rowH + noise(ri * 3 + i, seed) * 2 }];
+      inkFill(g, wobblyPoly(quad, { amp: 1.4, seed: r.id + 11, step: 18 }), colorOf(r.type), { w: sel ? 6.4 : 3.6, seed: r.id + 11, heavy: sel ? 3 : 1 });
+      // a crooked little window in each room, for character
+      const wx = rx + rw * 0.18, ww = Math.min(rw * 0.22, 22), wy = top + rowH * 0.18, wh = rowH * 0.38;
+      if (rowH > 30) inkFill(g, wobblyPoly([{ x: wx, y: wy }, { x: wx + ww, y: wy + 1 }, { x: wx + ww + 1, y: wy + wh }, { x: wx, y: wy + wh - 1 }], { amp: 0.7, seed: r.id, step: 8 }), 0xcfe8f0, { w: 2.2, seed: r.id, heavy: 0 });
+      rects.push({ id: r.id, x: rx, y: top, w: rw - 4, h: rowH });
+      rx += rw;
+    });
+  });
+
+  // the roof, slumped on top of the highest floor
+  const topI = building.floors.length - 1, tx0 = x + offs[topI], tx1 = tx0 + widths[topI] * k, tw = tx1 - tx0, ty = floorTop(topI), over = tw * 0.05;
+  const slump = noise(5, seed) * 5, lw = 4;
+  if (ex.roofStyle === 'gable') {
+    const apex = { x: tx0 + tw * (0.5 + noise(1, seed) * 0.12), y: ty - roofH * 0.95 };
+    inkFill(g, wobblyPoly([{ x: tx0 - over, y: ty + 3 + slump }, apex, { x: tx1 + over, y: ty + 3 - slump }, { x: tx1 + over - 8, y: ty + 9 - slump }, { x: tx0 - over + 8, y: ty + 9 + slump }], { amp: 1.4, seed: seed + 6, step: 14 }), roofColor, { w: lw, seed: seed + 6 });
+  } else if (ex.roofStyle === 'flat') {
+    inkFill(g, wobblyPoly([{ x: tx0 - over, y: ty - roofH * 0.35 + slump * 0.4 }, { x: tx1 + over, y: ty - roofH * 0.35 - slump * 0.4 }, { x: tx1 + over, y: ty + 3 }, { x: tx0 - over, y: ty + 3 }], { amp: 1.2, seed: seed + 7, step: 14 }), roofColor, { w: lw, seed: seed + 7 });
+  } else if (ex.roofStyle === 'dome') {
+    inkFill(g, blob(tx0 + tw / 2, ty, tw * 0.55, roofH * 0.95, { n: 22, amp: 0.05, seed: seed + 8 }).filter(p => p.y <= ty + 2).concat([{ x: tx1 + over, y: ty + 3 }, { x: tx0 - over, y: ty + 3 }]), roofColor, { w: lw, seed: seed + 8 });
+  }
+  return rects;
+}

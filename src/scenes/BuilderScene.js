@@ -5,7 +5,7 @@ import { W, H } from '../config.js';
 import { CARD, COLORS, TEXT, hitZone, iconButton, inkButton, inkChip, inkPanel, inkSwatch, richText } from '../ui.js';
 import { BUILD_COST, MAX_FLOORS, MAX_ROOMS } from '../data/buildings.js';
 import { ROOMS, defaultFurniture, scaleX } from '../data/rooms.js';
-import { EXTERIOR_WALLS, ROOF_COLORS, ROOF_STYLES, TRIMS, paintBuildingMini } from '../data/exterior.js';
+import { EXTERIOR_WALLS, ROOF_COLORS, ROOF_STYLES, TRIMS, paintBuildingMini, paintCutaway } from '../data/exterior.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../data/ink.js';
 import { addFloor, addRoom, findRoom, floorWidth, isBuildableRoom, moveRoom, removeFloor, removeRoom, resizeRoom, setExterior } from '../systems/builder.js';
 import { floorLabel, sectionId } from '../systems/world.js';
@@ -84,27 +84,25 @@ export default class BuilderScene extends Phaser.Scene {
     });
   }
 
-  // --- the cross-section: floors top to bottom, rooms as boxes as wide as they are -----------------
+  // --- the cross-section: a wonky stack of rooms, as wide as they are (art/reference/ "stackable rooms") -----------
   crossSection(add) {
-    const b = this.b, X0 = 424, Y0 = 92, AREA_W = 490, ROW_H = [56, 56, 56, 48, 40, 34][b.floors.length] || 34;
-    const scale = Math.min(0.16, AREA_W / Math.max(...b.floors.map(floorWidth)));
-    add(this.add.text(X0, Y0 - 30, 'Floors and rooms — tap a room', { fontSize: '19px', color: TEXT }));
-    const floors = [...b.floors].reverse();
-    floors.forEach((f, ri) => {
-      const idx = b.floors.indexOf(f), y = Y0 + ri * (ROW_H + 6);
-      add(this.add.text(X0 - 8, y + ROW_H / 2, floorLabel(idx).replace('Ground floor', 'G').replace('Floor ', ''), { fontSize: '20px', fontStyle: 'bold', color: TEXT }).setOrigin(1, 0.5));
-      let x = X0;
+    const b = this.b, X0 = 440, Y0 = 92, AREA_W = 470, n = b.floors.length;
+    const rowH = [56, 56, 56, 46, 38, 30][n] || 30, gap = [14, 14, 12, 10, 8, 6][n] || 6, roofH = [46, 46, 44, 40, 36, 34][n] || 34;
+    add(this.add.text(X0, 66, 'Tap a room', { fontSize: '19px', color: TEXT }));
+    const rects = paintCutaway(this.g, b, { x: X0, y: Y0, width: Math.min(AREA_W, Math.max(...b.floors.map(floorWidth)) * 0.16), rowH, gap, roofH, colorOf: t => ROOM_COLORS[t] || 0xffffff, selected: this.selRoom });
+    const byId = new Map(rects.map(r => [r.id, r]));
+    b.floors.forEach((f, idx) => {
+      const first = byId.get(f.rooms[0].id);
+      add(this.add.text(X0 - 8, first.y + rowH / 2, floorLabel(idx).replace('Ground floor', 'G').replace('Floor ', ''), { fontSize: '20px', fontStyle: 'bold', color: TEXT }).setOrigin(1, 0.5));
       for (const r of f.rooms) {
-        const w = r.w * scale, sel = r.id === this.selRoom;
-        inkFill(this.g, wobblyPoly(rectPoints(x, y, w - 5, ROW_H), { amp: 1.3, seed: r.id + 5, step: 20 }), ROOM_COLORS[r.type] || 0xffffff, { w: sel ? 6 : 3.2, seed: r.id + 5, heavy: sel ? 2 : 0 });
-        add(richText(this, `${ROOMS[r.type].label.split(' ')[0]} ${(r.w / 960).toFixed(2).replace(/\.?0+$/, '')}×`, { fontSize: '19px' })).setPosition(x + (w - 5) / 2, y + ROW_H / 2).setDepth(D + 1);
+        const rc = byId.get(r.id);
+        add(richText(this, `${ROOMS[r.type].label.split(' ')[0]} ${(r.w / 960).toFixed(2).replace(/\.?0+$/, '')}×`, { fontSize: rowH > 40 ? '19px' : '15px' })).setPosition(rc.x + rc.w * 0.6, rc.y + rowH / 2).setDepth(D + 1);
         const has = this.connectorsIn(r);
-        if (has.length) add(richText(this, has.join(''), { fontSize: '14px' }, { iconPx: 18 })).setPosition(x + w - 22, y + 14).setDepth(D + 1);
-        this.ui.push(hitZone(this, x + (w - 5) / 2, y + ROW_H / 2, w - 5, ROW_H, () => { this.selRoom = r.id; this.render(); }, D + 1));
-        x += w;
+        if (has.length) add(richText(this, has.join(''), { fontSize: '14px' }, { iconPx: 18 })).setPosition(rc.x + rc.w - 18, rc.y + 12).setDepth(D + 1);
+        this.ui.push(hitZone(this, rc.x + rc.w / 2, rc.y + rowH / 2, rc.w, rowH, () => { this.selRoom = r.id; this.render(); }, D + 1));
       }
     });
-    this.rowsBottom = Y0 + floors.length * (ROW_H + 6);
+    this.rowsBottom = Math.max(...rects.map(r => r.y + r.h)) + 12;
   }
 
   // Emoji for the connectors a room currently has (from its saved furniture, or its starting furniture).
@@ -124,8 +122,8 @@ export default class BuilderScene extends Phaser.Scene {
     y += 34;
     let x = 424;
     const place = t => { t.x = x + t.width / 2; x += t.width + 8; return t; };
-    place(this.btn(add, x, y, '◀', COLORS.blue, () => this.act(() => moveRoom(b, r.id, -1)), 18));
-    place(this.btn(add, x, y, '▶', COLORS.blue, () => this.act(() => moveRoom(b, r.id, 1)), 18));
+    place(this.btn(add, x, y, 'Left', COLORS.blue, () => this.act(() => moveRoom(b, r.id, -1)), 18));
+    place(this.btn(add, x, y, 'Right', COLORS.blue, () => this.act(() => moveRoom(b, r.id, 1)), 18));
     place(this.btn(add, x, y, '➖ Narrower', COLORS.blue, () => this.act(() => resizeRoom(b, r.id, -1)), 18));
     place(this.btn(add, x, y, '➕ Wider', COLORS.blue, () => this.act(() => resizeRoom(b, r.id, 1)), 18));
     place(this.btn(add, x, y, '🗑 Room', COLORS.red, () => this.act(() => removeRoom(b, r.id)), 18));
