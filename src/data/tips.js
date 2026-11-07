@@ -15,6 +15,10 @@ export const TIPS = [
   { id: 'build',     done: 'build',     text: '🏗️ Build somewhere new: open the Map and tap an empty plot.' },
   { id: 'play',      done: 'play',      text: '🕹️ Tap a game station — the fishing dock, the TV, the sewing machine…' },
   { id: 'decorate',  done: 'decorate',  text: '🎨 Open furniture mode, then Decorate, to repaint walls and floors.' },
+  { id: 'groceries', done: 'groceries', room: 'market', text: '🛒 Groceries cost coins — take one off the shelf to buy it.' },
+  { id: 'deliver',   done: 'deliver',   room: 'market', text: '🚚 Drop groceries in the delivery cart and a van takes them to another building.' },
+  { id: 'cashier',   done: 'cashier',   room: 'market', text: '🧾 Tap the checkout till: scan the shopping, then give the right change!' },
+  { id: 'ikea',      done: 'ikea',      room: 'ikea',   text: '🪑 Tap the flat-pack stand, buy a piece and build it by the numbers — a van brings it home.' },
 ];
 
 export const ALL_TIP_IDS = TIPS.map(t => t.id);

@@ -44,3 +44,14 @@ test('saves: existing players have seen every tip; unknown ids are dropped', () 
   assert.deepEqual(fresh.tips, ['grab']);
   assert.deepEqual(sanitize({ v: 8, room: 'bedroom', characters: [], floors: {} }).tips, []);
 });
+
+test('the shop tips only show in the supermarket and the furniture store, after the basics', () => {
+  const seen = new Set(['grab', 'dress', 'walk', 'map', 'eat', 'cook', 'book', 'furniture', 'shop', 'build', 'play', 'decorate']);
+  assert.equal(currentTip(seen, 'bedroom'), null);
+  assert.equal(currentTip(seen, 'market').id, 'groceries');
+  assert.equal(currentTip(seen, 'ikea').id, 'ikea');
+  markDone(seen, 'groceries'); markDone(seen, 'deliver');
+  assert.equal(currentTip(seen, 'market').id, 'cashier');
+  assert.deepEqual(markDone(seen, 'cashier'), ['cashier']);
+  assert.equal(currentTip(seen, 'market'), null);
+});

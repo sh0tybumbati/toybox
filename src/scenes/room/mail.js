@@ -51,7 +51,7 @@ export const mailMethods = {
     if (!next) { this.sfx.nope(); floatText(this, box.x, box.y - 90, 'The van is full!', 24); this.letOut(key, box); return; }
     this.parcels = next;
     this.sfx.ding();
-    if (fee) { this.coins -= fee; this.updateNav(); }
+    if (fee) { this.coins -= fee; this.updateNav(); this.tipEvent('deliver'); }
     box.setState(true);
     this.time.delayedCall(900, () => { if (box.active) box.setState(false); });
     floatText(this, box.x, box.y - 80, `${fee ? '🚚' : '📮'} Off to ${this.city[slot].name}!`, 26);

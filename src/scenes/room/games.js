@@ -12,6 +12,7 @@ export const gameMethods = {
     const def = MINIGAMES[id];
     if (!def || this.switching || this.decor) return;
     this.tipEvent('play');
+    this.tipEvent(id);                                         // a tip may be waiting for this very game (cashier, ikea)
     this.hideTip();
     this.sfx.pop();
     if (prop) prop.setState(true);

@@ -83,6 +83,7 @@ export const economyMethods = {
   // Taken off the shelf: pay up (the tag goes with it).
   payFor(item) {
     this.coins -= item.price;
+    this.tipEvent('groceries');
     if (item.tag) { item.tag.destroy(); item.tag = null; }
     item.setAlpha(1);
     this.updateNav();
