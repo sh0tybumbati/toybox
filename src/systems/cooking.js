@@ -93,7 +93,7 @@ function deliver(scene, oven, here) {
       scene.earn('discover', oven.x, oven.y - 160);
     }
   } else {
-    scene.floorState[oven.roomKey].push({ k: key, x: Math.round(oven.x), l: FLOOR_TOP + 35 });
+    scene.stashAt(key, oven.x, FLOOR_TOP + 35);
   }
   oven.contents = [];
   oven.stage = 'idle';
@@ -110,7 +110,7 @@ export function flushOven(scene, oven) {
     deliver(scene, oven, false);
   } else if (oven.stage === 'waiting') {
     oven.contents.forEach((key, i) => {
-      scene.floorState[oven.roomKey].push({ k: key, x: Math.round(oven.x) + i * 40 - 40, l: FLOOR_TOP + 35 });
+      scene.stashAt(key, oven.x + i * 40 - 40, FLOOR_TOP + 35);
     });
     oven.contents = [];
     oven.stage = 'idle';

@@ -12,16 +12,16 @@ export const tipMethods = {
 
   // Show the right bubble for now (or none). Called on events and when the room changes.
   refreshTip() {
-    const tip = currentTip(this.tipsSeen, this.roomKey);
+    const tip = currentTip(this.tipsSeen, this.currentRoomType());
     if (this.tipShown && this.tipShown.id === tip?.id) return;
     this.hideTip();
     if (!tip) return;
     const timer = this.time.delayedCall(1200, () => {            // a beat, so it doesn't pop up mid-action
       this.tipTimer = null;
-      if (currentTip(this.tipsSeen, this.roomKey)?.id !== tip.id) return;
+      if (currentTip(this.tipsSeen, this.currentRoomType())?.id !== tip.id) return;
       const bubble = this.add.text(W / 2, H - 32, `${tip.text}   ✕`, {
         fontSize: '19px', color: '#4a3426', backgroundColor: '#fff4e0', padding: { x: 16, y: 10 }, wordWrap: { width: 760 }, align: 'center',
-      }).setOrigin(0.5).setDepth(9000).setAlpha(0).setInteractive({ useHandCursor: true });
+      }).setOrigin(0.5).setDepth(9000).setScrollFactor(0).setAlpha(0).setInteractive({ useHandCursor: true });
       bubble.on('pointerdown', () => { this.tipsSeen.add(tip.id); this.dirty = true; this.refreshTip(); });   // tap to dismiss
       this.tweens.add({ targets: bubble, alpha: 1, duration: 300 });
       this.tweens.add({ targets: bubble, y: bubble.y - 4, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });

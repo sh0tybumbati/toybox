@@ -1,4 +1,4 @@
-// Face recipes. `eyes`: open | wide | squint | half | happy (^ ^);
+// Face recipes. `eyes`: open | wide | squint | half | happy (^ ^) | closed (u u);
 // `brows`: none | up | worried | angry; `mouth`: smile | grin | open | tongue | o | flat | frown | wavy;
 // `tint`: optional [colour, alpha] wash over the face.
 export const EXPRESSIONS = {
@@ -8,6 +8,7 @@ export const EXPRESSIONS = {
   surprised: { eyes: 'wide',  brows: 'up',      mouth: 'o' },
   giggle:    { eyes: 'happy', brows: 'none',    mouth: 'grin' },
   sleepy:    { eyes: 'half',  brows: 'none',    mouth: 'flat' },
+  asleep:    { eyes: 'closed', brows: 'none',   mouth: 'smile' },
   // food reactions
   yum:       { eyes: 'happy', brows: 'none',    mouth: 'grin' },
   sour:      { eyes: 'squint', brows: 'worried', mouth: 'wavy' },
@@ -16,7 +17,7 @@ export const EXPRESSIONS = {
 };
 
 // Vertical eye openness per eye style (multiplied with the blink).
-export const EYE_OPEN = { open: 1, wide: 1.2, squint: 0.25, half: 0.5, happy: 0 };
+export const EYE_OPEN = { open: 1, wide: 1.2, squint: 0.25, half: 0.5, happy: 0, closed: 0 };
 
 // How a food makes the character feel. `grow`: yummy foods make them a bit bigger.
 export const REACTIONS = {

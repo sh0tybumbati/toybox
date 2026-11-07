@@ -11,9 +11,9 @@ import { MAX_FURNITURE, clampPlacement } from '../../systems/slots.js';
 import { releaseAll, slotWorld } from '../../systems/storage.js';
 
 export const furnitureMethods = {
-  createProp(entry) {
+  createProp(entry, section) {
     const prop = new Prop(this, entry.type, entry.x, entry.y);
-    prop.roomKey = this.roomKey;
+    prop.section = section;
     prop.on('pointerdown', () => tapProp(this, prop));
     prop.input.draggable = this.editMode;
     this.roomGfx.push(prop);
@@ -28,13 +28,7 @@ export const furnitureMethods = {
     return prop;
   },
 
-  // The room's furniture as saveable data.
-  captureProps() {
-    return this.props.map(p => ({
-      type: p.type, x: Math.round(p.x), y: Math.round(p.y + p.def.h / 2),
-      items: p.stored.map((it, s) => (it ? { s, k: it.key } : null)).filter(Boolean),
-    }));
-  },
+  furnitureLimit() { return MAX_FURNITURE * this.zone.sections.length; },
 
   toggleEdit() {
     if (this.editMode) this.exitEdit();
@@ -46,9 +40,10 @@ export const furnitureMethods = {
     this.editMode = true;
     this.tipEvent('furniture');
     for (const b of this.bodies) if (b.input) b.input.enabled = false;     // only furniture can be grabbed
+    for (const p of this.pets) p.input.enabled = false;
     for (const p of this.props) { p.input.draggable = true; this.attachRemoveButton(p); }
     const pill = { fontSize: '20px', color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.55)', padding: { x: 14, y: 8 } };
-    const add = o => { o.setDepth(9500); this.editUI.push(o); return o; };
+    const add = o => { o.setDepth(9500).setScrollFactor(0); this.editUI.push(o); return o; };
     add(this.add.text(W / 2, 74, '🛋️ Furniture mode — drag to move, ✖ to remove', pill).setOrigin(0.5));
     add(this.add.text(W / 2 - 110, 118, '➕ Add furniture', { ...pill, backgroundColor: '#3b8f5a' }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true }).on('pointerdown', () => this.openCatalog()));
@@ -62,6 +57,7 @@ export const furnitureMethods = {
     this.editUI.forEach(o => o.destroy());
     this.editUI = [];
     for (const b of this.bodies) if (b.input && !b.dead && !b.locked) b.input.enabled = true;
+    for (const p of this.pets) p.input.enabled = true;
     for (const p of this.props) {
       p.input.draggable = false;
       if (p.removeBtn) { p.removeBtn.destroy(); p.removeBtn = null; }
@@ -84,9 +80,10 @@ export const furnitureMethods = {
 
   // A new piece from the catalogue, dropped near the middle for the player to place.
   addFurniture(type) {
-    if (this.props.length >= MAX_FURNITURE) { floatText(this, W / 2, 200, 'This room is full!', 28); return; }
+    if (this.props.length >= this.furnitureLimit()) { floatText(this, this.cameras.main.scrollX + W / 2, 200, 'This building floor is full!', 28); return; }
     const def = PROP_TYPES[type];
-    const at = clampPlacement(def, 480 + ((this.props.length % 5) - 2) * 60, def.mount === 'wall' ? def.h + 90 : 500);
+    const mid = this.cameras.main.scrollX + 480;
+    const at = clampPlacement(def, mid + ((this.props.length % 5) - 2) * 60, def.mount === 'wall' ? def.h + 90 : 500, this.worldW);
     const prop = this.createProp({ type, ...at, items: [] });
     this.props.push(prop);
     puff(this, prop.x, prop.y, 0xfff3a0, 6);
@@ -96,6 +93,7 @@ export const furnitureMethods = {
   },
 
   removeFurniture(prop) {
+    if (prop.sleeper) this.wakeUp(prop.sleeper, true);
     releaseAll(this, prop);                                  // anything stored tumbles out
     if (prop.def.behaviour === 'oven') flushOven(this, prop);
     this.props = this.props.filter(p => p !== prop);

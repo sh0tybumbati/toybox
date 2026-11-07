@@ -74,6 +74,11 @@ export class Sfx {
   coin()    { this.tone({ from: 1300, dur: 0.08, vol: 0.12 }); this.tone({ from: 1750, dur: 0.18, vol: 0.12, delay: 0.07 }); }
   nope()    { this.tone({ from: 220, to: 160, dur: 0.18, type: 'square', vol: 0.07 }); }
   fanfare() { [523, 659, 784, 1046].forEach((f, i) => this.tone({ from: f, dur: 0.18, vol: 0.12, delay: i * 0.1 })); }
+  step()    { this.tone({ from: 130 + Math.random() * 30, to: 70, dur: 0.05, vol: 0.05 }); }
+  bark()    { this.tone({ from: 420, to: 260, dur: 0.1, type: 'sawtooth', vol: 0.1 }); this.tone({ from: 420, to: 260, dur: 0.1, type: 'sawtooth', vol: 0.1, delay: 0.14 }); }
+  mew()     { this.tone({ from: 700, to: 1000, dur: 0.15, type: 'triangle', vol: 0.12 }); this.tone({ from: 1000, to: 620, dur: 0.22, type: 'triangle', vol: 0.12, delay: 0.14 }); }
+  squeak()  { this.tone({ from: 1500, to: 2100, dur: 0.07, vol: 0.1 }); this.tone({ from: 1800, to: 2400, dur: 0.07, vol: 0.1, delay: 0.09 }); }
+  chirp()   { [1800, 2300, 2000].forEach((f, i) => this.tone({ from: f, to: f * 1.2, dur: 0.05, vol: 0.09, delay: i * 0.07 })); }
   whoosh()  { this.noise({ dur: 0.25, vol: 0.2, freq: 2800, to: 300 }); }
   crunch()  { for (let i = 0; i < 3; i++) this.noise({ delay: i * 0.09, freq: 1500 + i * 400 }); }
 }

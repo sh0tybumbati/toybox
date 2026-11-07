@@ -2,6 +2,7 @@ import { FOOT } from '../config.js';
 import { clamp } from '../util.js';
 import { HAIR_STYLES, DEFAULT_LOOK, cheekFor } from '../data/look.js';
 import { EXPRESSIONS, EYE_OPEN } from '../data/expressions.js';
+import { walkPose } from '../systems/walk.js';
 
 const BROW = 0x4a3426, INK = 0x222222, MOUTH = 0x7a1f2b;
 
@@ -21,6 +22,10 @@ export default class Character extends Phaser.GameObjects.Container {
     // graphics shift by -FOOT to compensate for the rig's pivot.
     const layer = () => scene.add.graphics().setPosition(0, -FOOT);
     this.hairBack = layer();
+    // Feet and arms are their own layers (pivoting where they attach) so they can swing when walking.
+    const limb = (x, y) => scene.add.graphics().setPosition(x, y - FOOT);
+    this.footL = limb(-28, 140); this.footR = limb(28, 140);
+    this.armL = limb(-70, 12); this.armR = limb(70, 12);
     this.body = layer();
     this.hairFront = layer();
     this.face = layer();                          // brows, mouth, tint, happy eyes
@@ -29,7 +34,7 @@ export default class Character extends Phaser.GameObjects.Container {
     this.whites = this.eyeBase.map(e => scene.add.ellipse(e.x, e.y - FOOT, 22, 26, 0xffffff).setStrokeStyle(2, INK));
     this.pupils = this.eyeBase.map(e => scene.add.circle(e.x, e.y - FOOT, 6, INK));
 
-    this.rig.add([this.hairBack, this.body, this.hairFront, ...this.whites, ...this.pupils, this.face]);
+    this.rig.add([this.hairBack, this.footL, this.footR, this.armL, this.armR, this.body, this.hairFront, ...this.whites, ...this.pupils, this.face]);
     this.add(this.rig);
 
     this.look = null;
@@ -43,6 +48,13 @@ export default class Character extends Phaser.GameObjects.Container {
     this.reaction = null;        // food reaction name (data/expressions.js REACTIONS)
     this.reactUntil = 0;
     this.pokedUntil = 0;
+    this.goal = null;            // walking target { x, lane } (systems/walk.js)
+    this.facing = 1;             // last horizontal direction walked
+    this.walking = false;
+    this.walkPhase = 0; this.walkAmt = 0;     // step cycle position / how much of the walk pose is showing
+    this.onStep = null;          // called when a foot lands
+    this.sleeping = null;        // the bed (Prop) we're tucked into
+    this.hugUntil = 0;
     this.nextZ = 0;              // next time a sleepy "💤" may float up
     this.worn = { head: null, eyes: null, handL: null, handR: null, feet: null }; // slot -> worn item
     this.px = this.x; this.vxs = 0;   // smoothed horizontal speed (hand-held toys swing with it)
@@ -86,10 +98,12 @@ export default class Character extends Phaser.GameObjects.Container {
     this.hairBack.clear(); style.back(this.hairBack, hair.color);
     this.hairFront.clear(); style.front(this.hairFront, hair.color);
 
+    for (const f of [this.footL, this.footR]) f.clear().fillStyle(shoe, 1).fillEllipse(0, 0, 46, 18);   // feet
+    for (const a of [this.armL, this.armR]) {                                                  // arm + hand, pivoting at the shoulder
+      a.clear().fillStyle(shirt, 1).fillRoundedRect(-12, -4, 24, 80, 12);
+      a.fillStyle(skin, 1).fillCircle(0, 78, 13);
+    }
     const g = this.body.clear();
-    g.fillStyle(shoe, 1).fillEllipse(-28, 140, 46, 18).fillEllipse(28, 140, 46, 18);          // feet
-    g.fillStyle(shirt, 1).fillRoundedRect(-82, 8, 24, 80, 12).fillRoundedRect(58, 8, 24, 80, 12); // arms
-    g.fillStyle(skin, 1).fillCircle(-70, 90, 13).fillCircle(70, 90, 13);                       // hands
     g.fillStyle(shirt, 1).fillRoundedRect(-60, -10, 120, 155, 30);                             // body
     g.fillStyle(skin, 1).fillCircle(0, -75, 70);                                               // head
     g.fillStyle(cheekFor(skin), 0.7).fillCircle(-42, -62, 11).fillCircle(42, -62, 11);        // cheeks
@@ -116,6 +130,11 @@ export default class Character extends Phaser.GameObjects.Container {
     if (e.eyes === 'happy') {                                  // ^ ^
       f.lineStyle(5, INK, 1);
       for (const ex of [-24, 24]) f.beginPath().arc(ex, -88, 11, 1.15 * Math.PI, 1.85 * Math.PI).strokePath();
+    }
+
+    if (e.eyes === 'closed') {                                 // u u
+      f.lineStyle(5, INK, 1);
+      for (const ex of [-24, 24]) f.beginPath().arc(ex, -94, 11, 0.15 * Math.PI, 0.85 * Math.PI).strokePath();
     }
 
     switch (e.mouth) {
@@ -157,10 +176,9 @@ export default class Character extends Phaser.GameObjects.Container {
   // Where a slot's item sits in world space (follows the squash so it doesn't float).
   slotTarget(slot) {
     const { off } = this.slots[slot], s = this.scaleX;
-    return {
-      x: this.x + s * off.x * this.rig.scaleX,
-      y: this.y + s * (FOOT + (off.y - FOOT) * this.rig.scaleY),
-    };
+    const vx = s * off.x * this.rig.scaleX, vy = s * (FOOT + (off.y - FOOT) * this.rig.scaleY + this.rig.y - FOOT);
+    const cos = Math.cos(this.rotation), sin = Math.sin(this.rotation);     // a lying-down character carries its hat sideways
+    return { x: this.x + vx * cos - vy * sin, y: this.y + vx * sin + vy * cos };
   }
 
   // Keep every worn item glued to the character (called every frame).
@@ -173,7 +191,7 @@ export default class Character extends Phaser.GameObjects.Container {
       item.setScale(k * this.rig.scaleX, k * this.rig.scaleY);
       item.setDepth(this.depth + 1);
       // Hand-held toys swing against the direction of travel.
-      item.angle = slot.startsWith('hand') ? clamp(-this.vxs * 0.03, -40, 40) : 0;
+      item.angle = this.angle + (slot.startsWith('hand') ? clamp(-this.vxs * 0.03, -40, 40) : 0);
     }
   }
 
@@ -181,6 +199,16 @@ export default class Character extends Phaser.GameObjects.Container {
   animate(time, tx, ty) {
     const breath = Math.sin(time / 600) * 0.015;
     this.rig.setScale(this.sq.x * (1 - breath * 0.5), this.sq.y * (1 + breath));
+
+    // Walk cycle: bob, lean into the step, swing arms and alternate the feet.
+    this.walkAmt += ((this.walking ? 1 : 0) - this.walkAmt) * 0.25;
+    if (this.walkAmt < 0.01) this.walkAmt = 0;
+    const pose = walkPose(this.walkPhase, this.walkAmt);
+    this.rig.y = FOOT + pose.bob;
+    this.rig.rotation = pose.lean * this.facing;
+    this.footL.setPosition(-28 + pose.footL.dx, 140 - FOOT - pose.footL.lift);
+    this.footR.setPosition(28 + pose.footR.dx, 140 - FOOT - pose.footR.lift);
+    this.armL.rotation = pose.armL; this.armR.rotation = pose.armR;
 
     const eyes = (EXPRESSIONS[this.expr] || EXPRESSIONS.neutral).eyes;
     const open = EYE_OPEN[eyes], s = this.scaleX;
@@ -193,6 +221,13 @@ export default class Character extends Phaser.GameObjects.Container {
       this.whites[i].setVisible(visible).setScale(eyes === 'wide' ? 1.15 : 1, this.blink * open);
       this.pupils[i].setVisible(visible).setScale(1, this.blink * open);
     });
+  }
+
+  // Advance the step cycle by `px` of ground covered; fires onStep each time a foot lands.
+  advanceWalk(px, stride) {
+    const before = Math.floor(this.walkPhase / Math.PI);
+    this.walkPhase += (px / stride) * Math.PI;
+    if (Math.floor(this.walkPhase / Math.PI) !== before && this.onStep) this.onStep(this);
   }
 
   destroy(fromScene) {

@@ -20,10 +20,10 @@ export const objectMethods = {
     return item;
   },
 
-  // Put a catalog item back on its shelf slot in the current room.
-  spawnShelfItem(key, { pop = false, delay = 0 } = {}) {
-    const slot = this.shelfSlot[key];
+  // Put a catalog item on its shelf slot ({ x, y } in world coordinates).
+  spawnShelfItem(key, slot, { pop = false, delay = 0 } = {}) {
     const item = this.createItem(key, slot.x, slot.y, { onShelf: true });
+    item.shelfPos = slot;
     if (isPremium(key) && !this.unlocked.has(key)) this.lockItem(item);
     if (pop) {  // pop into existence
       item.sq.x = item.sq.y = 0.01;

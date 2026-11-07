@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Toybox — art style board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Fredoka:wght@500;600&family=Patrick+Hand&family=Press+Start+2P&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#241d2c; --card:#2f2639; --ink:#f4ecfa; --mute:#b9aac7; --accent:#ffd166; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 "Nunito", system-ui, sans-serif; }
+  header { padding:28px 24px 8px; max-width:1500px; margin:0 auto; }
+  h1 { margin:0 0 6px; font-size:30px; }
+  header p { margin:0; color:var(--mute); max-width:900px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,640px),1fr)); gap:22px; padding:22px 24px 40px; max-width:1500px; margin:0 auto; }
+  .card { background:var(--card); border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 6px 24px #0006; }
+  .card h2 { margin:0; font-size:22px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .card h2 small { font-size:14px; color:var(--mute); font-weight:600; }
+  .stage { border-radius:12px; overflow:hidden; background:#000; aspect-ratio:960/600; }
+  .stage svg, .stage canvas { display:block; width:100%; height:100%; }
+  canvas { image-rendering:pixelated; }
+  .row { display:grid; grid-template-columns:minmax(0,200px) minmax(0,1fr); gap:14px; align-items:stretch; }
+  .mini { border-radius:12px; overflow:hidden; aspect-ratio:1/1; }
+  .mini svg { display:block; width:100%; height:100%; }
+  .ui { border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; justify-content:center; }
+  .ui .chips { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .ui .big { display:flex; gap:10px; }
+  .notes { font-size:14px; color:var(--mute); margin:0; }
+  .notes b { color:var(--ink); }
+  .tags { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { font-size:12px; padding:2px 9px; border-radius:99px; background:#ffffff18; color:var(--ink); }
+  .tag.good { background:#3b8f5a55; } .tag.warn { background:#e0a03055; }
+  section.verdict { max-width:1500px; margin:0 auto; padding:0 24px 48px; }
+  .verdict div { background:var(--card); border-radius:18px; padding:18px 20px; }
+  .verdict h3 { margin:0 0 6px; } .verdict p { margin:6px 0; color:var(--mute); } .verdict b { color:var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 Toybox — art style board</h1>
+  <p>The same scene in five looks: a room with the new doorway divider, a window, shelf, bed, a kid and a pet — plus a map-miniature building and some UI. Everything is vector shapes, so what you see is what the game could draw (and recolour: wallpaper, floors, clothes, roofs).</p>
+</header>
+<div class="grid" id="grid"></div>
+<section class="verdict"><div id="verdict"></div></section>
+
+<script>
+// ---- one scene, restyled with tokens -------------------------------------------------------
+const STYLES = [
+  { id:'flat', name:'Soft Flat', sub:'closest to your reference',
+    blurb:'Flat pastel fills, thin slate outlines, plank lines, tiny highlights. Clean, calm, instantly “Toca”.',
+    good:['easiest to recolour','scales to any resolution','fast to draw in code'], warn:['can feel generic without texture'],
+    font:'"Fredoka", sans-serif', uiBg:'#e9f4f4', uiInk:'#35525a', btn:'#4aa8e8', btnInk:'#fff', pill:'#fff', radius:'99px',
+    t:{ wall:'#fdeee6', wall2:'#cfe5e1', floor:'#f1cfa8', floor2:'#f3ece8', plank:'#dcb48a', trim:'#f3f6f6', glass:'#bfe6fb', wood:'#dba46a',
+        sheet:'#ffffff', pillow:'#ffffff', quilt:'#8fc5ee', skin:'#f7c9a6', hair:'#6a4a3a', shirt:'#7fc0f0', shoe:'#58688a', fur:'#e9b97c', fur2:'#cf9a5a',
+        stripe:'#fbe3d8', ink:'#86a0a8', sw:3, hl:.28, sh:.07, shadow:.14, roof:'#e7826a', bwall:'#fff1c9', grass:'#a9dc92', road:'#d7dbe0', tree:'#5fb86a', trunk:'#9a6a46', sky:'#d6efff' },
+    filt:'', grain:0 },
+  { id:'clay', name:'Clay Toy', sub:'soft 3D plasticine',
+    blurb:'No outlines — chunky rounded forms with a soft specular bevel, like stop-motion clay or vinyl toys.',
+    good:['tactile and charming','strong silhouettes','feels premium'], warn:['heavier to render','harder to recolour patterns'],
+    font:'"Baloo 2", sans-serif', uiBg:'#ffe9d2', uiInk:'#7a4b2e', btn:'#ff8f6b', btnInk:'#fff', pill:'#fff7ee', radius:'22px',
+    t:{ wall:'#ffd6b5', wall2:'#bfe3c8', floor:'#d9a36a', floor2:'#f0e0c8', plank:'#c28d56', trim:'#fff3e3', glass:'#a9dcff', wood:'#c98b55',
+        sheet:'#fff6ea', pillow:'#fffaf2', quilt:'#ff9ab0', skin:'#f4b98f', hair:'#7a4a32', shirt:'#59b5ff', shoe:'#6a5acd', fur:'#f0b56f', fur2:'#d9944f',
+        stripe:'#ffc9a0', ink:'none', sw:0, hl:0, sh:0, shadow:.2, roof:'#ff7a5c', bwall:'#ffe6a8', grass:'#8fd47f', road:'#e4d6c6', tree:'#48b96b', trunk:'#a0643c', sky:'#cfeaff' },
+    filt:'clay', grain:0 },
+  { id:'paper', name:'Paper Cutout', sub:'layered craft paper',
+    blurb:'Every shape is a piece of paper with a little drop shadow and a faint grain — like a pop-up storybook.',
+    good:['depth for free (parallax later!)','cosy and distinctive','forgiving shapes'], warn:['shadow per layer costs perf','busy if overdone'],
+    font:'"Patrick Hand", cursive', uiBg:'#efe3cf', uiInk:'#5b4632', btn:'#e2674a', btnInk:'#fff8ea', pill:'#fffaf0', radius:'10px',
+    t:{ wall:'#f2dfc0', wall2:'#b8d4c4', floor:'#c9996a', floor2:'#eadfc9', plank:'#b4835a', trim:'#fffaf0', glass:'#9fd0e6', wood:'#b9835a',
+        sheet:'#fffaf0', pillow:'#fff', quilt:'#e2674a', skin:'#f1bd96', hair:'#5a3a2c', shirt:'#4a9d8e', shoe:'#3d4a6b', fur:'#e7b374', fur2:'#c48a4c',
+        stripe:'#ecd2aa', ink:'none', sw:0, hl:0, sh:.06, shadow:.12, roof:'#d4553c', bwall:'#fbe9c0', grass:'#9cc57c', road:'#d9cfbf', tree:'#5b9a5d', trunk:'#8a5b3a', sky:'#cfe6ee' },
+    filt:'paper', grain:.35 },
+  { id:'wash', name:'Storybook Wash', sub:'ink + watercolour',
+    blurb:'Wobbly brown ink lines over pale watercolour washes with paper grain. Hand-made and gentle.',
+    good:['most “art” per pixel','forgiving of simple shapes'], warn:['wobble filter is costly','low contrast for tiny UI'],
+    font:'"Patrick Hand", cursive', uiBg:'#f6efe0', uiInk:'#4a3a2a', btn:'#7aa6c9', btnInk:'#fff', pill:'#fffdf6', radius:'14px',
+    t:{ wall:'#f8e7cf', wall2:'#cfe0d2', floor:'#e3bf90', floor2:'#efe6d6', plank:'#b99063', trim:'#fffdf7', glass:'#c9e4f1', wood:'#d8a877',
+        sheet:'#fffdf7', pillow:'#fff', quilt:'#a9c8e3', skin:'#f5cfae', hair:'#7b5a45', shirt:'#e9a1a7', shoe:'#6d7ea3', fur:'#ecc08a', fur2:'#d5a066',
+        stripe:'#f3d9bd', ink:'#5a4636', sw:2.2, hl:0, sh:.05, shadow:.1, roof:'#d98a72', bwall:'#fbefd0', grass:'#bcd9a0', road:'#e0d8cc', tree:'#8fbf8a', trunk:'#9c7656', sky:'#dcecf3' },
+    filt:'wash', grain:.5 },
+  { id:'pixel', name:'Cosy Pixel', sub:'chunky low-res',
+    blurb:'The same art squashed to 240×150 and posterised, then scaled up crisp. Retro, tiny files, very readable.',
+    good:['tiny and fast','nostalgic','sprites are easy to author'], warn:['character creator + recolour needs a palette system','text is hard'],
+    font:'"Press Start 2P", monospace', uiBg:'#2d2a45', uiInk:'#ffe9b0', btn:'#ff6b8b', btnInk:'#fff', pill:'#463f6b', radius:'2px',
+    t:{ wall:'#ffe3b8', wall2:'#8fd0c0', floor:'#d99560', floor2:'#f0ead8', plank:'#b9703f', trim:'#ffffff', glass:'#7fd0ff', wood:'#b9703f',
+        sheet:'#ffffff', pillow:'#ffffff', quilt:'#4aa3ff', skin:'#ffc79a', hair:'#7a3f2a', shirt:'#ff6b8b', shoe:'#3d3a8a', fur:'#e8a85c', fur2:'#b9703f',
+        stripe:'#ffcf96', ink:'#2d2a45', sw:3, hl:0, sh:0, shadow:.25, roof:'#ff6b4a', bwall:'#ffe9a0', grass:'#7fd05a', road:'#cfcfd8', tree:'#2fa84a', trunk:'#8a5530', sky:'#a8e0ff' },
+    filt:'', grain:0, pixel:true },
+];
+
+const FILTERS = `
+<filter id="F-clay" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+  <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="b"/>
+  <feSpecularLighting in="b" surfaceScale="7" specularConstant=".85" specularExponent="24" lighting-color="#fff" result="sp"><fePointLight x="-4000" y="-9000" z="9000"/></feSpecularLighting>
+  <feComposite in="sp" in2="SourceAlpha" operator="in" result="sp2"/>
+  <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="b2"/>
+  <feOffset in="b2" dx="0" dy="7" result="o"/><feFlood flood-color="#3a1d0a" flood-opacity=".3"/><feComposite in2="o" operator="in" result="sd"/>
+  <feMerge><feMergeNode in="sd"/><feMergeNode in="SourceGraphic"/><feMergeNode in="sp2"/></feMerge>
+</filter>
+<filter id="F-paper" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="3" dy="5" stdDeviation="2.5" flood-color="#3a2410" flood-opacity=".38"/></filter>
+<filter id="F-wash" x="-5%" y="-5%" width="110%" height="110%">
+  <feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="4" result="w"/>
+  <feDisplacementMap in="SourceGraphic" in2="w" scale="9" xChannelSelector="R" yChannelSelector="G" result="d"/>
+  <feTurbulence type="fractalNoise" baseFrequency=".6" numOctaves="3" seed="2" result="n"/>
+  <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -.9 .62" result="na"/>
+  <feComposite in="d" in2="d" operator="over" result="base"/>
+  <feBlend in="base" in2="na" mode="multiply"/>
+</filter>
+<filter id="F-grain" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"/><feColorMatrix type="saturate" values="0"/>
+  <feComponentTransfer><feFuncA type="linear" slope=".5"/></feComponentTransfer>
+</filter>`;
+
+function css(P, t, s) {
+  const o = t.ink === 'none' ? 'stroke:none' : `stroke:${t.ink};stroke-width:${t.sw};stroke-linejoin:round;stroke-linecap:round`;
+  return `
+  #${P} .wall{fill:${t.wall}} #${P} .wall2{fill:${t.wall2}} #${P} .floor{fill:${t.floor}} #${P} .floor2{fill:${t.floor2}}
+  #${P} .plank{stroke:${t.plank};stroke-width:2;fill:none;opacity:.8} #${P} .trim{fill:${t.trim}} #${P} .glass{fill:${t.glass}} #${P} .wood{fill:${t.wood}}
+  #${P} .sheet{fill:${t.sheet}} #${P} .pillow{fill:${t.pillow}} #${P} .quilt{fill:${t.quilt}} #${P} .skin{fill:${t.skin}} #${P} .hair{fill:${t.hair}}
+  #${P} .shirt{fill:${t.shirt}} #${P} .shoe{fill:${t.shoe}} #${P} .fur{fill:${t.fur}} #${P} .fur2{fill:${t.fur2}} #${P} .stripe{fill:${t.stripe}}
+  #${P} .white{fill:#fff} #${P} .dark{fill:#2b2230} #${P} .cheek{fill:#ff8fa3;opacity:.55} #${P} .red{fill:#ee5a52} #${P} .leaf{fill:#5fb45c} #${P} .yel{fill:#ffd24d}
+  #${P} .roof{fill:${t.roof}} #${P} .bwall{fill:${t.bwall}} #${P} .grass{fill:${t.grass}} #${P} .road{fill:${t.road}} #${P} .tree{fill:${t.tree}} #${P} .trunk{fill:${t.trunk}} #${P} .sky{fill:${t.sky}}
+  #${P} .o{${o}} #${P} .hl{fill:#fff;opacity:${t.hl}} #${P} .sh{fill:#000;opacity:${t.sh}} #${P} .cast{fill:#000;opacity:${t.shadow}}
+  #${P} .line{stroke:${t.ink === 'none' ? t.plank : t.ink};stroke-width:${Math.max(2, t.sw)};fill:none;stroke-linecap:round}
+  ${s.filt === 'paper' ? `#${P} .l{filter:url(#F-paper-${P})}` : ''}
+  ${s.filt === 'clay' ? `#${P} .g{filter:url(#F-clay-${P})}` : ''}
+  ${s.filt === 'wash' ? `#${P} .g{filter:url(#F-wash-${P})}` : ''}`;
+}
+
+function sceneSVG(s) {
+  const P = 'sc-' + s.id, t = s.t;
+  const filt = FILTERS.replace(/id="F-(\w+)"/g, (m, n) => `id="F-${n}-${P}"`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" id="${P}" viewBox="0 0 960 600" width="960" height="600">
+<style>${css(P, t, s)}</style>
+<defs>${filt}
+  <pattern id="wp-${P}" width="80" height="40" patternUnits="userSpaceOnUse"><rect class="stripe" x="0" y="0" width="40" height="40"/></pattern>
+</defs>
+<rect width="960" height="600" fill="${s.id === 'wash' ? '#fbf4e4' : '#000'}"/>
+<g class="g">
+  <!-- room -->
+  <rect class="wall l" x="0" y="0" width="960" height="430"/>
+  <rect fill="url(#wp-${P})" x="0" y="0" width="960" height="430" opacity="${s.id === 'pixel' ? .7 : .45}"/>
+  <rect class="floor l" x="0" y="430" width="960" height="170"/>
+  ${[470, 510, 550].map((y, i) => `<line class="plank" x1="0" x2="960" y1="${y}" y2="${y}"/>`).join('')}
+  ${[...Array(10)].map((_, i) => `<line class="plank" x1="${100 + i * 110 + (i % 2) * 55}" x2="${100 + i * 110 + (i % 2) * 55}" y1="${i % 2 ? 470 : 430}" y2="${i % 2 ? 510 : 470}"/>`).join('')}
+  <rect class="trim l o" x="0" y="424" width="960" height="12"/>
+  <!-- the next room, seen through the doorway -->
+  <rect class="wall2 l" x="0" y="0" width="112" height="430"/>
+  <rect class="floor2 l" x="0" y="430" width="112" height="170"/>
+  <rect class="trim" x="0" y="424" width="112" height="12"/>
+  ${[...Array(4)].map((_, i) => `<path class="stripe" d="M${14 + i * 28} 40 q14 -26 28 0 q-14 26 -28 0z" opacity=".55"/>`).join('')}
+  <!-- doorway divider: pillar + receding side wall -->
+  <polygon class="trim l o" points="139,0 250,0 250,430 139,500"/><polygon class="sh" points="139,0 250,0 250,430 139,500"/>
+  <line class="line" x1="139" y1="494" x2="250" y2="428" stroke-width="7"/>
+  <rect class="trim l o" x="112" y="-4" width="54" height="508"/><line class="line" x1="124" y1="0" x2="124" y2="500" opacity=".6"/>
+  <rect class="trim l o" x="106" y="498" width="66" height="14" rx="3"/>
+  <!-- window -->
+  <rect class="trim l o" x="580" y="64" width="210" height="166" rx="12"/>
+  <rect class="glass" x="592" y="76" width="186" height="142" rx="6"/>
+  <ellipse class="white" cx="650" cy="118" rx="34" ry="15" opacity=".9"/><ellipse class="white" cx="676" cy="108" rx="24" ry="13" opacity=".9"/>
+  <rect class="hl" x="592" y="76" width="30" height="142"/>
+  <line class="line" x1="685" y1="76" x2="685" y2="218"/><line class="line" x1="592" y1="147" x2="778" y2="147"/>
+  <!-- shelf with toys -->
+  <rect class="wood l o" x="330" y="246" width="230" height="14" rx="3"/>
+  <polygon class="wood o" points="350,260 380,260 350,290"/><polygon class="wood o" points="540,260 510,260 540,290"/>
+  <circle class="red l o" cx="372" cy="224" r="21"/><path class="leaf o" d="M372 204 q14 -14 22 -2 q-14 8 -22 2z"/><ellipse class="hl" cx="364" cy="216" rx="6" ry="4"/>
+  <circle class="yel l o" cx="446" cy="222" r="23"/><path class="line" d="M424 222 q22 12 44 0 M446 200 q-12 22 0 44"/>
+  <rect class="quilt l o" x="496" y="204" width="40" height="42" rx="8"/><rect class="white o" x="502" y="214" width="28" height="9" rx="3"/>
+  <!-- bed -->
+  <ellipse class="cast" cx="420" cy="548" rx="190" ry="14"/>
+  <rect class="wood l o" x="252" y="392" width="26" height="150" rx="8"/>
+  <rect class="wood l o" x="262" y="508" width="310" height="32" rx="8"/>
+  <rect class="sheet l o" x="272" y="452" width="292" height="62" rx="18"/>
+  <rect class="pillow l o" x="286" y="426" width="96" height="40" rx="18"/><ellipse class="hl" cx="312" cy="438" rx="22" ry="6"/>
+  <rect class="quilt l o" x="380" y="440" width="190" height="76" rx="16"/>
+  <path class="hl" d="M394 452 h150 q14 0 14 8 h-178 q0 -8 14 -8z"/>
+  <g class="white" opacity=".55">${[...Array(5)].map((_, i) => `<circle cx="${410 + i * 34}" cy="${478 + (i % 2) * 16}" r="6"/>`).join('')}</g>
+  <!-- floor lamp -->
+  <ellipse class="cast" cx="610" cy="546" rx="26" ry="7"/>
+  <rect class="wood o" x="606" y="380" width="8" height="160" rx="3"/><path class="yel l o" d="M588 384 L632 384 L620 336 L600 336z"/><ellipse class="hl" cx="606" cy="362" rx="6" ry="14"/>
+  <!-- pet -->
+  <ellipse class="cast" cx="852" cy="548" rx="46" ry="9"/>
+  <path class="fur2 o" d="M806 512 q-26 -18 -16 -40 q8 6 14 20 q4 8 10 10z"/>
+  <ellipse class="fur l o" cx="838" cy="522" rx="38" ry="22"/><ellipse class="hl" cx="826" cy="512" rx="14" ry="6"/>
+  <rect class="fur o" x="818" y="534" width="12" height="16" rx="5"/><rect class="fur o" x="848" y="534" width="12" height="16" rx="5"/>
+  <circle class="fur l o" cx="878" cy="500" r="25"/><ellipse class="fur2 o" cx="858" cy="486" rx="9" ry="16" transform="rotate(-22 858 486)"/><ellipse class="fur2 o" cx="896" cy="482" rx="9" ry="16" transform="rotate(20 896 482)"/>
+  <ellipse class="white o" cx="892" cy="508" rx="13" ry="10"/><ellipse class="dark" cx="900" cy="503" rx="5" ry="4"/>
+  <circle class="dark" cx="874" cy="494" r="3.6"/><circle class="dark" cx="889" cy="492" r="3.6"/>
+  <path class="line" d="M884 514 q6 6 12 0" stroke-width="2"/>
+  <!-- kid -->
+  <ellipse class="cast" cx="700" cy="546" rx="76" ry="13"/>
+  <ellipse class="shoe l o" cx="676" cy="530" rx="22" ry="10"/><ellipse class="shoe l o" cx="724" cy="530" rx="22" ry="10"/>
+  <rect class="shirt l o" x="633" y="392" width="20" height="68" rx="10"/><rect class="shirt l o" x="747" y="392" width="20" height="68" rx="10"/>
+  <circle class="skin o" cx="643" cy="462" r="11"/><circle class="skin o" cx="757" cy="462" r="11"/>
+  <rect class="shirt l o" x="652" y="384" width="96" height="140" rx="26"/><path class="sh" d="M652 480 h96 v18 q0 26 -26 26 h-44 q-26 0 -26 -26z"/><path class="hl" d="M664 400 q0 -4 6 -4 h12 q-8 0 -8 10 v40 q0 6 -10 6z"/>
+  <path class="white" d="M690 384 q10 14 20 0z" opacity=".9"/>
+  <circle class="skin l o" cx="700" cy="330" r="62"/><ellipse class="hl" cx="672" cy="300" rx="20" ry="10"/>
+  <path class="hair l o" d="M638 330 A62 62 0 0 1 762 330 Q748 292 700 296 Q652 292 638 330Z"/><path class="hair o" d="M638 330 q-8 36 4 50 q6 -22 4 -50z"/>
+  <ellipse class="white o" cx="676" cy="330" rx="12" ry="14"/><ellipse class="white o" cx="724" cy="330" rx="12" ry="14"/>
+  <circle class="dark" cx="679" cy="332" r="6"/><circle class="dark" cx="721" cy="332" r="6"/><circle class="white" cx="681" cy="329" r="2"/><circle class="white" cx="723" cy="329" r="2"/>
+  <circle class="cheek" cx="654" cy="352" r="9"/><circle class="cheek" cx="746" cy="352" r="9"/>
+  <path class="line" d="M686 358 q14 14 28 0" stroke-width="3.5"/>
+  <!-- crown -->
+  <path class="yel l o" d="M668 284 l8 -26 l14 16 l10 -22 l10 22 l14 -16 l8 26z"/>
+  <circle class="red" cx="700" cy="270" r="4"/>
+</g>
+${s.grain ? `<rect width="960" height="600" filter="url(#F-grain-${P})" style="mix-blend-mode:multiply;opacity:${s.grain}"/>` : ''}
+</svg>`;
+}
+
+function miniSVG(s) {
+  const P = 'mn-' + s.id, t = s.t;
+  const filt = FILTERS.replace(/id="F-(\w+)"/g, (m, n) => `id="F-${n}-${P}"`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" id="${P}" viewBox="0 0 220 220">
+<style>${css(P, t, s)}</style><defs>${filt}</defs>
+<rect class="sky" width="220" height="220"/>
+<g class="g">
+  <rect class="grass l" x="0" y="150" width="220" height="70"/><rect class="road l" x="0" y="178" width="220" height="26"/>
+  <line stroke="#fff" stroke-width="3" stroke-dasharray="12 10" x1="0" x2="220" y1="191" y2="191" opacity=".8"/>
+  <rect class="trunk l o" x="184" y="124" width="8" height="30"/><circle class="tree l o" cx="188" cy="116" r="19"/><ellipse class="hl" cx="181" cy="109" rx="6" ry="4"/>
+  <rect class="bwall l o" x="36" y="96" width="120" height="56"/><rect class="bwall l o" x="36" y="52" width="120" height="48"/>
+  <rect class="glass o" x="48" y="64" width="28" height="24"/><rect class="glass o" x="96" y="64" width="28" height="24"/><rect class="glass o" x="132" y="64" width="14" height="24"/>
+  <rect class="glass o" x="48" y="108" width="28" height="24"/><rect class="glass o" x="132" y="108" width="14" height="24"/>
+  <rect class="wood l o" x="94" y="112" width="26" height="40" rx="3"/><circle class="yel" cx="115" cy="134" r="2.5"/>
+  <polygon class="roof l o" points="26,54 166,54 96,10"/><polygon class="sh" points="96,10 166,54 96,54"/><polygon class="hl" points="30,52 60,52 96,22 90,22"/>
+  <rect class="roof l o" x="132" y="22" width="12" height="24" />
+</g>
+${s.grain ? `<rect width="220" height="220" filter="url(#F-grain-${P})" style="mix-blend-mode:multiply;opacity:${s.grain}"/>` : ''}
+</svg>`;
+}
+
+function uiHTML(s) {
+  const t = s;
+  const chip = `background:${t.pill};color:${t.uiInk};border-radius:${t.radius};padding:6px 14px;font:600 15px ${t.font}`;
+  const btn = `background:${t.btn};color:${t.btnInk};border:0;border-radius:${s.id === 'pixel' ? '2px' : '99px'};padding:10px 18px;font:600 ${s.id === 'pixel' ? 11 : 17}px ${t.font};${s.id === 'clay' ? 'box-shadow:inset 0 -6px 0 #0002,inset 0 4px 0 #fff5,0 4px 0 #0003;' : s.id === 'paper' ? 'box-shadow:3px 4px 0 #0004;' : s.id === 'pixel' ? 'box-shadow:0 4px 0 #0006;' : s.id === 'wash' ? 'box-shadow:0 0 0 2px #4a3a2a55;' : 'box-shadow:0 3px 0 #0002;'}`;
+  const round = `width:46px;height:46px;border-radius:${s.id === 'pixel' ? '4px' : '50%'};background:${t.btn};color:${t.btnInk};display:grid;place-items:center;font-size:22px;${s.id === 'clay' ? 'box-shadow:inset 0 -5px 0 #0002,inset 0 3px 0 #fff5,0 4px 0 #0003;' : s.id === 'paper' ? 'box-shadow:3px 4px 0 #0004;' : 'box-shadow:0 3px 0 #0002;'}`;
+  return `<div class="chips"><span style="${chip}">🪙 12</span><span style="${chip}">🗺️ Map</span><span style="${chip}">Floor 1 · Bedroom</span></div>
+  <div class="big"><button style="${btn}">➕ Build</button><button style="${btn};background:${t.pill};color:${t.uiInk}">🎨 Paint</button><span style="${round}">🛋️</span><span style="${round}">🛗</span></div>`;
+}
+
+function pixelize(svgText, canvas) {
+  const img = new Image();
+  img.onload = () => {
+    const w = 240, h = 150, c = canvas, x = c.getContext('2d', { willReadFrequently: true });
+    c.width = w; c.height = h;
+    x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0, w, h);
+    const d = x.getImageData(0, 0, w, h), a = d.data, L = 6;                         // posterise: few levels per channel
+    for (let i = 0; i < a.length; i += 4) for (let k = 0; k < 3; k++) a[i + k] = Math.round(Math.round(a[i + k] / 255 * (L - 1)) / (L - 1) * 255);
+    x.putImageData(d, 0, 0);
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+}
+
+const grid = document.getElementById('grid');
+for (const s of STYLES) {
+  const card = document.createElement('article');
+  card.className = 'card';
+  const svg = sceneSVG(s);
+  card.innerHTML = `
+    <h2>${s.name} <small>${s.sub}</small></h2>
+    <div class="stage">${s.pixel ? '<canvas></canvas>' : svg}</div>
+    <div class="row">
+      <div class="mini">${miniSVG(s)}</div>
+      <div class="ui" style="background:${s.uiBg}">${uiHTML(s)}</div>
+    </div>
+    <p class="notes">${s.blurb}</p>
+    <div class="tags">${s.good.map(g => `<span class="tag good">✓ ${g}</span>`).join('')}${s.warn.map(g => `<span class="tag warn">△ ${g}</span>`).join('')}</div>`;
+  grid.appendChild(card);
+  if (s.pixel) pixelize(svg, card.querySelector('canvas'));
+}
+
+document.getElementById('verdict').innerHTML = `
+  <h3>My take</h3>
+  <p><b>Soft Flat</b> is what your reference screenshot is, and it fits this game best: every wall, floor, roof and shirt is a flat colour area, so the wallpaper/flooring repaint, exterior painting and the clothes-painting factory all become “swap a colour or pattern”. It also scales cleanly to a scrolling panorama.</p>
+  <p>To stop it feeling generic, steal one trick from another card: the <b>Paper Cutout</b> drop shadows on big layers (depth for the doorway pillars and parallax), or <b>Clay</b>'s soft highlight on characters only.</p>
+  <p><b>Perspective note:</b> all five are side-on like Toca. A Sims-style isometric cutaway would suit the building-maker but fights the scrolling panorama and the drag-and-throw physics — I'd keep side-on rooms and use a 3/4 view only for the city map.</p>
+  <p>Tell me which to lean into (or a mix, e.g. <i>Soft Flat + paper shadows</i>) and I'll make it the house style: shared palette + outline tokens in <code>data/decor.js</code>.</p>`;
+</script>
+</body>
+</html>

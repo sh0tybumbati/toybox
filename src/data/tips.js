@@ -5,6 +5,7 @@
 export const TIPS = [
   { id: 'grab',      done: 'grab',      text: '👆 Drag something off a shelf!' },
   { id: 'dress',     done: 'dress',     text: '🧢 Drop it on your friend — hats on the head, toys in their hands!' },
+  { id: 'walk',      done: 'walk',      text: '👣 Tap the floor and your friend walks over. Tap a friend to pick who walks!' },
   { id: 'map',       done: 'map',       text: '🗺️ Open the Map to visit other places.' },
   { id: 'eat',       done: 'eat',       room: 'kitchen', text: '🍎 Drop food on your friend\'s mouth to feed them.' },
   { id: 'cook',      done: 'cook',      room: 'kitchen', text: '🍳 Drop ingredients in the oven to cook something new!' },

@@ -4,6 +4,11 @@
 //   oven:      drop ingredients on it (up to 3); it cooks them into a dish (data/recipes.js).
 //              state = cooking?
 //   switch:    tap to toggle night. state = lights on?
+//   bed:       a friend dropped on it (or sent to it by tapping) tucks in and sleeps; tap them to wake up.
+//   connector: elevator / stairs / ladder (`connector` = which). Tap to go to another floor of the building:
+//              an elevator reaches every floor with an elevator, stairs and ladders the neighbouring floors
+//              that have the same kind.
+//   pets:      tap for a new pet to hop out; drop a pet back on it to send it home.
 //   bell:      tap to ring (shop register). No state.
 //   storage:   drop items on it and they sit in its slots, visible, until dragged out again.
 //              `slots` are item centres (local coords), `accepts` limits item kinds (null = anything).
@@ -99,6 +104,74 @@ export const PROP_TYPES = {
       g.fillStyle(0xdddddd, 1).fillRoundedRect(-8, -18, 16, 36, 4);
       if (lightsOn) g.fillStyle(0xffd166, 1).fillRoundedRect(-8, -18, 16, 18, 4);
       else g.fillStyle(0x8899aa, 1).fillRoundedRect(-8, 0, 16, 18, 4);
+    },
+  },
+  bed: {
+    name: 'Bed', mount: 'floor',
+    behaviour: 'bed', w: 260, h: 100,
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-130, -50, 22, 100, 6);                 // headboard
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(112, -4, 18, 54, 6);                    // footboard
+      g.fillStyle(0xb5835a, 1).fillRoundedRect(-124, 24, 248, 26, 6);                  // frame
+      g.fillStyle(0xfdf6e6, 1).fillRoundedRect(-112, -16, 224, 44, 12);                // mattress
+      g.lineStyle(3, 0xe0d3b5, 1).strokeRoundedRect(-112, -16, 224, 44, 12);
+      g.fillStyle(0xffffff, 1).fillRoundedRect(-106, -30, 72, 30, 14);                 // pillow
+      g.lineStyle(3, 0xdddddd, 1).strokeRoundedRect(-106, -30, 72, 30, 14);
+    },
+  },
+  elevator: {
+    name: 'Elevator', mount: 'floor', connector: 'elevator',
+    behaviour: 'connector', w: 130, h: 232,
+    draw(g, open) {
+      g.fillStyle(0x6b7a99, 1).fillRoundedRect(-65, -116, 130, 232, 8);               // frame
+      g.fillStyle(0x3b4660, 1).fillRoundedRect(-52, -96, 104, 212, 4);                // shaft
+      if (open) g.fillStyle(0xfff3c4, 1).fillRoundedRect(-48, -92, 96, 204, 3);       // lit cabin
+      else {
+        g.fillStyle(0xc6cfe2, 1).fillRect(-48, -92, 47, 204).fillRect(1, -92, 47, 204);   // closed doors
+        g.lineStyle(2, 0x9aa5bd, 1).lineBetween(0, -92, 0, 112);
+      }
+      g.fillStyle(0x1b2236, 1).fillRoundedRect(-30, -112, 60, 14, 4);                 // floor display
+      g.fillStyle(0x7fe08a, 1).fillTriangle(-6, -100, 6, -100, 0, -109);
+    },
+  },
+  stairs: {
+    name: 'Stairs', mount: 'floor', connector: 'stairs',
+    behaviour: 'connector', w: 170, h: 232,
+    draw(g, open) {
+      const steps = 7;
+      for (let i = 0; i < steps; i++) {                                                // a staircase rising to the right
+        const x = -80 + i * 22, top = 100 - (i + 1) * 28;
+        g.fillStyle(0xc99466, 1).fillRect(x, top, 22, 116 - (top + 16) + 16);
+        g.fillStyle(0xe2b685, 1).fillRect(x, top, 22, 8);
+        g.lineStyle(2, 0x8a5e3b, 1).strokeRect(x, top, 22, 116 - (top + 16) + 16);
+      }
+      g.lineStyle(6, 0x8a5e3b, 1).lineBetween(-80, 40, 74, -116);                      // handrail
+      g.fillStyle(0x8a5e3b, 1);
+      for (let i = 0; i < steps; i += 2) g.fillRect(-76 + i * 22, 44 - i * 28 - 40, 5, 44);
+      if (open) g.fillStyle(0xfff3a0, 0.5).fillRoundedRect(-84, -118, 168, 236, 10);   // glow while in use
+    },
+  },
+  ladder: {
+    name: 'Ladder', mount: 'floor', connector: 'ladder',
+    behaviour: 'connector', w: 64, h: 232,
+    draw(g, open) {
+      g.fillStyle(0xb5835a, 1).fillRoundedRect(-24, -116, 8, 232, 3).fillRoundedRect(16, -116, 8, 232, 3);   // rails
+      g.fillStyle(0xc99466, 1);
+      for (let y = -100; y < 112; y += 32) g.fillRoundedRect(-24, y, 48, 8, 3);                           // rungs
+      if (open) g.fillStyle(0xfff3a0, 0.5).fillRoundedRect(-30, -118, 60, 236, 8);
+    },
+  },
+  petbasket: {
+    name: 'Pet Basket', mount: 'floor',
+    behaviour: 'pets', w: 112, h: 52,
+    draw(g) {
+      g.fillStyle(0xc9964f, 1).fillRoundedRect(-56, -6, 112, 44, 18);                // wicker rim
+      g.lineStyle(2, 0xa87a3a, 1);
+      for (let x = -44; x <= 44; x += 22) g.lineBetween(x, -2, x, 36);
+      g.lineBetween(-54, 16, 54, 16);
+      g.fillStyle(0xff9fb5, 1).fillEllipse(0, -4, 92, 20);                            // soft cushion
+      g.fillStyle(0xffc2d1, 1).fillEllipse(0, -6, 66, 11);
+      g.fillStyle(0xffe066, 1).fillCircle(34, 6, 5);                                  // a button on the cushion
     },
   },
   basket: {

@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PREMIUM, COIN_RULES, earnAmount, isPremium } from '../src/data/economy.js';
 import { CATALOG } from '../src/data/items.js';
-import { ROOMS, ROOM_ORDER } from '../src/data/rooms.js';
+import { WALLPAPERS, FLOORS } from '../src/data/decor.js';
+import { ROOMS } from '../src/data/rooms.js';
 
 test('earning respects cooldowns', () => {
   assert.equal(earnAmount('eat', null, 0), 1);
@@ -34,11 +35,10 @@ test('a few coins reach the cheapest item quickly, and the first purchases are a
   assert.ok(cheapest / perMeal <= 8, 'about eight meals buys the first toy');
 });
 
-test('every room has a map spot, a label and fits the room order', () => {
-  assert.deepEqual([...ROOM_ORDER].sort(), Object.keys(ROOMS).sort());
+test('every room type has a label and art (its own draw, or a wallpaper + floor)', () => {
   for (const [key, r] of Object.entries(ROOMS)) {
     assert.ok(r.label, key);
-    assert.ok(r.map && Number.isFinite(r.map.x) && Number.isFinite(r.map.y) && r.map.emoji, key);
-    assert.equal(typeof r.draw, 'function', key);
+    if (r.outdoor) assert.equal(typeof r.draw, 'function', key);
+    else assert.ok(WALLPAPERS[r.style.wall] && FLOORS[r.style.floor], `${key}: wallpaper and floor exist`);
   }
 });

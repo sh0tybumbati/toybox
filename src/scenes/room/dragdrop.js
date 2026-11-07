@@ -1,6 +1,6 @@
 // Room scene mixin — Drag & drop: the pointer events and the drop-zone hints.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { FLOOR_BOTTOM, W } from '../../config.js';
+import { FLOOR_BOTTOM } from '../../config.js';
 import { SLOTS_FOR } from '../../data/items.js';
 import Character from '../../entities/Character.js';
 import Prop from '../../entities/Prop.js';
@@ -17,6 +17,7 @@ export const dragMethods = {
 
     // dragstart: fires once when the pointer picks an object up.
     input.on('dragstart', (pointer, obj) => {
+      if (obj.isPet) return this.petDragStart(obj);
       if (obj instanceof Prop) {                // furniture mode: pick a piece up
         this.sfx.pop();
         this.tweens.add({ targets: obj, scale: 1.04, duration: 100 });
@@ -28,6 +29,9 @@ export const dragMethods = {
       obj.vx = obj.vz = obj.ly = 0;
 
       if (obj instanceof Character) {
+        this.select(obj);
+        obj.goal = null; obj.onArrive = null;
+        if (obj.sleeping) this.wakeUp(obj);
         obj.dragStart = { x: obj.x, y: obj.y, t: performance.now() };
         obj.dragMoved = false;                    // a press with no movement is a tap (see dragend)
         squashTo(this, obj, 0.94, 1.05, 100);
@@ -48,10 +52,10 @@ export const dragMethods = {
       // Grabbing from a shelf leaves a fresh copy behind.
       if (obj.onShelf) {
         obj.onShelf = false;
-        const room = this.roomKey;
+        const gen = this.zoneGen;
         this.time.delayedCall(300, () => {
-          if (this.roomKey !== room) return;      // left the room meanwhile: shelves restock on return
-          this.spawnShelfItem(obj.key, { pop: true });
+          if (this.zoneGen !== gen) return;       // left the zone meanwhile: shelves restock on return
+          this.spawnShelfItem(obj.key, obj.shelfPos, { pop: true });
           this.sfx.pop();
         });
       }
@@ -64,14 +68,15 @@ export const dragMethods = {
     // drag: fires every pointer move while held; dragX/dragY already include
     // the grab offset, so we assign them (clamped to the room).
     input.on('drag', (pointer, obj, dragX, dragY) => {
+      if (obj.isPet) return this.petDrag(obj, dragX, dragY);
       if (obj instanceof Prop) {                // keep furniture where it belongs (floor / wall)
-        const at = clampPlacement(obj.def, dragX, dragY + obj.def.h / 2);
+        const at = clampPlacement(obj.def, dragX, dragY + obj.def.h / 2, this.worldW);
         obj.setPosition(at.x, at.y - obj.def.h / 2);
         return;
       }
       const isChar = obj instanceof Character;
       const mx = isChar ? 100 : 30;
-      obj.x = clamp(dragX, mx, W - mx);
+      obj.x = clamp(dragX, mx, this.worldW - mx);
       obj.y = clamp(dragY, isChar ? 190 : 30, FLOOR_BOTTOM - obj.foot());
       obj.lane = laneForFeet(obj.lane, obj.y + obj.foot());
 
@@ -89,6 +94,7 @@ export const dragMethods = {
     input.on('dragend', (pointer, obj) => {
       this.zoneHint.clear();
       this.dirty = true;
+      if (obj.isPet) return this.petDragEnd(obj);
       if (obj instanceof Prop) {
         this.tweens.add({ targets: obj, scale: 1, duration: 100 });
         this.sfx.click();
@@ -100,7 +106,10 @@ export const dragMethods = {
       if (obj instanceof Character) {
         obj.vz = 0;
         if (!obj.dragMoved && performance.now() - obj.dragStart.t < 500) this.poke(obj);
-        else if (obj.z <= 0) land(this, obj, 220);
+        else {
+          if (obj.z <= 0) land(this, obj, 220);
+          if (!this.tryBed(obj)) this.tryHug(obj);                // dropped on a bed: sleep; next to a friend: hug
+        }
         return;
       }
 
@@ -110,7 +119,7 @@ export const dragMethods = {
       if (obj.z <= 0) obj.vz = Math.max(0, obj.vz);
 
       handleDrop(this, obj);                      // may override velocity / consume item
-      if (!obj.dead && !obj.worn && obj.z <= 0 && inBin(obj)) trash(this, obj);
+      if (!obj.dead && !obj.worn && obj.z <= 0 && inBin(obj, this.binXs())) trash(this, obj);
 
       // Dropped on the floor with no interaction: tiny landing thud.
       if (!obj.dead && !obj.worn && obj.z <= 0 && obj.vz <= 0) land(this, obj, 220);

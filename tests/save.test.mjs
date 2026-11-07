@@ -9,9 +9,9 @@ const v1 = {
   floors: { kitchen: [{ k: 'apple', x: 421, l: 552 }], bedroom: [{ k: 'car', x: 301, l: 552 }] },
 };
 
-test('v1 saves migrate to a one-character v8 save with a look', () => {
+test('v1 saves migrate to a one-character v10 save with a look', () => {
   const d = migrate(v1);
-  assert.equal(d.v, 8);
+  assert.equal(d.v, 10);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.deepEqual(d.furniture, {});                // nothing saved yet: rooms use their default layout
@@ -24,10 +24,10 @@ test('v1 saves migrate to a one-character v8 save with a look', () => {
 
 test('sanitize keeps valid data and drops invalid worn items', () => {
   const d = sanitize(v1);
-  assert.equal(d.room, 'kitchen');
+  assert.equal(d.zone, '0.0');                       // the old kitchen is the first room on the home's ground floor
   assert.deepEqual(d.characters[0].worn, { head: 'cap', handR: 'teddy' });
-  assert.equal(d.floors.kitchen[0].k, 'apple');
-  assert.equal(d.floors.bedroom[0].k, 'car');
+  assert.equal(d.floors['0.0'][0].k, 'apple');
+  assert.equal(d.floors['0.2'][0].k, 'car');        // the old bedroom
 });
 
 test('sanitize rejects junk and clamps numbers', () => {
@@ -44,11 +44,11 @@ test('sanitize rejects junk and clamps numbers', () => {
   assert.equal(d.characters[0].x, 100);
   assert.equal(d.characters[0].lane, 580);
   assert.equal(d.characters[0].scale, 1.5);
-  assert.deepEqual(d.floors.bedroom, [{ k: 'ball', x: 930, l: 445 }]);
-  assert.deepEqual(d.floors.kitchen, []);
+  assert.deepEqual(d.floors['0.2'], [{ k: 'ball', x: 930, l: 445 }]);
+  assert.deepEqual(d.floors['0.0'], []);
 });
 
-test('a v8 save round-trips through sanitize', () => {
+test('a v10 save round-trips through sanitize', () => {
   const d = sanitize(v1);
   assert.deepEqual(sanitize(JSON.parse(JSON.stringify(d))), d);
 });
@@ -66,10 +66,10 @@ test('party is capped at 4, junk looks are repaired, an empty party gets the def
 
 test('v3 saves gain night=false; night survives sanitize', () => {
   const d = sanitize({ v: 3, room: 'bedroom', characters: [], floors: {} });
-  assert.equal(d.v, 8);
+  assert.equal(d.v, 10);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
-  assert.equal(d.furniture.kitchen, null);          // nothing saved yet: the room uses its default layout
+  assert.equal(d.furniture['0.0'], null);          // nothing saved yet: the room uses its default layout
   assert.deepEqual(d.recipes, []);
   assert.equal(sanitize({ v: 5, room: 'bedroom', night: true, characters: [], floors: {} }).night, true);
 });
@@ -87,8 +87,8 @@ test('coins and unlocked items: v4 gains defaults, junk is repaired', () => {
 
 test('saves from before the park and shop get empty floors for them', () => {
   const d = sanitize(v1);
-  assert.deepEqual(d.floors.park, []);
-  assert.deepEqual(d.floors.shop, []);
+  assert.deepEqual(d.floors['1.0'], []);
+  assert.deepEqual(d.floors['2.0'], []);
 });
 
 test('discovered recipes: v5 gains an empty list, unknown ids are dropped', () => {
@@ -110,11 +110,58 @@ test('furniture saves: valid pieces kept and clamped, junk dropped, rooms withou
       bedroom: [],                                                      // an empty room is valid (everything removed)
     },
   });
-  assert.equal(d.furniture.park, null);
-  assert.deepEqual(d.furniture.bedroom, []);
-  assert.equal(d.furniture.kitchen.length, 2);
-  const [cabinet, fridge] = d.furniture.kitchen;
+  assert.equal(d.furniture['1.0'], null);
+  assert.deepEqual(d.furniture['0.2'], []);
+  assert.equal(d.furniture['0.0'].length, 2);
+  const [cabinet, fridge] = d.furniture['0.0'];
   assert.ok(cabinet.x < 960 && cabinet.y <= 540);
   assert.deepEqual(cabinet.items, [{ s: 0, k: 'apple' }]);              // dup slot, bad slot and unknown item dropped
   assert.deepEqual(fridge.items, []);
+});
+
+test('pets: v8 saves gain none; junk kinds are dropped and the family is capped', () => {
+  assert.deepEqual(sanitize({ v: 8, room: 'bedroom', characters: [], floors: {} }).pets, []);
+  const d = sanitize({ v: 9, room: 'bedroom', characters: [], floors: {}, pets: ['dog', 'dragon', 'cat', 'rabbit', 'chick', 'hamster'] });
+  assert.deepEqual(d.pets, ['dog', 'cat', 'rabbit']);
+  assert.deepEqual(sanitize({ v: 9, room: 'bedroom', characters: [], floors: {}, pets: 'dog' }).pets, []);
+});
+
+test('v9 -> v10: the old rooms become rooms of the starter city; the player stays where they were', () => {
+  const d = sanitize({ v: 9, room: 'park', characters: [{ id: 'kid', x: 400 }], floors: { park: [{ k: 'ball', x: 300, l: 500 }] }, furniture: { shop: [] } });
+  assert.equal(d.zone, '1.0');
+  assert.equal(d.city[1].name, 'Park');
+  assert.deepEqual(d.floors['1.0'], [{ k: 'ball', x: 300, l: 500 }]);
+  assert.deepEqual(d.furniture['2.0'], []);
+  assert.equal(d.characters[0].x, 400);
+});
+
+test('city saves: custom buildings survive, junk is repaired, a ruined city falls back to the starter city', () => {
+  const home = {
+    name: 'My place', exterior: { wall: 'mint', trim: 'navy', roofStyle: 'dome', roofColor: 'plum' },
+    floors: [
+      { id: 0, rooms: [{ id: 0, type: 'empty', w: 1250 }, { id: 1, type: 'ghost', w: 960 }, { id: 0, type: 'kitchen', w: 960 }] },
+      { id: 4, rooms: [{ id: 7, type: 'bedroom', w: 99999, extra: [{ type: 'ladder', x: 100, y: 500 }, { type: 'sofa', x: 1, y: 1 }] }] },
+      { id: 4, rooms: [{ id: 8, type: 'living', w: 960 }] },
+      { id: 9, rooms: [] },
+    ],
+  };
+  const d = sanitize({ v: 10, zone: '0.4', city: [home, 'nope', null], characters: [{ id: 'kid', x: 5000 }], floors: {}, furniture: {}, looks: {
+    '0.0': { wall: 'shells', floor: 'oak', windows: [{ x: 5, y: 80, w: 100, h: 100 }, { x: 'a' }] }, '0.7': { wall: 'nope', floor: null, windows: null }, '9.9': { wall: 'sage' } } });
+  const b = d.city[0];
+  assert.equal(b.name, 'My place');
+  assert.equal(b.exterior.roofStyle, 'dome');
+  assert.deepEqual(b.floors.map(f => f.id), [0, 4], 'duplicate and empty floors dropped');
+  assert.deepEqual(b.floors[0].rooms.map(r => [r.id, r.type, r.w]), [[0, 'empty', 1200]], 'unknown rooms and duplicate ids dropped, width snapped to the step');
+  assert.equal(b.floors[1].rooms[0].w, 1920);
+  assert.deepEqual(b.floors[1].rooms[0].extra, [{ type: 'ladder', x: 100, y: 500 }]);
+  assert.equal(d.city[1], null);
+  assert.equal(d.zone, '0.4');
+  assert.equal(d.characters[0].x, 1920 - 100, 'clamped to this floor');
+  assert.deepEqual(d.looks['0.0'].windows, [{ x: 5, y: 80, w: 100, h: 100 }]);
+  assert.equal(d.looks['0.7'].wall, null);
+  assert.equal(d.looks['9.9'], undefined, 'looks for rooms that do not exist are dropped');
+  assert.deepEqual(Object.keys(d.floors).sort(), ['0.0', '0.7']);
+  const ruined = sanitize({ v: 10, zone: '3.3', city: ['x', 7, {}], characters: [], floors: {} });
+  assert.equal(ruined.city[0].name, 'Home');
+  assert.equal(ruined.zone, '0.0', 'an unknown zone falls back to the first building');
 });

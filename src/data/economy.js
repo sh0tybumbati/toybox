@@ -15,6 +15,7 @@ export const COIN_RULES = {
   cook:   { n: 2, cooldown: 4000 },
   discover: { n: 5, cooldown: 0 },   // first time you cook a recipe
   combo:  { n: 3, cooldown: 0 },
+  hug:    { n: 1, cooldown: 6000 },
   pickup: { n: 1, cooldown: 0 },     // coins lying around in the park
 };
 

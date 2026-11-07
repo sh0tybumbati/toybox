@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { TIPS, ALL_TIP_IDS, markDone, currentTip } from '../src/data/tips.js';
 import { sanitize } from '../src/systems/save.js';
-import { ROOM_ORDER } from '../src/data/rooms.js';
+import { ROOMS } from '../src/data/rooms.js';
 
 test('tips are well-formed: unique ids, text, a real room if limited to one', () => {
   assert.equal(new Set(ALL_TIP_IDS).size, TIPS.length);
   for (const t of TIPS) {
     assert.ok(t.text && t.done, t.id);
-    if (t.room) assert.ok(ROOM_ORDER.includes(t.room), `${t.id}: ${t.room}`);
+    if (t.room) assert.ok(ROOMS[t.room], `${t.id}: ${t.room}`);
   }
 });
 
@@ -28,7 +28,7 @@ test('an event completes its tip even out of order, and only once', () => {
 });
 
 test('room-specific tips only show in their room', () => {
-  const seen = new Set(['grab', 'dress', 'map']);
+  const seen = new Set(['grab', 'dress', 'walk', 'map']);
   assert.equal(currentTip(seen, 'bedroom').id, 'book');           // kitchen tips are skipped elsewhere
   assert.equal(currentTip(seen, 'kitchen').id, 'eat');
 });

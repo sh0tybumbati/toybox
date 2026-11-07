@@ -1,15 +1,37 @@
-// Room scene mixin — Rooms and time of day: travelling, building a room, night and the sky.
+// Room scene mixin — The world: zones (one floor of a building = one wide panorama of rooms),
+// travelling between them, building the current zone, night and the sky.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { SHELF_STEP, SHELF_W } from '../../config.js';
-import { ROOMS } from '../../data/rooms.js';
+import { BIN, FLOOR_TOP, FLOOR_BOTTOM, H } from '../../config.js';
+import { ROOMS, defaultFurniture, shelvesFor } from '../../data/rooms.js';
+import { defaultLook, paintDivider, paintRoom, paintSunbeams } from '../../data/decor.js';
 import Character from '../../entities/Character.js';
 import { flushProps } from '../../systems/props.js';
+import { sectionAt, zoneInfo, entryZone } from '../../systems/world.js';
+import { SHELF_STEP, SHELF_W } from '../../config.js';
+import { clamp } from '../../util.js';
 
 export const worldMethods = {
-  // Fade out, swap the room's art/shelves/floor items, fade back in.
-  // The characters and everything they wear come along.
-  goToRoom(key) {
-    if (this.switching || key === this.roomKey || this.heldItem || this.characters.some(c => c.held)) return;
+  // --- per-room state lookups ---------------------------------------------------
+  // A room's look: the room type's own, with anything the player repainted on top.
+  sectionLook(sec) {
+    const base = defaultLook(ROOMS[sec.type], sec.w), own = this.looks[sec.id];
+    return own ? { wall: own.wall || base.wall, floor: own.floor || base.floor, windows: own.windows || base.windows } : base;
+  },
+  sectionProps(sec) { return this.propState[sec.id] || defaultFurniture(sec.type, sec.w, sec.extra); },
+  floorList(id) { return this.floorState[id] || (this.floorState[id] = []); },
+
+  // Put an item into the right room's resting list (used when leaving a zone and by ovens).
+  stashAt(key, x, lane) {
+    const { section, local } = sectionAt(this.zone, x);
+    this.floorList(section.id).push({ k: key, x: Math.round(local), l: Math.round(lane) });
+  },
+
+  // --- travelling -----------------------------------------------------------------
+  // Fade out, swap the whole zone (rooms, shelves, furniture, floor items), fade back in. The
+  // characters and everything they wear come along. arrive: 'entrance' | 'keep' | 'connector'.
+  goToZone(key, { arrive = 'entrance', force = false, connector = null } = {}) {
+    if (this.switching || (!force && key === this.zoneKey) || this.heldItem || this.characters.some(c => c.held)) return false;
+    if (!zoneInfo(this.city, key)) return false;
     this.switching = true;
     this.input.enabled = false;
     this.sfx.whoosh();
@@ -17,79 +39,211 @@ export const worldMethods = {
     cam.fadeOut(180, 43, 34, 51);
     cam.once('camerafadeoutcomplete', () => {
       if (this.editMode) this.exitEdit();
+      this.closeLiftPanel();
+      this.characters.forEach(c => { if (c.sleeping) this.wakeUp(c, true); c.goal = null; c.onArrive = null; });
+      this.pets.forEach(p => { p.goal = null; });
       flushProps(this);                         // ovens hand back dishes / ingredients
-      this.propState[this.roomKey] = this.captureProps();
-      this.stashRoom();
-      this.roomGfx.forEach(o => o.destroy());
-      this.roomGfx = [];
-      this.props = [];
-      this.groundCoins = [];
-      if (this.parkEvent) { this.parkEvent.remove(); this.parkEvent = null; }
-      this.roomKey = key;
-      this.buildRoom();
+      this.leaveZone();
+      this.zoneKey = key;
+      this.buildZone();
+      this.arrive(arrive, connector);
       this.updateNav();
-      if (key === 'shop') this.tipEvent('shop'); else this.refreshTip();
+      if (this.zone.sections.some(s => s.type === 'shop')) this.tipEvent('shop'); else this.refreshTip();
       this.save();
       cam.fadeIn(180, 43, 34, 51);
       cam.once('camerafadeincomplete', () => { this.input.enabled = true; this.switching = false; });
     });
+    return true;
   },
 
-  // Remember the floor items of the current room, then remove them from the scene.
-  stashRoom() {
+  // The city map takes over the whole screen, so put the zone away (its furniture and floor items
+  // are kept as data) and let the map edit the city freely; exitCityMap() rebuilds.
+  openCityMap() {
+    if (this.switching) return;
+    this.tipEvent('map');
+    if (this.editMode) this.exitEdit();
+    this.closeLiftPanel();
+    this.characters.forEach(c => { if (c.sleeping) this.wakeUp(c, true); c.goal = null; c.onArrive = null; });
+    flushProps(this);
+    this.leaveZone();
+    this.scene.pause();
+    this.scene.launch('Hub', { room: this });
+  },
+
+  // Close the map and go to `preferred` (or the nearest valid place). `visit`: they walked in the door.
+  exitCityMap(preferred, visit = false) {
+    this.scene.resume('Room');
+    this.goToZone(this.resolveZone(preferred), { force: true, arrive: visit ? 'entrance' : 'keep' });
+  },
+
+  // Back from the city map: go where the player chose, or (if the zone they were in no longer
+  // exists, e.g. a floor was removed) to the closest valid place.
+  resolveZone(preferred) {
+    if (zoneInfo(this.city, preferred)) return preferred;
+    const slot = Number(String(preferred).split('.')[0]);
+    if (this.city[slot]) return entryZone(this.city, slot);
+    const first = this.city.findIndex(Boolean);
+    return first >= 0 ? entryZone(this.city, first) : this.zoneKey;
+  },
+
+  // Remember the current zone's furniture and floor items, then tear its art down.
+  leaveZone() {
+    if (!this.zoneLive) return;                 // already torn down (the city map does that while it's open)
+    Object.assign(this.propState, this.captureProps());     // (needs zoneLive: capture before clearing it)
+    this.zoneLive = false;
+    this.stashZone();
+    this.roomGfx.forEach(o => { if (o.active) o.destroy(); });
+    this.roomGfx = [];
+    this.props = [];
+    this.groundCoins = [];
+    this.binObjs = [];
+    this.beams = [];
+    if (this.parkEvent) { this.parkEvent.remove(); this.parkEvent = null; }
+  },
+
+  // Loose items rest in the room they're in until we come back.
+  stashZone() {
     const keep = [];
     for (const b of this.bodies) {
       if (b instanceof Character || b.worn) { keep.push(b); continue; }
-      if (!b.dead && !b.onShelf && !b.storedIn) {
-        this.floorState[this.roomKey].push({ k: b.key, x: Math.round(b.x), l: Math.round(b.lane) });
-      }
+      if (!b.dead && !b.onShelf && !b.storedIn) this.stashAt(b.key, b.x, b.lane);
       b.destroy();
     }
     this.bodies = keep;
     this.heldItem = null;
   },
 
-  // Draw the current room, stock its shelves and put back any floor items.
-  buildRoom() {
-    const room = ROOMS[this.roomKey];
-    const g = this.add.graphics().setDepth(0);
-    this.roomGfx.push(g);
-    room.draw(g);
-
-    this.props = this.propState[this.roomKey].map(entry => this.createProp(entry));
-    this.syncSwitches();
-    this.drawSky();
-
-    this.shelfSlot = {};
-    let n = 0;
-    for (const sh of room.shelves) {
-      g.fillStyle(0xd9b98a, 1).fillRect(sh.x, sh.y, SHELF_W, 12);              // shelf board
-      g.fillStyle(0x9c6b3f, 1).fillRect(sh.x, sh.y + 12, SHELF_W, 5);
-      if (room.shelfStyle === 'stand') {                                       // posts down to the ground
-        g.fillStyle(0x9c6b3f, 1).fillRect(sh.x + 14, sh.y + 12, 10, 432 - sh.y - 12).fillRect(sh.x + SHELF_W - 24, sh.y + 12, 10, 432 - sh.y - 12);
-      } else {                                                                 // wall brackets
-        g.fillStyle(0x9c6b3f, 1).fillTriangle(sh.x + 20, sh.y + 17, sh.x + 50, sh.y + 17, sh.x + 20, sh.y + 40)
-          .fillTriangle(sh.x + SHELF_W - 20, sh.y + 17, sh.x + SHELF_W - 50, sh.y + 17, sh.x + SHELF_W - 20, sh.y + 40);
-      }
-      sh.items.forEach((key, i) => {
-        this.shelfSlot[key] = { x: sh.x + SHELF_STEP / 2 + i * SHELF_STEP, y: sh.y };
-        this.spawnShelfItem(key, { pop: true, delay: 150 + n++ * 60 });
+  // The current zone's furniture as saveable data, grouped by room (each in its own local x).
+  captureProps() {
+    const out = {};
+    if (!this.zoneLive) return out;
+    this.zone.sections.forEach(s => { out[s.id] = []; });
+    for (const p of this.props) {
+      const { section, local } = sectionAt(this.zone, p.x);
+      out[section.id].push({
+        type: p.type, x: Math.round(local), y: Math.round(p.y + p.def.h / 2),
+        items: p.stored.map((it, s) => (it ? { s, k: it.key } : null)).filter(Boolean),
       });
     }
+    return out;
+  },
 
-    for (const f of this.floorState[this.roomKey]) this.createItem(f.k, f.x, f.l);
-    this.floorState[this.roomKey] = [];
+  // Loose floor items of the current zone as saveable data, grouped by room.
+  captureFloors() {
+    const out = {};
+    if (!this.zoneLive) return out;
+    this.zone.sections.forEach(s => { out[s.id] = [...this.floorList(s.id)]; });
+    for (const b of this.bodies) {
+      if (b instanceof Character || b.worn || b.onShelf || b.dead || b.storedIn || !b.key) continue;
+      const { section, local } = sectionAt(this.zone, b.x);
+      out[section.id].push({ k: b.key, x: Math.round(local), l: Math.round(b.lane) });
+    }
+    return out;
+  },
 
-    if (this.roomKey === 'park') {                 // coins appear now and then
+  // --- building a zone -------------------------------------------------------------
+  // Paint every room of the zone side by side, stock the shelves, stand the furniture up.
+  buildZone() {
+    const zone = this.zone = zoneInfo(this.city, this.zoneKey);
+    this.zoneLive = true;
+    this.worldW = zone.width;
+    this.zoneGen = (this.zoneGen || 0) + 1;
+    this.binObjs = [];
+    this.beams = [];
+    const cam = this.cameras.main;
+    cam.setBounds(0, 0, this.worldW, H);
+    this.props = [];
+    let n = 0;
+    for (const sec of zone.sections) {
+      const type = ROOMS[sec.type], look = this.sectionLook(sec);
+      const g = this.add.graphics().setDepth(0).setPosition(sec.offset, 0);
+      this.roomGfx.push(g);
+      paintRoom(g, type, look, sec.w);
+      if (!type.outdoor && look.windows.length) {                       // light through the windows, off at night
+        const beam = this.add.graphics().setDepth(0.4).setPosition(sec.offset, 0).setVisible(!this.night);
+        paintSunbeams(beam, look.windows, sec.w);
+        this.roomGfx.push(beam);
+        this.beams.push(beam);
+      }
+      if (sec.index > 0) {                                              // the doorway between neighbouring rooms
+        const door = this.add.graphics().setDepth(0.6);
+        paintDivider(door, sec.offset);
+        this.roomGfx.push(door);
+      }
+
+      for (const entry of this.sectionProps(sec)) this.props.push(this.createProp({ ...entry, x: entry.x + sec.offset }, sec));
+
+      for (const sh of shelvesFor(sec.type, sec.w)) {
+        g.fillStyle(0xd9b98a, 1).fillRect(sh.x, sh.y, SHELF_W, 12);              // shelf board
+        g.fillStyle(0x9c6b3f, 1).fillRect(sh.x, sh.y + 12, SHELF_W, 5);
+        if (type.shelfStyle === 'stand') {                                       // posts down to the ground
+          g.fillStyle(0x9c6b3f, 1).fillRect(sh.x + 14, sh.y + 12, 10, 432 - sh.y - 12).fillRect(sh.x + SHELF_W - 24, sh.y + 12, 10, 432 - sh.y - 12);
+        } else {                                                                 // wall brackets
+          g.fillStyle(0x9c6b3f, 1).fillTriangle(sh.x + 20, sh.y + 17, sh.x + 50, sh.y + 17, sh.x + 20, sh.y + 40)
+            .fillTriangle(sh.x + SHELF_W - 20, sh.y + 17, sh.x + SHELF_W - 50, sh.y + 17, sh.x + SHELF_W - 20, sh.y + 40);
+        }
+        sh.items.forEach((key, i) => {
+          this.spawnShelfItem(key, { x: sec.offset + sh.x + SHELF_STEP / 2 + i * SHELF_STEP, y: sh.y }, { pop: true, delay: 150 + n++ * 40 });
+        });
+      }
+
+      for (const f of this.floorList(sec.id)) this.createItem(f.k, sec.offset + f.x, f.l);
+      this.floorState[sec.id] = [];
+
+      if (type.bin !== false) this.addBin(sec.offset + BIN.x);
+    }
+    this.syncSwitches();
+    this.drawSky();
+    if (zone.sections.some(s => s.type === 'park')) {                          // coins appear now and then
       this.spawnCoin();
       this.parkEvent = this.time.addEvent({ delay: 4000, loop: true, callback: () => this.spawnCoin() });
     }
   },
 
+  // A trash bin standing on the floor at world x.
+  addBin(x) {
+    const shadow = this.add.ellipse(x, BIN.lane, 80, 16, 0x000000).setAlpha(0.28).setDepth(2);
+    const text = this.add.text(x, BIN.lane - 34, '🗑️', { fontSize: '76px' }).setOrigin(0.5).setDepth(3);
+    this.roomGfx.push(shadow, text);
+    this.binObjs.push({ x, text, k: 1 });
+  },
+  binXs() { return this.binObjs.map(b => b.x); },
+
+  // Where the party stands after arriving. 'entrance': the first room (or beside the matching
+  // elevator/stairs when they came through one). 'keep': stay where they were (clamped).
+  arrive(mode, connector) {
+    const chars = this.characters;
+    if (mode === 'keep') {
+      chars.forEach(c => { c.x = clamp(c.x, 100, Math.max(100, this.worldW - 100)); });
+    } else {
+      let x = 260, lane = 500;
+      const exit = mode === 'connector' && connector && this.props.filter(p => p.def.connector === connector.kind)
+        .sort((a, b) => Math.abs(a.x - connector.x) - Math.abs(b.x - connector.x))[0];
+      if (exit) {
+        x = exit.x; lane = clamp(exit.y + exit.def.h / 2 - 12, FLOOR_TOP + 20, FLOOR_BOTTOM);
+        exit.setState(true);
+        this.time.delayedCall(900, () => { if (exit.active) exit.setState(false); });
+      }
+      const spread = [0, 110, -110, 220];
+      chars.forEach((c, i) => {
+        c.x = clamp(x + spread[i % 4] + (exit ? 0 : 0), 100, this.worldW - 100);
+        c.lane = clamp(lane + (i % 2) * 22, FLOOR_TOP + 20, FLOOR_BOTTOM);
+        c.y = c.lane - c.foot();
+        c.z = 0;
+      });
+      this.pets.forEach(p => { p.x = clamp(x + 60, 60, this.worldW - 60); p.lane = clamp(lane + 20, FLOOR_TOP + 10, FLOOR_BOTTOM - 5); });
+    }
+    this.selected = this.selected && chars.includes(this.selected) ? this.selected : chars[0] || null;
+    this.detached = false;
+    this.snapCamera((this.selected || chars[0] || { x: 480 }).x);
+  },
+
+  // --- time of day ------------------------------------------------------------------
   setNight(on) {
     this.night = on;
     this.nightSince = this.time.now;
     this.tweens.add({ targets: this.nightOverlay, alpha: on ? 0.85 : 0, duration: 500 });
+    this.beams.forEach(b => b.setVisible(!on));
     this.syncSwitches();
     this.drawSky();
     this.dirty = true;
@@ -99,32 +253,35 @@ export const worldMethods = {
     this.props.filter(p => p.def.behaviour === 'switch').forEach(p => p.setState(!this.night));
   },
 
-  // At night the window shows a starry sky (drawn above the dark layer so it glows).
+  // At night every window shows a starry sky and outdoor rooms get a moon and stars (drawn above
+  // the dark layer so they glow).
   drawSky() {
     this.skyObjs.forEach(o => { this.tweens.killTweensOf(o); o.destroy(); });
     this.skyObjs = [];
-    const room = ROOMS[this.roomKey], w = room.window;
-    if (this.night && room.openSky) {              // outdoors: a moon and scattered stars, no window
-      const add = o => { o.setDepth(8001); this.skyObjs.push(o); return o; };
-      add(this.add.text(840, 90, '🌙', { fontSize: '56px' }).setOrigin(0.5));
-      for (let i = 0; i < 18; i++) {
-        const star = add(this.add.circle(30 + ((i * 131) % 900), 20 + ((i * 67) % 230), 2 + (i % 2), 0xffffff));
-        this.tweens.add({ targets: star, alpha: 0.25, duration: 700 + i * 90, yoyo: true, repeat: -1, delay: i * 130 });
-      }
-      return;
-    }
-    if (!this.night || !w) return;
+    if (!this.night) return;
     const add = o => { o.setDepth(8001); this.skyObjs.push(o); return o; };
-    add(this.add.rectangle(w.x + 4, w.y + 4, w.w - 8, w.h - 8, 0x172055).setOrigin(0));
-    for (let i = 0; i < 8; i++) {
-      const star = add(this.add.circle(w.x + 14 + ((i * 53) % (w.w - 28)), w.y + 12 + ((i * 37) % (w.h - 36)), 2 + (i % 2), 0xffffff));
-      this.tweens.add({ targets: star, alpha: 0.25, duration: 700 + i * 120, yoyo: true, repeat: -1, delay: i * 150 });
+    for (const sec of this.zone.sections) {
+      const room = ROOMS[sec.type], off = sec.offset;
+      if (room.openSky) {                                                        // outdoors: a moon and scattered stars
+        add(this.add.text(off + sec.w - 120, 90, '🌙', { fontSize: '56px' }).setOrigin(0.5));
+        for (let i = 0; i < 18; i++) {
+          const star = add(this.add.circle(off + 30 + ((i * 131) % (sec.w - 60)), 20 + ((i * 67) % 230), 2 + (i % 2), 0xffffff));
+          this.tweens.add({ targets: star, alpha: 0.25, duration: 700 + i * 90, yoyo: true, repeat: -1, delay: i * 130 });
+        }
+        continue;
+      }
+      for (const w of this.sectionLook(sec).windows) {
+        const wx = off + w.x;
+        add(this.add.rectangle(wx + 4, w.y + 4, w.w - 8, w.h - 8, 0x172055).setOrigin(0));
+        for (let i = 0; i < 8; i++) {
+          const star = add(this.add.circle(wx + 14 + ((i * 53) % (w.w - 28)), w.y + 12 + ((i * 37) % (w.h - 36)), 2 + (i % 2), 0xffffff));
+          this.tweens.add({ targets: star, alpha: 0.25, duration: 700 + i * 120, yoyo: true, repeat: -1, delay: i * 150 });
+        }
+        add(this.add.text(wx + w.w * 0.72, w.y + w.h * 0.32, '🌙', { fontSize: '34px' }).setOrigin(0.5));
+        const bars = add(this.add.graphics());
+        bars.lineStyle(8, 0xffffff, 1).lineBetween(wx + w.w / 2, w.y, wx + w.w / 2, w.y + w.h).lineBetween(wx, w.y + w.h / 2, wx + w.w, w.y + w.h / 2);
+      }
     }
-    add(this.add.text(w.x + w.w * 0.72, w.y + w.h * 0.32, '🌙', { fontSize: '34px' }).setOrigin(0.5));
-    const bars = add(this.add.graphics());
-    bars.lineStyle(8, 0xffffff, 1)
-      .lineBetween(w.x + w.w / 2, w.y, w.x + w.w / 2, w.y + w.h)
-      .lineBetween(w.x, w.y + w.h / 2, w.x + w.w, w.y + w.h / 2);
   },
 
   // Depths only ever grow; keep them well below the night layer by renumbering.

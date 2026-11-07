@@ -36,6 +36,15 @@ export function tapProp(scene, prop) {
       scene.sfx.click();
       scene.setNight(!scene.night);
       break;
+    case 'connector':
+      scene.useConnector(prop);
+      break;
+    case 'pets':
+      scene.adoptPet(prop);
+      break;
+    case 'bed':
+      scene.sendToBed(prop);
+      break;
     case 'bell':
       scene.sfx.ding();
       scene.tweens.add({ targets: prop, angle: { from: -4, to: 4 }, duration: 70, yoyo: true, repeat: 3, onComplete: () => { prop.angle = 0; } });

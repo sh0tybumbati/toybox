@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Toybox — Soft Flat riffs + people</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Fredoka:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#241d2c; --card:#2f2639; --ink:#f4ecfa; --mute:#b9aac7; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 "Nunito", system-ui, sans-serif; }
+  header, section { max-width:1500px; margin:0 auto; padding:24px 24px 0; }
+  h1 { margin:0 0 6px; font-size:30px; } h2.sec { margin:30px 0 4px; font-size:24px; }
+  p.lead { margin:0 0 14px; color:var(--mute); max-width:900px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr)); gap:18px; padding:8px 0 10px; }
+  .card { background:var(--card); border-radius:18px; padding:14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 6px 24px #0006; }
+  .card h3 { margin:0; font-size:20px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; } .card h3 small { font-size:13px; color:var(--mute); font-weight:600; }
+  .stage { border-radius:12px; overflow:hidden; } .stage svg { display:block; width:100%; height:auto; }
+  .notes { margin:0; font-size:14px; color:var(--mute); }
+  .faces { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; } .faces svg { width:100%; height:auto; border-radius:10px; display:block; }
+  .tags { display:flex; gap:6px; flex-wrap:wrap; } .tag { font-size:12px; padding:2px 9px; border-radius:99px; background:#ffffff18; }
+  .verdict { background:var(--card); border-radius:18px; padding:18px 20px; margin:18px 0 48px; } .verdict p { margin:6px 0; color:var(--mute); } .verdict b { color:var(--ink); }
+  nav a { color:#ffd166; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 Soft Flat, riffed — no highlights</h1>
+  <p class="lead">Six ways to keep the flat, calm Toca-style look but drop the glossy highlight. Then six ways to redesign the people. <nav>(<a href="index.html">← first style board</a>)</nav></p>
+</header>
+<section><h2 class="sec">1 · Room styles</h2><div class="grid" id="rooms"></div></section>
+<section><h2 class="sec">2 · People</h2>
+  <p class="lead">Each design shows a child and an adult, standing and walking, plus three faces. Flat fills only, so skin, hair, shirt and trousers are all recolourable layers (that's what the character creator and the clothes factory paint into).</p>
+  <div class="grid" id="people"></div></section>
+<section><div class="verdict" id="verdict"></div></section>
+
+<script>
+// ---------- helpers ----------
+const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16); const f = c => Math.max(0, Math.min(255, Math.round(c * k))).toString(16).padStart(2, '0'); return '#' + f(n >> 16) + f((n >> 8) & 255) + f(n & 255); };
+const SKINS = ['#f7c9a6', '#e8a87c', '#c98a5e', '#8d5a3b', '#f3d7bd'];
+const HAIRS = ['#6a4a3a', '#2f2a35', '#d9a441', '#b5502d', '#e8e2d4'];
+
+// ---------- scene (same as board 1, minus anything glossy) ----------
+const ROOMS = [
+ { id:'pure', name:'Pure flat', sub:'thin slate outline', blurb:'The reference look, exactly: flat fills, thin cool-grey outline, plank lines. Nothing else.',
+   sw:3, ink:'#86a0a8', outline:'solid', pal:'pastel' },
+ { id:'tonal', name:'Tonal lines', sub:'outlines in a darker shade of each fill', blurb:'No grey outline: every shape is edged with a deeper tone of its own colour. Softer and more colourful; reads well on any wallpaper you paint.',
+   sw:3.2, ink:null, outline:'tonal', pal:'pastel' },
+ { id:'sticker', name:'Sticker', sub:'bold dark outline', blurb:'Thick navy outline and slightly punchier colours. Characters and furniture pop off busy, player-painted walls.',
+   sw:5, ink:'#3b3f66', outline:'solid', pal:'punchy' },
+ { id:'cel', name:'Flat + light shapes', sub:'sunbeam instead of highlight', blurb:'Instead of shiny spots on objects, light is a hard-edged shape: a sunbeam from the window across floor and wall, and a flat cast shadow under things.',
+   sw:2.6, ink:'#8c9db0', outline:'solid', pal:'pastel', sun:true },
+ { id:'grain', name:'Flat + grain', sub:'paper-print texture', blurb:'Pure flat shapes with a faint print grain and a soft vignette so big colour areas don\'t feel sterile. Zero cost on the shapes themselves.',
+   sw:2.6, ink:'#8aa0a6', outline:'solid', pal:'pastel', grain:.22 },
+ { id:'gouache', name:'Gouache', sub:'no outlines, chalky palette', blurb:'Outline-free shapes in a muted, chalky palette with a tiny offset shadow under big pieces. Quiet and modern; best for a clean UI.',
+   sw:0, ink:null, outline:'none', pal:'chalk', soft:true },
+];
+const PALS = {
+  pastel: { wall:'#fdeee6', wall2:'#cfe5e1', floor:'#f1cfa8', floor2:'#f3ece8', plank:'#dcb48a', trim:'#f3f6f6', glass:'#bfe6fb', wood:'#dba46a', sheet:'#ffffff', pillow:'#ffffff', quilt:'#8fc5ee', skin:'#f7c9a6', hair:'#6a4a3a', shirt:'#7fc0f0', shoe:'#58688a', fur:'#e9b97c', fur2:'#cf9a5a', stripe:'#fbe3d8', yel:'#ffd24d', red:'#ee5a52', leaf:'#5fb45c' },
+  punchy: { wall:'#ffe9d6', wall2:'#a8dcd2', floor:'#f5c58f', floor2:'#f6efe9', plank:'#d9a066', trim:'#ffffff', glass:'#a6dcff', wood:'#e39a55', sheet:'#ffffff', pillow:'#ffffff', quilt:'#5aa9ff', skin:'#ffc9a0', hair:'#5b3a2e', shirt:'#ff7a9a', shoe:'#4650a0', fur:'#f5b25f', fur2:'#d98a3a', stripe:'#ffd3b8', yel:'#ffd23d', red:'#ff4d4d', leaf:'#4cbc5a' },
+  chalk:  { wall:'#f1e4d6', wall2:'#bcd2c8', floor:'#d9b99a', floor2:'#ebe3d8', plank:'#c4a07e', trim:'#faf6ef', glass:'#c4dde6', wood:'#cfa37c', sheet:'#faf6ef', pillow:'#fffdf9', quilt:'#9db6cf', skin:'#f0c8a8', hair:'#6b5144', shirt:'#d99a8e', shoe:'#6a7391', fur:'#e2b88a', fur2:'#c79a6a', stripe:'#e9d8c6', yel:'#efc96a', red:'#d9685f', leaf:'#7fae7a' },
+};
+const COLOR_CLASSES = ['wall','wall2','floor','floor2','trim','glass','wood','sheet','pillow','quilt','skin','hair','shirt','shoe','fur','fur2','stripe','yel','red','leaf'];
+
+function roomCSS(P, r) {
+  const t = PALS[r.pal];
+  let s = COLOR_CLASSES.map(c => `#${P} .${c}{fill:${t[c]}}`).join('\n');
+  s += `\n#${P} .white{fill:#fff} #${P} .dark{fill:#2b2230} #${P} .cheek{fill:#ff8fa3;opacity:.5} #${P} .cast{fill:#000;opacity:${r.id === 'cel' ? .16 : .12}}`;
+  s += `\n#${P} .plank{stroke:${t.plank};stroke-width:2;fill:none;opacity:.8} #${P} .sh{fill:#000;opacity:.05}`;
+  s += `\n#${P} .line{stroke:${r.ink || shade(t.plank, .8)};stroke-width:${Math.max(2, r.sw)};fill:none;stroke-linecap:round}`;
+  if (r.outline === 'solid') s += `\n#${P} .o{stroke:${r.ink};stroke-width:${r.sw};stroke-linejoin:round;stroke-linecap:round}`;
+  if (r.outline === 'tonal') s += `\n#${P} .o{stroke-width:${r.sw};stroke-linejoin:round;stroke-linecap:round}\n` + COLOR_CLASSES.map(c => `#${P} .${c}.o{stroke:${shade(t[c], .78)}}`).join('\n') + `\n#${P} .dark.o,#${P} .white.o{stroke:#00000033}`;
+  if (r.outline === 'none') s += `\n#${P} .o{stroke:none}`;
+  if (r.soft) s += `\n#${P} .l{filter:url(#soft-${P})}`;
+  return s;
+}
+
+function roomSVG(r) {
+  const P = 'r-' + r.id;
+  return `<svg xmlns="http://www.w3.org/2000/svg" id="${P}" viewBox="0 0 960 600">
+<style>${roomCSS(P, r)}</style>
+<defs>
+  <pattern id="wp-${P}" width="80" height="40" patternUnits="userSpaceOnUse"><rect class="stripe" x="0" y="0" width="40" height="40"/></pattern>
+  <filter id="soft-${P}" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#5a4030" flood-opacity=".22"/></filter>
+  <filter id="grain-${P}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="3"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".5"/></feComponentTransfer></filter>
+  <radialGradient id="vg-${P}" cx="50%" cy="50%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#3a2410" stop-opacity=".28"/></radialGradient>
+  <clipPath id="clip-${P}"><rect width="960" height="600"/></clipPath>
+</defs>
+<g clip-path="url(#clip-${P})">
+  <rect class="wall" width="960" height="430"/><rect fill="url(#wp-${P})" width="960" height="430" opacity=".45"/>
+  <rect class="floor" y="430" width="960" height="170"/>
+  ${[470, 510, 550].map(y => `<line class="plank" x1="0" x2="960" y1="${y}" y2="${y}"/>`).join('')}
+  ${[...Array(10)].map((_, i) => `<line class="plank" x1="${100 + i * 110 + (i % 2) * 55}" x2="${100 + i * 110 + (i % 2) * 55}" y1="${i % 2 ? 470 : 430}" y2="${i % 2 ? 510 : 470}"/>`).join('')}
+  <rect class="trim o" x="-4" y="424" width="968" height="12"/>
+  ${r.sun ? `<polygon fill="#fff" opacity=".42" points="590,230 790,230 940,430 700,430"/><polygon fill="#fff" opacity=".28" points="700,430 940,430 960,470 960,600 640,600 560,470"/>` : ''}
+  <rect class="wall2" width="112" height="430"/><rect class="floor2" y="430" width="112" height="170"/><rect class="trim" y="424" width="112" height="12"/>
+  ${[...Array(4)].map((_, i) => `<path class="stripe" d="M${14 + i * 28} 40 q14 -26 28 0 q-14 26 -28 0z" opacity=".55"/>`).join('')}
+  <polygon class="trim l o" points="139,0 250,0 250,430 139,500"/><polygon class="sh" points="139,0 250,0 250,430 139,500"/>
+  <line class="line" x1="139" y1="494" x2="250" y2="428" stroke-width="7"/>
+  <rect class="trim l o" x="112" y="-4" width="54" height="508"/><line class="line" x1="124" y1="0" x2="124" y2="500" opacity=".5"/>
+  <rect class="trim l o" x="106" y="498" width="66" height="14" rx="3"/>
+  <rect class="trim l o" x="580" y="64" width="210" height="166" rx="12"/><rect class="glass" x="592" y="76" width="186" height="142" rx="6"/>
+  <ellipse class="white" cx="650" cy="118" rx="34" ry="15" opacity=".9"/><ellipse class="white" cx="676" cy="108" rx="24" ry="13" opacity=".9"/>
+  <line class="line" x1="685" y1="76" x2="685" y2="218"/><line class="line" x1="592" y1="147" x2="778" y2="147"/>
+  <rect class="wood l o" x="330" y="246" width="230" height="14" rx="3"/><polygon class="wood o" points="350,260 380,260 350,290"/><polygon class="wood o" points="540,260 510,260 540,290"/>
+  <circle class="red l o" cx="372" cy="224" r="21"/><path class="leaf o" d="M372 204 q14 -14 22 -2 q-14 8 -22 2z"/>
+  <circle class="yel l o" cx="446" cy="222" r="23"/><path class="line" d="M424 222 q22 12 44 0 M446 200 q-12 22 0 44"/>
+  <rect class="quilt l o" x="496" y="204" width="40" height="42" rx="8"/><rect class="white o" x="502" y="214" width="28" height="9" rx="3"/>
+  <ellipse class="cast" cx="420" cy="548" rx="190" ry="14"/>
+  <rect class="wood l o" x="252" y="392" width="26" height="150" rx="8"/><rect class="wood l o" x="262" y="508" width="310" height="32" rx="8"/>
+  <rect class="sheet l o" x="272" y="452" width="292" height="62" rx="18"/><rect class="pillow l o" x="286" y="426" width="96" height="40" rx="18"/>
+  <rect class="quilt l o" x="380" y="440" width="190" height="76" rx="16"/>
+  <g class="white" opacity=".55">${[...Array(5)].map((_, i) => `<circle cx="${410 + i * 34}" cy="${478 + (i % 2) * 16}" r="6"/>`).join('')}</g>
+  <ellipse class="cast" cx="610" cy="546" rx="26" ry="7"/><rect class="wood o" x="606" y="380" width="8" height="160" rx="3"/><path class="yel l o" d="M588 384 L632 384 L620 336 L600 336z"/>
+  <ellipse class="cast" cx="852" cy="548" rx="46" ry="9"/>
+  <path class="fur2 o" d="M806 512 q-26 -18 -16 -40 q8 6 14 20 q4 8 10 10z"/><ellipse class="fur l o" cx="838" cy="522" rx="38" ry="22"/>
+  <rect class="fur o" x="818" y="534" width="12" height="16" rx="5"/><rect class="fur o" x="848" y="534" width="12" height="16" rx="5"/>
+  <circle class="fur l o" cx="878" cy="500" r="25"/><ellipse class="fur2 o" cx="858" cy="486" rx="9" ry="16" transform="rotate(-22 858 486)"/><ellipse class="fur2 o" cx="896" cy="482" rx="9" ry="16" transform="rotate(20 896 482)"/>
+  <ellipse class="white o" cx="892" cy="508" rx="13" ry="10"/><ellipse class="dark" cx="900" cy="503" rx="5" ry="4"/><circle class="dark" cx="874" cy="494" r="3.6"/><circle class="dark" cx="889" cy="492" r="3.6"/>
+  ${charG(DESIGNS.toca, { x: 700, y: 540, scale: 1.0, role: 'adult', pose: 'stand', skin: PALS[r.pal].skin, hair: PALS[r.pal].hair, shirt: PALS[r.pal].shirt, pants: PALS[r.pal].quilt, shoe: PALS[r.pal].shoe, face: 'happy', hairStyle: 'bob', outline: true })}
+</g>
+${r.grain ? `<rect width="960" height="600" filter="url(#grain-${P})" style="mix-blend-mode:multiply;opacity:${r.grain}"/><rect width="960" height="600" fill="url(#vg-${P})"/>` : ''}
+</svg>`;
+}
+
+// ---------- people ----------
+// A design is a handful of proportions; charG() draws it from the ground (0,0) up.
+const DESIGNS = {
+  bean:  { name:'Bean',        sub:'what we have now, tidied', blurb:'Round head on a short capsule body, feet but no legs. Most compact; best when many characters share a room.',
+           head:{ r:58, ry:56, sq:0 }, body:{ w:84, h:96, r:40 }, legs:{ len:6, w:0 }, arm:{ len:54, w:20, hand:10 }, eye:'dot', brows:false, nose:false, feet:'oval', kid:.86 },
+  toca:  { name:'Toca',        sub:'big head, small body, visible legs', blurb:'The Toca proportion: an oversized head, a small soft body and thin legs. Lots of face, easy to read emotions at a glance.',
+           head:{ r:62, ry:58, sq:0 }, body:{ w:70, h:84, r:30 }, legs:{ len:44, w:16 }, arm:{ len:62, w:15, hand:9 }, eye:'oval', brows:false, nose:true, feet:'shoe', kid:.82 },
+  mitt:  { name:'Mitten',      sub:'chunky and cuddly', blurb:'Short stubby limbs, mitten hands and a wide A-line body. Reads as a toddler/plush; very forgiving to animate (squash and hug).',
+           head:{ r:60, ry:56, sq:0 }, body:{ w:98, h:92, r:34, flare:16 }, legs:{ len:26, w:24 }, arm:{ len:50, w:22, hand:14 }, eye:'dot', brows:true, nose:false, feet:'shoe', kid:.84 },
+  tall:  { name:'Cutaway',     sub:'taller, Sims-ish proportions', blurb:'About 4.5 heads tall with longer legs and real hair shapes. Fits the "Toca x Sims" life-sim direction and gives adults/teens/elders a distinct silhouette.',
+           head:{ r:44, ry:48, sq:0 }, body:{ w:64, h:118, r:24 }, legs:{ len:96, w:20 }, arm:{ len:100, w:15, hand:8 }, eye:'oval', brows:true, nose:true, feet:'shoe', kid:.66 },
+  peg:   { name:'Peg doll',    sub:'toy-block figure', blurb:'Squared-off rounded head and block body, like a wooden toy. The most "toybox", and cheap to draw and recolour.',
+           head:{ r:54, ry:54, sq:22 }, body:{ w:80, h:86, r:14 }, legs:{ len:40, w:24 }, arm:{ len:60, w:18, hand:10 }, eye:'dot', brows:false, nose:false, feet:'block', kid:.84 },
+  blob:  { name:'Gumdrop',     sub:'one soft egg shape', blurb:'Head and body are one egg, with stub arms and feet. Extremely cute and simple; hairstyles and outfits carry all the personality.',
+           head:{ r:66, ry:70, sq:0 }, body:{ w:0, h:0, r:0 }, legs:{ len:0, w:0 }, arm:{ len:36, w:18, hand:9 }, eye:'dot', brows:false, nose:false, feet:'oval', kid:.86, egg:true },
+};
+
+function hairShapes(style, cx, cy, r, color) {
+  const f = `fill="${color}"`, ln = o => (o ? `stroke="${shade(color, .7)}" stroke-width="3" stroke-linejoin="round"` : '');
+  switch (style) {
+    case 'bob':   return { back:`<path ${f} d="M${cx - r - 8} ${cy + 22} q-6 -${r + 40} ${r + 8} -${r + 40} q${r + 14} 0 ${r + 8} ${r + 40} q-12 14 -26 10 L${cx + r - 8} ${cy - 8} L${cx - r + 8} ${cy - 8} q-14 4 -${r - 18} -10z"/>`, front:`<path ${f} d="M${cx - r} ${cy - 6} A${r} ${r} 0 0 1 ${cx + r} ${cy - 6} q-${r * .5} -${r * .42} -${r} -${r * .1} q-${r * .5} -${r * .32} -${r} ${r * .1}z"/>` };
+    case 'spiky': return { back:'', front:`<path ${f} d="M${cx - r} ${cy - 8} L${cx - r + 6} ${cy - r - 20} L${cx - r * .5} ${cy - r + 4} L${cx - r * .2} ${cy - r - 28} L${cx + r * .1} ${cy - r + 2} L${cx + r * .45} ${cy - r - 24} L${cx + r * .62} ${cy - r + 8} L${cx + r + 4} ${cy - r - 10} L${cx + r} ${cy - 8} Q${cx} ${cy - r * .6} ${cx - r} ${cy - 8}z"/>` };
+    case 'bun':   return { back:`<circle ${f} cx="${cx}" cy="${cy - r - 14}" r="${r * .3}"/>`, front:`<path ${f} d="M${cx - r} ${cy - 4} A${r} ${r} 0 0 1 ${cx + r} ${cy - 4} Q${cx} ${cy - r * .55} ${cx - r} ${cy - 4}z"/>` };
+    case 'curly': return { back:'', front:[...Array(7)].map((_, i) => { const a = Math.PI * (1.08 + i * .14); return `<circle ${f} cx="${cx + Math.cos(a) * r * .95}" cy="${cy + Math.sin(a) * r * .95}" r="${r * .26}"/>`; }).join('') + `<path ${f} d="M${cx - r * .9} ${cy - r * .35} Q${cx} ${cy - r * 1.05} ${cx + r * .9} ${cy - r * .35} Q${cx} ${cy - r * .5} ${cx - r * .9} ${cy - r * .35}z"/>` };
+    case 'long':  return { back:`<path ${f} d="M${cx - r - 6} ${cy - 8} A${r + 6} ${r + 6} 0 0 1 ${cx + r + 6} ${cy - 8} L${cx + r + 14} ${cy + r + 30} Q${cx} ${cy + r + 44} ${cx - r - 14} ${cy + r + 30}z"/>`, front:`<path ${f} d="M${cx - r} ${cy - 2} A${r} ${r} 0 0 1 ${cx + r} ${cy - 2} Q${cx + r * .3} ${cy - r * .62} ${cx - r * .2} ${cy - r * .42} Q${cx - r * .7} ${cy - r * .5} ${cx - r} ${cy - 2}z"/>` };
+    default:      return { back:'', front:`<path ${f} d="M${cx - r} ${cy - 4} A${r} ${r} 0 0 1 ${cx + r} ${cy - 4} q-${r * .45} -${r * .38} -${r * .95} -${r * .12} q-${r * .5} -${r * .22} -${r * 1.05} ${r * .12}z"/>` };
+  }
+}
+
+// o: { x, y, scale, role:'child'|'adult', pose:'stand'|'walk', skin, hair, shirt, pants, shoe, face:'neutral'|'happy'|'sleepy', hairStyle, outline }
+function charG(d, o) {
+  const k = (o.role === 'child' ? d.kid : 1) * (o.scale || 1);
+  const ink = o.outline ? '#86a0a8' : 'none', sw = o.outline ? 3 : 0;
+  const sk = `fill="${o.skin}" stroke="${ink}" stroke-width="${sw}" stroke-linejoin="round"`;
+  const st = c => `fill="${c}" stroke="${ink}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"`;
+  const L = d.legs.len, bh = d.body.h, bw = d.body.w;
+  const walk = o.pose === 'walk', sw1 = walk ? 16 : 0, a1 = walk ? 24 : 0;
+  let g = '';
+  const bodyTop = -(L + bh), headCy = d.egg ? -d.head.ry : bodyTop - d.head.ry * 0.72;
+  const hs = hairShapes(o.hairStyle || 'short', 0, headCy, d.head.r, o.hair);
+  g += `<ellipse cx="0" cy="0" rx="${(d.egg ? 66 : bw / 2 + 22)}" ry="11" fill="#000" opacity=".12"/>`;
+  if (hs.back) g += hs.back;
+  if (d.egg) {                                                                         // gumdrop: stub feet, stub arms, one egg
+    g += `<ellipse ${st(o.shoe)} cx="${-24 + sw1 * .4}" cy="-6" rx="22" ry="10"/><ellipse ${st(o.shoe)} cx="${24 - sw1 * .4}" cy="-6" rx="22" ry="10"/>`;
+    g += `<ellipse ${st(o.shirt)} cx="${-d.head.r + 2}" cy="${-44 + (walk ? 8 : 0)}" rx="${d.arm.w / 2 + 2}" ry="${d.arm.len / 2}" transform="rotate(${34 + a1} ${-d.head.r + 6} -60)"/><ellipse ${st(o.shirt)} cx="${d.head.r - 2}" cy="${-44 - (walk ? 8 : 0)}" rx="${d.arm.w / 2 + 2}" ry="${d.arm.len / 2}" transform="rotate(${-34 - a1} ${d.head.r - 6} -60)"/>`;
+    g += `<path ${st(o.shirt)} d="M${-d.head.r * .94} ${-60} Q${-d.head.r} 0 0 -2 Q${d.head.r} 0 ${d.head.r * .94} -60 Z"/>`;
+    g += `<ellipse ${sk} cx="0" cy="${headCy}" rx="${d.head.r}" ry="${d.head.ry}" transform="translate(0 -12)"/>`;
+    const hy = headCy - 12;
+    return finish(g, d, o, hs, hy, k, sk);
+  }
+  // legs
+  const lx = Math.max(10, d.legs.w * .75), shoeW = d.feet === 'block' ? 30 : 24;
+  const leg = (x, ang) => d.legs.len > 10 ? `<g transform="rotate(${ang} ${x} ${-L})"><rect ${st(o.pants)} x="${x - d.legs.w / 2}" y="${-L}" width="${d.legs.w}" height="${L - 4}" rx="${d.legs.w / 2.4}"/>${shoe(x)}</g>` : `<g transform="rotate(${ang} ${x} ${-L})">${shoe(x)}</g>`;
+  const shoe = x => d.feet === 'block' ? `<rect ${st(o.shoe)} x="${x - shoeW / 2}" y="-12" width="${shoeW}" height="12" rx="4"/>` : `<ellipse ${st(o.shoe)} cx="${x}" cy="-6" rx="${shoeW - 2}" ry="10"/>`;
+  g += leg(-lx - 4, sw1) + leg(lx + 4, -sw1);
+  // arms (behind body)
+  const sy = bodyTop + 16, ax = bw / 2 + d.arm.w * .1;
+  const arm = (side, ang) => `<g transform="rotate(${ang} ${side * ax} ${sy})"><rect ${st(o.shirt)} x="${side * ax - d.arm.w / 2}" y="${sy - 4}" width="${d.arm.w}" height="${d.arm.len}" rx="${d.arm.w / 2}"/><circle ${sk} cx="${side * ax}" cy="${sy + d.arm.len}" r="${d.arm.hand}"/></g>`;
+  g += arm(-1, a1 + 4) + arm(1, -a1 - 4);
+  // body
+  const fl = d.body.flare || 0;
+  g += d.body.flare ? `<path ${st(o.shirt)} d="M${-bw / 2 + 8} ${bodyTop} Q0 ${bodyTop - 8} ${bw / 2 - 8} ${bodyTop} L${bw / 2 + fl} ${-L + 4} Q0 ${-L + 14} ${-bw / 2 - fl} ${-L + 4}z"/>` : `<rect ${st(o.shirt)} x="${-bw / 2}" y="${bodyTop}" width="${bw}" height="${bh}" rx="${d.body.r}"/>`;
+  if (d.legs.len > 10 && d.id !== 'mitt') g += `<rect fill="${o.pants}" x="${-bw / 2 + 3}" y="${-L - 16}" width="${bw - 6}" height="18" rx="6" opacity=".0"/>`;
+  // head
+  g += d.head.sq ? `<rect ${sk} x="${-d.head.r}" y="${headCy - d.head.ry}" width="${d.head.r * 2}" height="${d.head.ry * 2}" rx="${d.head.sq + 12}"/>` : `<ellipse ${sk} cx="0" cy="${headCy}" rx="${d.head.r}" ry="${d.head.ry}"/>`;
+  return finish(g, d, o, hs, headCy, k, sk);
+}
+
+function finish(g, d, o, hs, hy, k, sk) {
+  const r = d.head.r, ey = hy + r * .06, ex = r * .42, dark = '#2b2230';
+  const ink = o.outline ? '#86a0a8' : 'none';
+  g += `<circle cx="${-r * .66}" cy="${hy + r * .3}" r="${r * .16}" fill="#ff8fa3" opacity=".5"/><circle cx="${r * .66}" cy="${hy + r * .3}" r="${r * .16}" fill="#ff8fa3" opacity=".5"/>`;
+  g += hs.front.replace(/<path /g, `<path stroke="${o.outline ? shade(o.hair, .75) : 'none'}" stroke-width="3" stroke-linejoin="round" `);
+  const eye = (x) => {
+    if (o.face === 'happy') return `<path d="M${x - 9} ${ey + 4} q9 -14 18 0" stroke="${dark}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+    if (o.face === 'sleepy') return `<path d="M${x - 9} ${ey} q9 10 18 0" stroke="${dark}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+    if (d.eye === 'oval') return `<ellipse cx="${x}" cy="${ey}" rx="6.2" ry="9" fill="${dark}"/>`;
+    return `<circle cx="${x}" cy="${ey}" r="${Math.max(5, r * .1)}" fill="${dark}"/>`;
+  };
+  g += eye(-ex) + eye(ex);
+  if (d.brows) g += `<path d="M${-ex - 9} ${ey - 16} q9 -6 18 0 M${ex - 9} ${ey - 16} q9 -6 18 0" stroke="${shade(o.hair, .9)}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  if (d.nose) g += `<ellipse cx="0" cy="${ey + r * .3}" rx="3.4" ry="2.4" fill="${shade(o.skin, .82)}"/>`;
+  const my = hy + r * .5;
+  g += o.face === 'happy' ? `<path d="M${-r * .2} ${my - 2} Q0 ${my + r * .34} ${r * .2} ${my - 2}z" fill="#7a1f2b"/>`
+     : o.face === 'sleepy' ? `<ellipse cx="0" cy="${my + 2}" rx="5" ry="4" fill="#7a1f2b" opacity=".85"/>`
+     : `<path d="M${-r * .17} ${my} q${r * .17} ${r * .16} ${r * .34} 0" stroke="${dark}" stroke-width="3.6" fill="none" stroke-linecap="round"/>`;
+  return `<g transform="translate(${o.x} ${o.y}) scale(${k})">${g}</g>`;
+}
+for (const [id, d] of Object.entries(DESIGNS)) d.id = id;
+
+function peopleSVG(d, i) {
+  const skins = [SKINS[0], SKINS[2], SKINS[3], SKINS[1]], hairs = [HAIRS[0], HAIRS[1], HAIRS[3], HAIRS[2]];
+  const shirts = ['#7fc0f0', '#f29fb3', '#8fd4a8', '#f5c46a'], pants = ['#5b76b8', '#6a6f9c', '#4f8a8b', '#8a6f9c'];
+  const base = { outline: true, shoe: '#58688a' };
+  const mk = (x, role, pose, j, face, hs, scale = 1) => charG(d, { ...base, x, y: 300, scale, role, pose, face, hairStyle: hs, skin: skins[j], hair: hairs[j], shirt: shirts[j], pants: pants[j] });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -90 800 430">
+    <rect y="-90" width="800" height="430" fill="#fdeee6"/><rect y="300" width="800" height="40" fill="#f1cfa8"/>
+    ${mk(80, 'child', 'stand', 0, 'happy', 'short')}${mk(215, 'adult', 'stand', 1, 'neutral', 'bob')}${mk(385, 'adult', 'walk', 2, 'happy', 'bun')}${mk(540, 'child', 'walk', 3, 'neutral', 'curly')}${mk(690, 'adult', 'stand', 0, 'sleepy', 'spiky')}
+  </svg>`;
+}
+function faceSVG(d, face) {
+  const o = { outline: true, x: 0, y: 0, scale: 1, role: 'adult', pose: 'stand', face, hairStyle: 'bob', skin: SKINS[0], hair: HAIRS[0], shirt: '#7fc0f0', pants: '#5b76b8', shoe: '#58688a' };
+  const L = d.legs.len, hy = d.egg ? -d.head.ry - 12 : -(L + d.body.h) - d.head.ry * .72;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-d.head.r - 16} ${hy - d.head.ry - 18} ${d.head.r * 2 + 32} ${d.head.ry * 2 + 44}"><rect x="-300" y="-600" width="900" height="900" fill="#fdeee6"/>${charG(d, o)}</svg>`;
+}
+
+document.getElementById('rooms').innerHTML = ROOMS.map(r => `<article class="card"><h3>${r.name} <small>${r.sub}</small></h3><div class="stage">${roomSVG(r)}</div><p class="notes">${r.blurb}</p></article>`).join('');
+document.getElementById('people').innerHTML = Object.values(DESIGNS).map(d => `<article class="card"><h3>${d.name} <small>${d.sub}</small></h3>
+  <div class="stage">${peopleSVG(d)}</div><div class="faces">${['neutral', 'happy', 'sleepy'].map(f => faceSVG(d, f)).join('')}</div><p class="notes">${d.blurb}</p></article>`).join('');
+document.getElementById('verdict').innerHTML = `<h3>What I'd pick</h3>
+  <p><b>Rooms:</b> <b>Tonal lines</b> (or Sticker if you want max pop). Dropping the grey outline for a darker shade of each fill keeps everything flat but makes painted walls, floors and roofs look intentionally coloured, not “outlined”. Add the <b>sunbeam</b> shape from the Flat + light shapes card for the one bit of shine the style needs, with no highlights on the objects.</p>
+  <p><b>People:</b> <b>Toca</b> as the base (big head, readable faces), with the <b>Cutaway</b> proportions for adults/teens/elders so the life-sim side has range. They share the same layers (hair back/front, skin, shirt, trousers, shoes), so the creator and clothes factory work for every age.</p>
+  <p>Tell me which room look + which person design, and I'll rebuild <code>Character.js</code> and the painters around them.</p>`;
+</script>
+</body>
+</html>

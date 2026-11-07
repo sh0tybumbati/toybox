@@ -52,6 +52,10 @@ export function land(scene, obj, impact) {
 // the zone's world-space rectangle (Rectangle.contains). Characters are tried
 // front-most first, so overlapping characters resolve the way they look.
 export function handleDrop(scene, item) {
+  if (item.kind === 'food') {                              // a pet nearby gets first dibs on the snack
+    const pet = scene.petNear(item.x, item.lane, 55);
+    if (pet) return scene.feedPet(pet, item);
+  }
   const chars = [...scene.characters].sort((a, b) => b.depth - a.depth);
   for (const c of chars) {
     if (item.kind === 'food') {
@@ -166,7 +170,8 @@ function cuddle(scene, toy, c) {
 }
 
 export function trash(scene, item) {
-  scene.discard(item, { x: BIN.x, y: BIN.lane - 50, scale: 0, angle: 200, duration: 260, ease: 'Quad.easeIn' });
+  const bx = scene.binXs().sort((a, b) => Math.abs(a - item.x) - Math.abs(b - item.x))[0] ?? BIN.x;   // the nearest bin
+  scene.discard(item, { x: bx, y: BIN.lane - 50, scale: 0, angle: 200, duration: 260, ease: 'Quad.easeIn' });
   scene.sfx.whoosh();
-  puff(scene, BIN.x, BIN.lane - 40, 0xcccccc, 4);
+  puff(scene, bx, BIN.lane - 40, 0xcccccc, 4);
 }

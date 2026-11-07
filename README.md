@@ -5,24 +5,25 @@ Phaser 3 from a CDN, plain ES modules, no build step.
 
 ```bash
 npm start        # python -m http.server 8000, then open http://localhost:8000
-npm test         # node --test: physics, saves, recipes, furniture, tips, import check (no browser)
+npm test         # node --test: physics, walking, social, pets, saves, recipes, furniture, tips, import check (no browser)
 npm run e2e      # plays the real game in headless Chromium (mouse + touch emulation); needs Chrome/Chromium
 ```
-Tap 🎨 in the room to open the character creator.
+Tap 🎨 in the room to open the character creator. Tap the floor to walk, drop a friend next to another to hug, tuck them into a bed, and adopt pets from the basket in the park.
 
 ## Layout
 ```
 main.js                  Phaser.Game config + scene list
 src/config.js            constants (screen, floor band, gravity, bin, save version)
 src/ui.js                touch-friendly hit areas and icon buttons
-src/data/                content as data: tips.js (guided start), items.js, rooms.js, props.js, recipes.js, economy.js, look.js (hair/palettes), expressions.js, characters.js
+src/data/                content as data: tips.js (guided start), items.js, rooms.js, props.js, recipes.js, economy.js, pets.js, look.js (hair/palettes), expressions.js, characters.js
 src/entities/            Character (container rig), Item (emoji Text with physics state), Prop (furniture)
 src/systems/             physics.js + expression.js + slots.js (pure), cooking.js (oven minigame),
                          storage.js (items in furniture), save.js (versioned, IndexedDB), sfx.js (WebAudio),
                          interactions.js (eat / wear / cuddle / bin / combos, effects),
-                         props.js (fridge, oven, switch behaviours)
+                         props.js (fridge, oven, switch, bed, pet basket behaviours),
+                         walk.js (walking + step-cycle pose), social.js (hug + bed maths), pets.js (where pets go)
 src/scenes/              BootScene (loads save + emoji font) -> RoomScene (lifecycle + update loop),
-                         room/ (mixins: hud, economy, world, saving, furniture, party, objects, dragdrop, tips),
+                         room/ (mixins: hud, economy, world, saving, furniture, party, objects, dragdrop, tips, walking, social, pets),
                          CreatorScene (looks, party), HubScene (world map), BookScene (recipes),
                          CatalogScene (furniture) — all overlays on a paused RoomScene
 tests/                   node:test suites; tests/e2e/ = the headless-browser smoke test
@@ -35,6 +36,7 @@ tests/                   node:test suites; tests/e2e/ = the headless-browser smo
 - **Item combo** (drop one item on another): `COMBOS` in the same file.
 - **Room:** add an entry to `ROOMS` (`label`, `map` spot, `shelves`, `props`, `draw(g)`) and to `ROOM_ORDER`; it appears on the map automatically.
 - **Premium shop item:** add it to `CATALOG`, give it a price in `PREMIUM` (`data/economy.js`) and put it on a shop shelf.
+- **Pet:** add an entry to `PETS` in `data/pets.js` (emoji + the sfx it makes); the basket hands it out.
 - **Hair style / palette colour:** `HAIR_STYLES` and the colour lists in `data/look.js`.
 - **Face or food reaction:** `EXPRESSIONS` / `REACTIONS` in `data/expressions.js`, then `reaction: '...'` on a food in `CATALOG`.
 

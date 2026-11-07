@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { clampPlacement, nearestFreeSlot, accepts, MAX_FURNITURE, SLOT_SCALE } from '../src/systems/slots.js';
 import { PROP_TYPES } from '../src/data/props.js';
-import { ROOMS, defaultFurniture, ROOM_ORDER } from '../src/data/rooms.js';
+import { ROOMS, defaultFurniture } from '../src/data/rooms.js';
 import { W } from '../src/config.js';
 
-const behaviours = new Set(['dispenser', 'oven', 'switch', 'bell', 'storage']);
+const behaviours = new Set(['dispenser', 'oven', 'switch', 'bell', 'storage', 'bed', 'pets', 'connector']);
 
 test('every furniture type is catalogue-ready', () => {
   for (const [id, def] of Object.entries(PROP_TYPES)) {
@@ -58,7 +58,7 @@ test('accepts: null means anything, a list restricts kinds', () => {
 });
 
 test('default furniture is valid and fits the placement rules', () => {
-  for (const room of ROOM_ORDER) {
+  for (const room of Object.keys(ROOMS)) {
     const list = defaultFurniture(room);
     assert.ok(list.length <= MAX_FURNITURE, room);
     for (const f of list) {

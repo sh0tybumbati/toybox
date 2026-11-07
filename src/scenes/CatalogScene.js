@@ -2,13 +2,12 @@
 import { W, H } from '../config.js';
 import { iconButton } from '../ui.js';
 import { PROP_TYPES } from '../data/props.js';
-import { MAX_FURNITURE } from '../systems/slots.js';
 
 const ink = '#4a3426';
 const text = (size, extra = {}) => ({ fontSize: `${size}px`, color: ink, ...extra });
 const BLURB = {
   storage: 'Holds your things', dispenser: 'Hands out surprises', oven: 'Cooks recipes',
-  switch: 'Day / night', bell: 'Ding!',
+  switch: 'Day / night', bell: 'Ding!', connector: 'Go to another floor', bed: 'Sleepy time', pets: 'Pets live here',
 };
 const COLS = 5, CARD_W = 164, CARD_H = 132;
 
@@ -22,7 +21,7 @@ export default class CatalogScene extends Phaser.Scene {
     this.add.rectangle(W / 2, H / 2, 900, 540, 0xfff4e0).setStrokeStyle(6, 0xe3c9a0);
     this.add.text(60, 52, '🛋️ Furniture catalogue', text(30, { fontStyle: 'bold' }));
     const n = this.room.props.length;
-    this.add.text(W / 2 + 120, 62, `${n} / ${MAX_FURNITURE} in this room`, text(18));
+    this.add.text(W / 2 + 120, 62, `${n} / ${this.room.furnitureLimit()} on this floor`, text(18));
     iconButton(this, W - 70, 62, '✖', () => this.close(null), 0);
     this.input.keyboard.on('keydown-ESC', () => this.close(null));
 

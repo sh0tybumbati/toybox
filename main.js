@@ -7,6 +7,7 @@ import CreatorScene from './src/scenes/CreatorScene.js';
 import HubScene from './src/scenes/HubScene.js';
 import BookScene from './src/scenes/BookScene.js';
 import CatalogScene from './src/scenes/CatalogScene.js';
+import BuilderScene from './src/scenes/BuilderScene.js';
 
 // Every `add.text` without its own font gets the emoji-friendly stack.
 const addText = Phaser.GameObjects.GameObjectFactory.prototype.text;
@@ -22,6 +23,6 @@ window.__toybox = new Phaser.Game({   // handy for poking at the game from the c
   parent: 'game',
   backgroundColor: '#2b2233',
   input: { touch: true, activePointers: 1 },        // one finger at a time — a toy, not a two-handed game
-  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene],
+  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene],
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
 });

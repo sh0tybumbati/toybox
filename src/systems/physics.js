@@ -30,7 +30,7 @@ export function laneForFeet(lane, feetY) {
 
 // Advance one body by dt seconds. Returns the impact speed (px/s) if it just
 // hit the floor hard enough to bounce, otherwise 0.
-export function stepBody(b, dt) {
+export function stepBody(b, dt, worldW = W) {
   let impact = 0;
 
   if (b.z > 0 || b.vz !== 0) {
@@ -54,7 +54,7 @@ export function stepBody(b, dt) {
     b.x += b.vx * dt;
     b.vx *= Math.pow(airborne ? 0.6 : 0.04, dt);        // air drag vs floor friction
     if (b.x < WALL_MARGIN)     { b.x = WALL_MARGIN;     b.vx = Math.abs(b.vx) * 0.6; }
-    if (b.x > W - WALL_MARGIN) { b.x = W - WALL_MARGIN; b.vx = -Math.abs(b.vx) * 0.6; }
+    if (b.x > worldW - WALL_MARGIN) { b.x = worldW - WALL_MARGIN; b.vx = -Math.abs(b.vx) * 0.6; }
     b.lane = clamp(b.lane + b.ly * dt, FLOOR_TOP, FLOOR_BOTTOM);
     b.ly *= Math.pow(0.05, dt);
   }
@@ -63,4 +63,5 @@ export function stepBody(b, dt) {
 
 export const isMoving = b => b.z > 0 || Math.abs(b.vx) > 1;
 
-export const inBin = b => Math.abs(b.x - BIN.x) < BIN.halfW && b.lane >= BIN.minLane;
+// `bins` = the x of every bin in the zone (each room has one).
+export const inBin = (b, bins = [BIN.x]) => b.lane >= BIN.minLane && bins.some(x => Math.abs(b.x - x) < BIN.halfW);

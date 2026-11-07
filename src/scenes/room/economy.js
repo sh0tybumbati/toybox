@@ -55,7 +55,10 @@ export const economyMethods = {
   spawnCoin() {
     this.groundCoins = this.groundCoins.filter(c => c.active);
     if (this.groundCoins.length >= 4) return;
-    const x = Phaser.Math.Between(90, 860), y = Phaser.Math.Between(FLOOR_TOP + 20, FLOOR_BOTTOM - 20);
+    const parks = this.zone.sections.filter(s => s.type === 'park');
+    if (!parks.length) return;
+    const sec = Phaser.Utils.Array.GetRandom(parks);
+    const x = sec.offset + Phaser.Math.Between(90, Math.min(860, sec.w - 90)), y = Phaser.Math.Between(FLOOR_TOP + 20, FLOOR_BOTTOM - 20);
     const coin = this.add.text(x, y - 60, '🪙', { fontSize: '40px' }).setOrigin(0.5).setDepth(3000)
       .setInteractive({ useHandCursor: true });
     this.tweens.add({ targets: coin, y, duration: 350, ease: 'Bounce.easeOut' });
