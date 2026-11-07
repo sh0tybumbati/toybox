@@ -44,7 +44,7 @@ test('sanitize rejects junk and clamps numbers', () => {
   assert.equal(d.characters.length, 1);
   assert.equal(d.characters[0].x, 100);
   assert.equal(d.characters[0].lane, 580);
-  assert.equal(d.characters[0].scale, 1.5);
+  assert.equal(d.characters[0].scale, undefined, 'size is not saved: people are always the room size');
   assert.deepEqual(d.floors['0.2'], [{ k: 'ball', x: 930, l: 445 }]);
   assert.deepEqual(d.floors['0.0'], []);
 });

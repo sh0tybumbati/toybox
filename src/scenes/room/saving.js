@@ -28,7 +28,7 @@ export const savingMethods = {
       v: SAVE_VERSION, shirts: this.shirtDesigns, toys: this.toyDesigns, parcels: this.parcels, scores: this.scores, zone: this.zoneKey, city: this.city, looks: this.looks, pets: this.pets.map(p => p.kind), night: this.night, coins: this.coins,
       unlocked: [...this.unlocked], recipes: [...this.discovered], tips: [...this.tipsSeen], furniture, floors,
       characters: this.characters.map(c => ({
-        id: c.id, name: c.name, look: c.look, x: Math.round(c.x), lane: Math.round(c.lane), scale: c.scaleX,
+        id: c.id, name: c.name, look: c.look, x: Math.round(c.x), lane: Math.round(c.lane),
         worn: Object.fromEntries(Object.entries(c.worn).filter(([, it]) => it).map(([s, it]) => [s, it.key])),
       })),
     });

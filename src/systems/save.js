@@ -5,7 +5,7 @@
 //   { v: 12, shirts: [{ color, pattern }], toys: [toy design (data/toys.js)], zone: "slot.floor", city: [buildingKey | null], looks: { sectionId: { wall, floor, windows } },
 //     pets: [petKind], tips: [seenTipId], furniture: { sectionId: [{ type, x, y, items: [{ s: slot, k: itemKey }] }] | null },
 //     night: bool, coins: int, unlocked: [premiumKey], recipes: [recipeId], floors: { sectionId: [{ k, x, l }] },
-//     characters: [{ id, name, look, x, lane, scale, worn: { slot: itemKey } }] }
+//     characters: [{ id, name, look, x, lane, worn: { slot: itemKey } }] }
 // Furniture and floor items are stored per room (section) in that room's own 0..960 coordinates;
 // characters use zone (world) x.
 //
@@ -42,7 +42,7 @@ export function migrate(d) {
     const ch = d.char || {};
     d = {
       v: 2, room: d.room, floors: d.floors,
-      characters: [{ id: 'kid', x: ch.x, lane: ch.lane, scale: ch.scale, worn: d.worn }],
+      characters: [{ id: 'kid', x: ch.x, lane: ch.lane, worn: d.worn }],
     };
   }
   if (d.v === 2) {
@@ -119,7 +119,6 @@ export function sanitize(raw) {
         look: sanitizeLook(c.look),
         x: ok(c.x) ? clamp(c.x, 100, Math.max(100, worldW - 100)) : undefined,
         lane: ok(c.lane) ? clamp(c.lane, FLOOR_TOP, FLOOR_BOTTOM) : undefined,
-        scale: ok(c.scale) ? clamp(c.scale, 1, 1.5) : undefined,
         worn,
       };
     });
