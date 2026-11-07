@@ -94,10 +94,10 @@ export function sanitizeLook(l) {
   };
 }
 
-export function randomLook(rand = Math.random) {
+export function randomLook(rand = Math.random, { adult = false } = {}) {
   const pick = list => list[Math.floor(rand() * list.length)];
   return {
-    age: rand() < 0.65 ? 'kid' : 'adult',
+    age: adult || rand() >= 0.65 ? 'adult' : 'kid',
     skin: pick(SKIN_TONES),
     hair: { style: pick(Object.keys(HAIR_STYLES)), color: pick(HAIR_COLORS) },
     shirt: pick(SHIRT_COLORS),

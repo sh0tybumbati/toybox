@@ -28,6 +28,8 @@ import { DEFAULT_LOOK, sanitizeLook } from '../data/look.js';
 import { MAX_PARTY, defaultParty } from '../data/characters.js';
 import { PETS, MAX_PETS } from '../data/pets.js';
 import { PATTERNS } from '../data/patterns.js';
+import { SCENARIO_IDS } from '../data/hard/scenarios.js';
+import { cleanSetup } from './mode.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
 import { cleanParcels } from './mail.js';
 import { furnType } from './ikea.js';
@@ -96,9 +98,22 @@ function migrateRoomsToCity(d) {
 
 // Accepts anything, returns a clean save or null. Unknown items/rooms are
 // dropped and numbers clamped, so a damaged or hand-edited save can't crash us.
+// The hard-mode block of a save (docs/hardcore-mode.md); null for a kid-mode save.
+export function sanitizeHard(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  return {
+    setup: cleanSetup(raw.setup, SCENARIO_IDS),
+    cash: ok(raw.cash) ? clamp(Math.floor(raw.cash), 0, 1e9) : 0,
+    debt: ok(raw.debt) ? clamp(Math.floor(raw.debt), 0, 1e9) : 0,
+    record: Boolean(raw.record),                              // a criminal record
+    fresh: Boolean(raw.fresh),                                // just started: the creator opens once
+  };
+}
+
 export function sanitize(raw) {
   const d = migrate(raw);
   if (!d || typeof d.zone !== 'string') return null;
+  const hard = sanitizeHard(d.hard);
   const city = sanitizeCity(d.city);
   const zone = zoneInfo(city, d.zone) ? d.zone : (city.findIndex(Boolean) >= 0 ? entryZone(city, city.findIndex(Boolean)) : null);
   if (!zone) return null;
@@ -116,7 +131,7 @@ export function sanitize(raw) {
       return {
         id: c.id,
         name: typeof c.name === 'string' && c.name ? c.name.slice(0, 16) : 'Friend',
-        look: sanitizeLook(c.look),
+        look: hard ? { ...sanitizeLook(c.look), age: 'adult' } : sanitizeLook(c.look),                // hard mode has no child characters, ever
         x: ok(c.x) ? clamp(c.x, 100, Math.max(100, worldW - 100)) : undefined,
         lane: ok(c.lane) ? clamp(c.lane, FLOOR_TOP, FLOOR_BOTTOM) : undefined,
         worn,
@@ -151,7 +166,7 @@ export function sanitize(raw) {
   const parcels = cleanParcels(d.parcels, k => Boolean(CATALOG[k]) || furnType(k) !== null, city);
   const scores = {};
   for (const id of Object.keys(ARCADE_GAMES)) if (d.scores && Number.isFinite(d.scores[id]) && d.scores[id] > 0) scores[id] = clamp(Math.floor(d.scores[id]), 0, 99999);
-  return { v: SAVE_VERSION, zone, city, looks, pets, shirts, toys, parcels, scores, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
+  return { v: SAVE_VERSION, hard, zone, city, looks, pets, shirts, toys, parcels, scores, night: Boolean(d.night), coins, unlocked, recipes, furniture, tips, characters: characters.length ? characters : defaultParty(), floors };
 }
 
 // A room's furniture list, or null (= use the room's default layout).
@@ -223,7 +238,7 @@ export function sanitizeCity(city) {
 // ---------------------------------------------------------------------------
 // Storage: IndexedDB (room for drawn art later), localStorage as a fallback and
 // as the source of old saves. Every failure degrades to "no save".
-const DB_NAME = 'toybox', STORE = 'saves', KEY = 'main';
+const DB_NAME = 'toybox', STORE = 'saves', KEY = 'main', HARD_KEY = 'hard';
 const LS_V1 = 'toybox-save-v1', LS_V2 = 'toybox-save-v2';
 
 function openDb() {
@@ -244,35 +259,37 @@ function request(db, mode, fn) {
 }
 
 export class SaveStore {
+  constructor(key = KEY, lsKeys = [LS_V2, LS_V1]) { this.key = key; this.lsKeys = lsKeys; }
+
   // Resolves to a sanitized save or null (first run / unreadable).
   async load() {
     let raw = null;
     try {
       const db = await openDb();
-      raw = await request(db, 'readonly', s => s.get(KEY));
+      raw = await request(db, 'readonly', s => s.get(this.key));
       db.close();
     } catch (e) { /* IndexedDB unavailable */ }
-    if (!raw) raw = this.readLocal(LS_V2) || this.readLocal(LS_V1);   // fallback / legacy
+    if (!raw) raw = this.lsKeys.map(k => this.readLocal(k)).find(Boolean);   // fallback / legacy
     return sanitize(raw);
   }
 
   async save(data) {
     try {
       const db = await openDb();
-      await request(db, 'readwrite', s => s.put(data, KEY));
+      await request(db, 'readwrite', s => s.put(data, this.key));
       db.close();
     } catch (e) {
-      try { localStorage.setItem(LS_V2, JSON.stringify(data)); } catch (e2) { /* no storage at all */ }
+      try { localStorage.setItem(this.lsKeys[0], JSON.stringify(data)); } catch (e2) { /* no storage at all */ }
     }
   }
 
   async clear() {
     try {
       const db = await openDb();
-      await request(db, 'readwrite', s => s.delete(KEY));
+      await request(db, 'readwrite', s => s.delete(this.key));
       db.close();
     } catch (e) { /* ignore */ }
-    try { localStorage.removeItem(LS_V1); localStorage.removeItem(LS_V2); } catch (e) { /* ignore */ }
+    try { this.lsKeys.forEach(k => localStorage.removeItem(k)); } catch (e) { /* ignore */ }
   }
 
   readLocal(key) {
@@ -280,4 +297,19 @@ export class SaveStore {
   }
 }
 
-export const saveStore = new SaveStore();
+export const saveStore = new SaveStore();                                          // kid mode (the original save)
+export const hardStore = new SaveStore(HARD_KEY, ['toybox-hard-v1']);               // hard mode: a separate world
+export const storeFor = mode => (mode === 'hard' ? hardStore : saveStore);
+
+// Which mode is active and the lock's PIN hash: tiny, kept in localStorage (read before anything loads).
+export const metaStore = {
+  key: 'toybox-meta',
+  get() {
+    try { const m = JSON.parse(localStorage.getItem(this.key)) || {}; return { mode: m.mode === 'hard' ? 'hard' : 'kid', pin: typeof m.pin === 'string' ? m.pin : null }; } catch (e) { return { mode: 'kid', pin: null }; }
+  },
+  set(patch) {
+    const next = { ...this.get(), ...patch };
+    try { localStorage.setItem(this.key, JSON.stringify(next)); } catch (e) { /* no storage */ }
+    return next;
+  },
+};

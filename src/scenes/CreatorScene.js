@@ -77,14 +77,14 @@ export default class CreatorScene extends Phaser.Scene {
     if (room.canAddCharacter()) {
       this.button(112 + room.characters.length * 92, 62, 104, '➕ Friend', COLORS.green, () => {
         const party = room.characters.map(x => ({ id: x.id, name: x.name }));
-        room.addCharacter({ id: freshId(party), name: freshName(party), look: randomLook() });
+        room.addCharacter({ id: freshId(party), name: freshName(party), look: randomLook(Math.random, { adult: Boolean(room.hard) }) });
         this.index = room.characters.length - 1;
         this.needsBuild = true;
       });
     }
 
     // Actions
-    this.button(596, 62, 120, '🎲 Random', COLORS.gold, () => this.edit(look => Object.assign(look, randomLook())));
+    this.button(596, 62, 120, '🎲 Random', COLORS.gold, () => this.edit(look => Object.assign(look, randomLook(Math.random, { adult: Boolean(room.hard) }))));
     if (room.characters.length > 1) {
       this.button(716, 62, 104, '🗑 Leave', COLORS.red, () => {
         room.removeCharacter(c);
@@ -109,7 +109,8 @@ export default class CreatorScene extends Phaser.Scene {
 
     // Controls
     const look = c.look;
-    for (const [i, [age, text]] of [['kid', '🧒 Kid'], ['adult', '🧑 Grown-up']].entries()) {
+    const ages = this.room.hard ? [['adult', '🧑 Grown-up']] : [['kid', '🧒 Kid'], ['adult', '🧑 Grown-up']];      // hard mode: adults only
+    for (const [i, [age, text]] of ages.entries()) {
       this.button(560 + i * 176, 112, 166, text, look.age === age ? COLORS.gold : CARD, () => this.edit(l => { l.age = age; }));
     }
     this.swatches('Skin', 138, SKIN_TONES, look.skin, color => this.edit(l => { l.skin = color; }), { r: 18, pitch: 42 });

@@ -12,6 +12,9 @@ import Item from '../entities/Item.js';
 import { Sfx } from '../systems/sfx.js';
 import { stepBody, isMoving, inBin } from '../systems/physics.js';
 import { containerMethods } from './room/containers.js';
+import { ALL_TIP_IDS } from '../data/tips.js';
+import { COIN_TO_CASH, toCoins } from '../systems/mode.js';
+import { storeFor } from '../systems/save.js';
 import { itemSurface, propSurface } from '../systems/support.js';
 import { land, trash, floatText } from '../systems/interactions.js';
 import { tickProps } from '../systems/props.js';
@@ -44,6 +47,11 @@ export default class RoomScene extends Phaser.Scene {
 
   init(data) { this.initialSave = data.save || null; }
 
+  // Coins. In hard mode there are no coins, only cash: the old coin prices are paid in cash at 1 coin = 100 cash
+  // (a stand-in until the hard economy has its own prices), so every shop and game keeps working in both modes.
+  get coins() { return this.hard ? toCoins(this.cash) : this._coins; }
+  set coins(v) { if (this.hard) this.cash = Math.max(0, this.cash + (v - toCoins(this.cash)) * COIN_TO_CASH); else this._coins = v; }
+
   create() {
     this.topDepth = 10;              // ever-increasing depth: last grabbed = on top
     this.bodies = [];                // everything with a shadow + gravity (items and characters)
@@ -56,6 +64,10 @@ export default class RoomScene extends Phaser.Scene {
     this.noSave = false;
     this.sfx = new Sfx();
     const initial = this.initialSave;
+    this.hard = initial && initial.hard ? { ...initial.hard } : null;      // hard mode: its own world and money (systems/mode.js)
+    this.mode = this.hard ? 'hard' : 'kid';
+    this.cash = this.hard ? this.hard.cash : 0;
+    this.store = storeFor(this.mode);
     this.roomGfx = [];               // art belonging to the current zone
     this.city = initial ? initial.city : starterCity();       // a building (or null) per lot
     this.zoneKey = initial ? initial.zone : START_ZONE;       // "lot.floor": the floor of the building we're in
@@ -72,9 +84,9 @@ export default class RoomScene extends Phaser.Scene {
     this.props = [];                 // interactive furniture of the current zone
     this.skyObjs = [];               // the window's night sky
     this.night = Boolean(this.initialSave && this.initialSave.night);
-    this.coins = this.initialSave ? this.initialSave.coins : 0;
+    this._coins = this.initialSave && !this.hard ? this.initialSave.coins : 0;
     this.unlocked = new Set(this.initialSave ? this.initialSave.unlocked : []);
-    this.tipsSeen = new Set(this.initialSave ? this.initialSave.tips : []);    // guided-start tips already done
+    this.tipsSeen = new Set(this.hard ? ALL_TIP_IDS : this.initialSave ? this.initialSave.tips : []);    // guided-start tips already done (the kid tips don't apply to hard mode)
     this.discovered = new Set(this.initialSave ? this.initialSave.recipes : []);   // recipes cooked at least once
     this.editMode = false;           // furniture mode: drag furniture around, add/remove pieces
     this.editUI = [];
@@ -105,6 +117,7 @@ export default class RoomScene extends Phaser.Scene {
     this.setupCamera();
     this.arrive('keep');
     this.createHud(Boolean(saved));
+    if (this.hard && this.hard.fresh) this.time.delayedCall(900, () => { this.hard.fresh = false; this.dirty = true; this.openCreator(); });      // a new adult game starts by making your person
 
     // Autosave: periodically if anything changed, and when the tab goes away.
     this.time.addEvent({ delay: 1500, loop: true, callback: () => {

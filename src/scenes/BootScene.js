@@ -1,4 +1,4 @@
-import { saveStore } from '../systems/save.js';
+import { metaStore, storeFor } from '../systems/save.js';
 import { W, H, FONT } from '../config.js';
 
 // Loads the save (async: IndexedDB), then hands it to the room scene.
@@ -14,6 +14,11 @@ export default class BootScene extends Phaser.Scene {
       document.fonts ? Promise.all([document.fonts.load('32px "Noto Color Emoji"', '🍎🧸'), document.fonts.load('24px "Patrick Hand"', 'Aa')]).catch(() => null) : null,
       new Promise(r => setTimeout(r, 2000)),
     ]);
-    Promise.all([saveStore.load(), font]).then(([save]) => this.scene.start('Room', { save }));
+    // The active mode picks the save. Hard mode without a hard save (wiped, or never started) falls back to kid mode.
+    const mode = metaStore.get().mode;
+    Promise.all([storeFor(mode).load(), font]).then(async ([save]) => {
+      if (mode === 'hard' && !(save && save.hard)) { metaStore.set({ mode: 'kid' }); save = await storeFor('kid').load(); }
+      this.scene.start('Room', { save });
+    });
   }
 }

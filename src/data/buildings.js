@@ -23,6 +23,11 @@ export const BLUEPRINTS = {
       { id: 1, rooms: [room(2, 'bedroom', [stairs(860)]), room(3, 'bedroom')] },
     ],
   },
+  flat: {                                     // hard mode only: a small rented flat
+    name: 'Flat', cost: null, unique: true,
+    exterior: { wall: 'sky', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
+    floors: [{ id: 0, rooms: [room(0, 'kitchen'), room(1, 'bedroom')] }],
+  },
   park: {
     name: 'Park', cost: 10,
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },

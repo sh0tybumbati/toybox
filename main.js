@@ -18,6 +18,11 @@ import BubbleScene from './src/scenes/minigames/BubbleScene.js';
 import MemoryScene from './src/scenes/minigames/MemoryScene.js';
 import CashierScene from './src/scenes/minigames/CashierScene.js';
 import IkeaScene from './src/scenes/minigames/IkeaScene.js';
+import SettingsScene from './src/scenes/hard/SettingsScene.js';
+import AdultGateScene from './src/scenes/hard/AdultGateScene.js';
+import PinScene from './src/scenes/hard/PinScene.js';
+import HardSetupScene from './src/scenes/hard/HardSetupScene.js';
+import BankScene from './src/scenes/hard/BankScene.js';
 import HopperScene from './src/scenes/minigames/HopperScene.js';
 
 // Every `add.text` without its own font gets the emoji-friendly stack.
@@ -34,6 +39,6 @@ window.__toybox = new Phaser.Game({   // handy for poking at the game from the c
   parent: 'game',
   backgroundColor: '#2b2233',
   input: { touch: true, activePointers: 1 },        // one finger at a time — a toy, not a two-handed game
-  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene, CampScene, ConsoleScene, BubbleScene, MemoryScene, HopperScene, CashierScene, IkeaScene],
+  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene, CampScene, ConsoleScene, BubbleScene, MemoryScene, HopperScene, CashierScene, IkeaScene, SettingsScene, AdultGateScene, PinScene, HardSetupScene, BankScene],
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
 });

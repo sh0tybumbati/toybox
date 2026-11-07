@@ -169,7 +169,7 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 
 ## 6. Build order (each slice shippable and tested)
 
-0. **Hard-mode shell:** the flag, hidden unlock + PIN + setup (failure mode, content toggles, scenario), `hard` save block, adult-only creator,
+0. **Hard-mode shell (BUILT, 2026-11-08):** the flag, hidden unlock + PIN + setup (failure mode, content toggles, scenario), `hard` save block, adult-only creator,
    separate saves, coins <-> cash at 1:100.
 1. **Clock + needs:** 1 min = 1 hour clock driving day/night, pause + 3 speeds, hunger/energy/hygiene/mood, free-will autonomy and an action queue.
 2. **Survival home-less core:** the *Park bench* scenario: weather/seasons, places to sleep, being moved on, scavenging/begging, shelter, day labour.
@@ -183,6 +183,14 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 10. **Factions + the fictional trade:** crews, territory, grow/process/package/distribute, suppliers, customers, debts, raids.
 11. **Business ownership + public-service careers + life goals/legacy + aging.**
 12. **Balance + simulation tests:** "a normal week survives", economy closure, faction stability, performance budget for the NPC population.
+
+### Slice 0 as built
+- Two separate saves: kid = IndexedDB key `main`, hard = key `hard`; `metaStore` (localStorage `toybox-meta`) holds the active mode and the PIN hash.
+- Hidden unlock: hold the sound button -> Settings -> tap the version text 7 times -> Adults-only gate -> PIN (made on first use) -> setup (failure mode, content toggles, scenario) -> reload into the new game.
+- Hard-save block: `hard = { setup, cash, debt, record, fresh }`; characters are forced adult in `sanitize`; the creator is adult-only in hard mode.
+- Money: hard mode shows cash; the old coin prices are paid in cash at 1 coin = 100 cash (a stand-in until slice 3). The Bank swaps kid-save coins <-> cash.
+- Settings in hard mode has "Back to kid mode" behind the PIN; wiping an adult game returns to the kid world.
+- Code: `systems/mode.js`, `data/hard/{scenarios,start}.js`, `scenes/hard/*`, `tests/mode.test.mjs`, `tests/e2e/hard.e2e.mjs`.
 
 ## 7. Still open
 Asked in conversation as we go: faction/territory mechanics on the map, weapons list and skill trees, the legal-career ladder vs crime balance,
