@@ -52,10 +52,12 @@ export const dragMethods = {
       // Grabbing from a shelf leaves a fresh copy behind.
       if (obj.onShelf) {
         obj.onShelf = false;
+        const price = obj.price;
+        if (price) this.payFor(obj);
         const gen = this.zoneGen;
         this.time.delayedCall(300, () => {
           if (this.zoneGen !== gen) return;       // left the zone meanwhile: shelves restock on return
-          this.spawnShelfItem(obj.key, obj.shelfPos, { pop: true });
+          this.spawnShelfItem(obj.key, obj.shelfPos, { pop: true, price });
           this.sfx.pop();
         });
       }

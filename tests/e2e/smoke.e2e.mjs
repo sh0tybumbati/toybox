@@ -351,6 +351,35 @@ try {
     await wait(1500);
   });
 
+  await step('supermarket: priced shelf items need coins, and the delivery cart charges a fee and sends groceries by van', async () => {
+    await g.room("r.city[3] = JSON.parse(JSON.stringify(r.city[2])); r.city[3].name = 'Supermarket'; r.city[3].floors[0].rooms = [{ id: 0, type: 'market', w: 960 }]; r.coins = 0; r.goToZone('3.0');");
+    await wait(2000);
+    assert.ok(await g.room('return r.bodies.some(b => b.onShelf && b.price > 0 && b.tag);'), 'a real supermarket shelves its goods with prices');
+    await g.room("r.city[3] = null; r.goToZone('0.1');");
+    await wait(1500);
+    await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.coins = 0; r.spawnShelfItem('milk', { x: 560, y: 300 }, { price: 1 }); window.__cart = r.addFurniture('cart'); window.__cart.setPosition(830, 470);");
+    await wait(900);
+    assert.equal(await g.room("return r.bodies.find(b => b.key === 'milk' && b.onShelf && b.price).input.draggable;"), false, 'too poor to take it');
+    await g.room('r.coins = 3; r.updateNav();');
+    assert.equal(await g.room("return r.bodies.find(b => b.key === 'milk' && b.onShelf && b.price).input.draggable;"), true, 'now affordable');
+    const at = await g.room("const i = r.bodies.find(b => b.key === 'milk' && b.onShelf && b.price); return [Math.round(i.x), Math.round(i.y)];");
+    await g.drag(at[0], at[1], 700, 540, 700);
+    assert.equal(await g.room('return r.coins;'), 2, 'paid one coin');
+    const cart = await g.room('const p = window.__cart; return [Math.round(p.x), Math.round(p.y - 20)];');
+    const milk = await g.room("const i = r.bodies.find(b => b.key === 'milk' && !b.onShelf && !b.dead); return [Math.round(i.x), Math.round(i.y)];");
+    await g.drag(milk[0], milk[1], cart[0], cart[1], 900);
+    assert.ok(await g.room('return r.mailUI && r.mailUI.length > 0;'), 'the delivery picker opened');
+    await g.room('r.sendParcel("milk", 1, window.__cart);');
+    const after = await g.room('return { coins: r.coins, parcels: r.parcels };');
+    assert.equal(after.coins, 1, 'the van costs a coin');
+    assert.deepEqual(after.parcels, [{ k: 'milk', to: 1, from: 0 }]);
+    await g.room("r.goToZone('1.0');");
+    await wait(3200);
+    assert.deepEqual(await g.room('return r.parcels;'), [], 'delivered');
+    await g.room("r.goToZone('0.1');");
+    await wait(1500);
+  });
+
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });
 } finally {
   await g.close();

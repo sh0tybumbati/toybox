@@ -2,6 +2,7 @@
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
 import { H, W } from '../../config.js';
 import { addParcel, destinations, takeParcels } from '../../systems/mail.js';
+import { deliveryFee } from '../../systems/market.js';
 import { floatText } from '../../systems/interactions.js';
 import { spawnFront } from '../../systems/spawn.js';
 import { COLORS, inkButton, inkPanel, pin, richText } from '../../ui.js';
@@ -18,16 +19,16 @@ export const mailMethods = {
 
   openMailPicker(box, key) {
     this.closeMailPicker();
-    const dests = destinations(this.city), ui = (this.mailUI = []);
+    const fee = box.def.fee, dests = destinations(this.city).filter(d => !fee || d.slot !== this.zone.slot), ui = (this.mailUI = []);
     const add = o => { pin(o).setDepth(9700); ui.push(o); return o; };
     const back = () => { this.closeMailPicker(); spawnFront(this, key, box, 60); };          // changed your mind: it pops back out
     add(this.add.rectangle(0, 0, W, H, 0x000000, 0.35).setOrigin(0).setInteractive().on('pointerdown', back));
     const rows = Math.ceil(dests.length / 2), h = 130 + rows * 56;
     add(inkPanel(this, W / 2, H / 2, 560, h, { depth: 9700, seed: 14 })).setInteractive(new Phaser.Geom.Rectangle(W / 2 - 280, H / 2 - h / 2, 560, h), Phaser.Geom.Rectangle.Contains);
-    add(richText(this, 'Post it to…  📮', { fontSize: '30px', fontStyle: 'bold' })).setPosition(W / 2, H / 2 - h / 2 + 36);
+    add(richText(this, fee ? 'Deliver it to…  🚚' : 'Post it to…  📮', { fontSize: '30px', fontStyle: 'bold' })).setPosition(W / 2, H / 2 - h / 2 + 36);
     dests.forEach((d, i) => {
       const x = W / 2 + (i % 2 ? 130 : -130), y = H / 2 - h / 2 + 90 + Math.floor(i / 2) * 56;
-      add(inkButton(this, x, y, d.name, { w: 230, h: 44, size: 22, fill: COLORS.green, depth: 9700, onTap: () => this.sendParcel(key, d.slot, box) }));
+      add(inkButton(this, x, y, fee ? `${d.name} · ${deliveryFee(this.zone.slot, d.slot)} 🪙` : d.name, { w: 230, h: 44, size: 22, fill: COLORS.green, depth: 9700, onTap: () => this.sendParcel(key, d.slot, box) }));
     });
     add(inkButton(this, W / 2, H / 2 + h / 2 - 34, 'Never mind', { w: 180, h: 38, size: 20, fill: COLORS.grey, depth: 9700, onTap: back }));
   },
@@ -36,15 +37,18 @@ export const mailMethods = {
 
   // Put the parcel on the van (the item is already in the box).
   sendParcel(key, slot, box) {
-    const next = addParcel(this.parcels, key, slot);
+    const fee = box.def.fee ? deliveryFee(this.zone.slot, slot) : 0;
     this.closeMailPicker();
+    if (fee > this.coins) { this.sfx.nope(); floatText(this, box.x, box.y - 90, `${fee - this.coins} more 🪙 for the van`, 24); spawnFront(this, key, box, 60); return; }
+    const next = addParcel(this.parcels, key, slot, box.def.fee ? this.zone.slot : undefined);
     if (!next) { this.sfx.nope(); floatText(this, box.x, box.y - 90, 'The van is full!', 24); spawnFront(this, key, box, 60); return; }
     this.parcels = next;
     this.sfx.ding();
+    if (fee) { this.coins -= fee; this.updateNav(); }
     box.setState(true);
     this.time.delayedCall(900, () => { if (box.active) box.setState(false); });
-    floatText(this, box.x, box.y - 80, `📮 Off to ${this.city[slot].name}!`, 26);
-    this.earn('mail', box.x, box.y - 130);
+    floatText(this, box.x, box.y - 80, `${fee ? '🚚' : '📮'} Off to ${this.city[slot].name}!`, 26);
+    if (!fee) this.earn('mail', box.x, box.y - 130);
     this.dirty = true;
   },
 

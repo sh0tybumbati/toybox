@@ -21,10 +21,11 @@ export const objectMethods = {
   },
 
   // Put a catalog item on its shelf slot ({ x, y } in world coordinates).
-  spawnShelfItem(key, slot, { pop = false, delay = 0 } = {}) {
+  spawnShelfItem(key, slot, { pop = false, delay = 0, price = 0 } = {}) {
     const item = this.createItem(key, slot.x, slot.y, { onShelf: true });
     item.shelfPos = slot;
     if (isPremium(key) && !this.unlocked.has(key)) this.lockItem(item);
+    else if (price) this.priceItem(item, price);
     if (pop) {  // pop into existence
       item.sq.x = item.sq.y = 0.01;
       this.tweens.add({ targets: item.sq, x: 1, y: 1, duration: 350, delay, ease: 'Back.easeOut' });

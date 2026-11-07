@@ -52,6 +52,7 @@ export const hudMethods = {
   updateNav() {
     this.roomLabel.setText(this.zoneLabel());
     this.coinText.setLabel(`🪙 ${this.coins}`);
+    this.refreshPrices();
   },
 
   openMap() {

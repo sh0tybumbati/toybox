@@ -3,6 +3,7 @@
 import { FLOOR_BOTTOM, FLOOR_TOP } from '../../config.js';
 import { PREMIUM, earnAmount } from '../../data/economy.js';
 import { floatText, puff } from '../../systems/interactions.js';
+import { priceOf } from '../../systems/market.js';
 import { spriteImage } from '../../systems/itemTextures.js';
 
 export const economyMethods = {
@@ -50,6 +51,44 @@ export const economyMethods = {
     puff(this, item.x, item.y, 0xfff3a0, 8);
     floatText(this, item.x, item.y - 60, `-${price} 🪙`, 28);
     this.dirty = true;
+  },
+
+  // Supermarket shelf items wear a price tag; you can only take one if you can pay for it.
+  priceItem(item, price) {
+    item.price = price;
+    item.tag = this.add.text(item.x, item.y + 46, `${price} 🪙`,
+      { fontSize: '15px', color: '#4a3426', backgroundColor: '#fff4e0', padding: { x: 6, y: 2 } })
+      .setOrigin(0.5).setDepth(item.depth);
+    item.on('pointerdown', () => { if (item.onShelf && this.coins < price) this.tooPricey(item); });
+    this.dimUnaffordable(item);
+  },
+
+  dimUnaffordable(item) {
+    const ok = this.coins >= item.price;
+    item.input.draggable = ok && !this.editMode;
+    item.setAlpha(ok ? 1 : 0.6);
+  },
+
+  // Coins changed: shelf items you can't afford grey out, and ones you now can come back to life.
+  refreshPrices() {
+    for (const b of this.bodies || []) if (b.onShelf && b.price && !b.dead) this.dimUnaffordable(b);
+  },
+
+  tooPricey(item) {
+    this.sfx.nope();
+    this.tweens.add({ targets: item, x: item.x + 6, duration: 50, yoyo: true, repeat: 3, onComplete: () => { item.x = item.shelfPos.x; } });
+    floatText(this, item.x, item.y - 60, `${item.price - this.coins} more 🪙`, 24);
+  },
+
+  // Taken off the shelf: pay up (the tag goes with it).
+  payFor(item) {
+    this.coins -= item.price;
+    if (item.tag) { item.tag.destroy(); item.tag = null; }
+    item.setAlpha(1);
+    this.updateNav();
+    this.sfx.coin();
+    floatText(this, item.x, item.y - 60, `-${item.price} 🪙`, 24);
+    item.price = 0;
   },
 
   // Coins to find lying around in the park.

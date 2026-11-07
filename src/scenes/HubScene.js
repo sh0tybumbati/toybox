@@ -70,14 +70,14 @@ export default class HubScene extends Phaser.Scene {
 
   // A delivery van drives from the post office to every building that has post waiting.
   addVans() {
-    const from = Math.max(0, this.room.city.findIndex(b => b && b.name === 'Post Office')), a = SLOTS[from];
-    for (const slot of new Set(this.room.parcels.map(p => p.to))) {
-      const b = SLOTS[slot], van = spriteImage(this, 'van', a.x, a.y + 70, 56).setDepth(6);
+    const post = Math.max(0, this.room.city.findIndex(b => b && b.name === 'Post Office'));
+    for (const key of new Set(this.room.parcels.map(p => `${p.from ?? post}>${p.to}`))) {
+      const [from, slot] = key.split('>').map(Number), a = SLOTS[from], b = SLOTS[slot], van = spriteImage(this, 'van', a.x, a.y + 70, 56).setDepth(6);
       this.tweens.add({
         targets: van, x: b.x, y: b.y + 70, duration: 5200, yoyo: true, repeat: -1, hold: 600, ease: 'Sine.easeInOut',
         onUpdate: (tw, t) => van.setFlipX(b.x < a.x ? tw.progress > 0.5 : tw.progress < 0.5 ? b.x < a.x : false),
       });
-      this.add.text(b.x, b.y - 74, '📮', { fontSize: '20px' }).setOrigin(0.5);
+      this.add.text(b.x, b.y - 74, from === post ? '📮' : '🚚', { fontSize: '20px' }).setOrigin(0.5);
     }
   }
 

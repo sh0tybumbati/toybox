@@ -38,7 +38,7 @@ export function tapProp(scene, prop) {
       scene.setNight(!scene.night);
       break;
     case 'mail':
-      floatText(scene, prop.x, prop.y - 90, 'Drop something in to post it!', 24);
+      floatText(scene, prop.x, prop.y - 90, prop.def.fee ? 'Drop groceries in to have them delivered!' : 'Drop something in to post it!', 24);
       break;
     case 'station':
       scene.openGame(prop.def.game, prop);

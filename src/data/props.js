@@ -233,8 +233,7 @@ export const PROP_TYPES = {
     },
   },
   cart: {
-    name: 'Shopping Cart', mount: 'floor', behaviour: 'dispenser', w: 120, h: 100, sfx: 'creak',
-    pool: ['flour', 'tomato', 'potato', 'corn', 'meat', 'rice', 'fish', 'chocolate', 'egg', 'cheese', 'milk', 'bread'],
+    name: 'Delivery Cart', mount: 'floor', behaviour: 'mail', fee: true, w: 120, h: 100,
     draw(g, open) {
       g.fillStyle(0xd0d4dc, 1).fillRoundedRect(-50, -26, 100, 56, 8);                 // the basket
       g.lineStyle(3, 0).lineBetween(-50, -26, -62, -50).lineBetween(-62, -50, -40, -50);   // the handle
