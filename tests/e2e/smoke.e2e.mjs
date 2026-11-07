@@ -263,6 +263,30 @@ try {
     await wait(1500);
   });
 
+  await step('mini-games: stations launch them, results come back as coins and items', async () => {
+    await g.room("r.goToZone('0.1'); ");
+    await wait(1500);
+    await g.room("r.coins = 0; r.updateNav(); r.detached = true; r.cameras.main.scrollX = 0; window.__dock = r.addFurniture('dock'); window.__tv = r.addFurniture('tv'); window.__dock.setPosition(150, 470); window.__tv.setPosition(840, 470);");
+    await wait(400);
+    const dock = await g.room('const p = window.__dock; return [Math.round(p.x), Math.round(p.y)];');
+    await g.click(dock[0], dock[1], 1000);                           // tap the dock: fishing opens
+    assert.ok(await g.ev("__toybox.scene.isActive('Fishing')"), 'fishing opened');
+    assert.ok(await g.room('return r.scene.isPaused();'), 'the room waits behind it');
+    await g.ev("(f => { f.press(true); f.press(false); f.s.phase = 'bite'; f.s.t = 0; f.press(true); f.s.catch = f.s.catch; f.s.progress = 1.01; })(__toybox.scene.getScene('Fishing'))");
+    await wait(900);
+    assert.equal(await g.ev("__toybox.scene.getScene('Fishing').caught.length"), 1, 'landed a fish');
+    await g.ev("(f => f.finish({ coins: 2, items: ['fish'] }))(__toybox.scene.getScene('Fishing'))");
+    await wait(1400);
+    const after = await g.room("return { coins: r.coins, fish: r.bodies.filter(b => b.key === 'fish' && !b.onShelf).length, paused: r.scene.isPaused() };");
+    assert.equal(after.coins, 2); assert.ok(after.fish >= 1, 'the fish is in the room'); assert.equal(after.paused, false);
+    const tv = await g.room('const p = window.__tv; return [Math.round(p.x), Math.round(p.y)];');
+    await g.click(tv[0], tv[1], 1000);                               // tap the TV: Star Catcher
+    assert.ok(await g.ev("__toybox.scene.isActive('Arcade')"), 'star catcher opened');
+    await g.ev("(a => a.finish(null))(__toybox.scene.getScene('Arcade'))");     // close without playing
+    await wait(500);
+    assert.equal(await g.room('return r.coins;'), 2, 'closing without playing gives nothing');
+  });
+
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });
 } finally {
   await g.close();

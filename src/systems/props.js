@@ -37,6 +37,9 @@ export function tapProp(scene, prop) {
       scene.sfx.click();
       scene.setNight(!scene.night);
       break;
+    case 'station':
+      scene.openGame(prop.def.game, prop);
+      break;
     case 'connector':
       scene.useConnector(prop);
       break;

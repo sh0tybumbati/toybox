@@ -28,6 +28,7 @@ import { walkingMethods } from './room/walking.js';
 import { socialMethods } from './room/social.js';
 import { petMethods } from './room/pets.js';
 import { decorateMethods } from './room/decorate.js';
+import { gameMethods } from './room/games.js';
 import { cameraMethods } from './room/camera.js';
 import { connectorMethods } from './room/connectors.js';
 
@@ -203,4 +204,4 @@ export default class RoomScene extends Phaser.Scene {
   }
 }
 
-Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods);
+Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods);

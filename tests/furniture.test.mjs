@@ -5,7 +5,7 @@ import { PROP_TYPES } from '../src/data/props.js';
 import { ROOMS, defaultFurniture } from '../src/data/rooms.js';
 import { W } from '../src/config.js';
 
-const behaviours = new Set(['dispenser', 'oven', 'switch', 'bell', 'storage', 'bed', 'pets', 'connector']);
+const behaviours = new Set(['dispenser', 'oven', 'switch', 'bell', 'storage', 'bed', 'pets', 'connector', 'station', 'mail']);
 
 test('every furniture type is catalogue-ready', () => {
   for (const [id, def] of Object.entries(PROP_TYPES)) {

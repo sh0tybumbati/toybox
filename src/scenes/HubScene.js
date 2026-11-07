@@ -117,18 +117,18 @@ export default class HubScene extends Phaser.Scene {
   }
 
   openBuildPicker(slot) {
-    const add = this.openPopup('What shall we build?', 880, 524);
-    const keys = BUILDABLE;
-    keys.forEach((key, i) => {
-      const bp = BLUEPRINTS[key], x = W / 2 - 300 + (i % 3) * 300 + (keys.length < 3 ? 150 : 0), y = H / 2 - 34 + Math.floor(i / 3) * 180;
-      add(inkPanel(this, x, y, 270, 172, { fill: CARD, depth: 500, seed: 20 + i, radius: 16, shadow: false, weight: 3.4 }));
+    const add = this.openPopup('What shall we build?', 920, 520);
+    BUILDABLE.forEach((key, i) => {
+      const bp = BLUEPRINTS[key], x = W / 2 - 322 + (i % 4) * 215, y = H / 2 - 128 + Math.floor(i / 4) * 140;
+      add(inkPanel(this, x, y, 205, 130, { fill: CARD, depth: 500, seed: 20 + i, radius: 14, shadow: false, weight: 3.2 }));
       const g = add(this.add.graphics().setDepth(500));
-      paintBuildingMini(g, bp, x - 70, y + 36, 104, 96);
-      add(this.add.text(x + 20, y - 62, bp.name, { fontSize: '25px', fontStyle: 'bold', color: TEXT }).setDepth(500));
+      paintBuildingMini(g, bp, x - 46, y + 38, 84, 72);
+      add(this.add.text(x - 94, y - 60, bp.name, { fontSize: '21px', fontStyle: 'bold', color: TEXT }).setDepth(500));
       const rooms = bp.floors.reduce((n, f) => n + f.rooms.length, 0);
-      add(this.add.text(x + 20, y - 30, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}\n${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '19px', color: TEXT }).setDepth(500));
+      add(this.add.text(x + 4, y - 26, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}\n${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '16px', color: TEXT }).setDepth(500));
       const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
-      const buy = this.button(add, x + 50, y + 54, `🪙 ${bp.cost}`, why ? COLORS.grey : COLORS.green, () => this.build(slot, key), 110);
+      const buy = this.button(add, x + 46, y + 40, `🪙 ${bp.cost}`, why ? COLORS.grey : COLORS.green, () => this.build(slot, key), 92);
+      buy.setScale(0.9);
       if (why) buy.setAlpha(this.room.coins < bp.cost ? 0.6 : 1);
     });
   }

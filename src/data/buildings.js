@@ -47,6 +47,41 @@ export const BLUEPRINTS = {
       { id: 2, rooms: [room(6, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(7, 'bedroom'), room(8, 'bedroom')] },
     ],
   },
+  arcade: {
+    name: 'Arcade', cost: 25,
+    exterior: { wall: 'lilac', trim: 'navy', roofStyle: 'flat', roofColor: 'plum' },
+    floors: [{ id: 0, rooms: [room(0, 'arcade')] }],
+  },
+  factory: {
+    name: 'Shirt Factory', cost: 30,
+    exterior: { wall: 'stone', trim: 'black', roofStyle: 'flat', roofColor: 'slate' },
+    floors: [{ id: 0, rooms: [room(0, 'factory')] }],
+  },
+  workshop: {
+    name: 'Toy Workshop', cost: 30,
+    exterior: { wall: 'mint', trim: 'brown', roofStyle: 'gable', roofColor: 'sunny' },
+    floors: [{ id: 0, rooms: [room(0, 'workshop')] }],
+  },
+  postoffice: {
+    name: 'Post Office', cost: 20,
+    exterior: { wall: 'sky', trim: 'white', roofStyle: 'gable', roofColor: 'berry' },
+    floors: [{ id: 0, rooms: [room(0, 'postoffice')] }],
+  },
+  market: {
+    name: 'Supermarket', cost: 25,
+    exterior: { wall: 'butter', trim: 'white', roofStyle: 'flat', roofColor: 'forest' },
+    floors: [{ id: 0, rooms: [room(0, 'market'), room(1, 'market')] }],
+  },
+  pond: {
+    name: 'Fishing Pond', cost: 15,
+    exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
+    floors: [{ id: 0, rooms: [room(0, 'pond')] }],
+  },
+  campsite: {
+    name: 'Campsite', cost: 15,
+    exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
+    floors: [{ id: 0, rooms: [room(0, 'campsite')] }],
+  },
   blank: {
     name: 'New build', cost: 8,
     exterior: { wall: 'cream', trim: 'white', roofStyle: 'gable', roofColor: 'terracotta' },

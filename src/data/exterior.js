@@ -3,6 +3,7 @@
 // lean and shift a bit, roofs slump, windows are crooked, every edge is wobbly ink. Pure data + painters.
 import { INK, blob, inkFill, inkLine, inkStroke, noise, wobblyPoly } from './ink.js';
 import { shade } from './style.js';
+import { ROOMS } from './rooms.js';
 
 export const EXTERIOR_WALLS = {
   butter:  { name: 'Butter',   color: 0xf3d98b, pattern: 'siding' },
@@ -41,7 +42,7 @@ export function paintBuildingMini(g, building, cx, baseY, maxW, maxH, seedIn) {
   const squash = 0.84;                                                      // chubby: squashed taller-than-wide proportions
   const k = Math.min(maxW / (fullW * 1.06), maxH / ((building.floors.length * FH + roofH) * squash));
   const sx = k, sy = k * squash, lw = Math.max(2, Math.min(4.2, 2.6 + k * 4));    // ink weight follows the model's size
-  const outdoor = building.floors.every(f => f.rooms.every(r => r.type === 'park' || r.type === 'playground'));
+  const outdoor = building.floors.every(f => f.rooms.every(r => ROOMS[r.type] && ROOMS[r.type].outdoor));
   const left = cx - (fullW * sx) / 2;
 
   if (outdoor) return paintGarden(g, cx, baseY, fullW * sx, maxH, seed, lw);

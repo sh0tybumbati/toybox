@@ -149,6 +149,94 @@ export const ROOMS = {
     props: [{ type: 'lightswitch', x: 890, y: 168 }],
     windows: [{ x: 400, y: 70, w: 160, h: 130 }],
   },
+  // ---- function rooms: each has a station that launches a mini-game (data/minigames.js) ----
+  arcade: {
+    label: '🕹️ Arcade',
+    buildable: true,
+    style: { wall: 'arcade', floor: 'carpet' },
+    shelves: [
+      { x: 15,  y: 295, items: ['popcorn', 'cocoa', 'donut', 'cupcake'] },
+      { x: 645, y: 295, items: ['robot', 'puzzle', 'ball', 'car'] },
+    ],
+    props: [{ type: 'tv', x: 330, y: 470 }, { type: 'tv', x: 640, y: 470 }, { type: 'lightswitch', x: 890, y: 168 }],
+    windows: [],
+  },
+  factory: {
+    label: '🧵 Shirt factory',
+    style: { wall: 'grey', floor: 'concrete' },
+    shelves: [
+      { x: 15,  y: 295, items: ['cap', 'tophat', 'sunhat', 'bow'] },
+      { x: 645, y: 295, items: ['sneakers', 'boots', 'specs', 'shades'] },
+    ],
+    props: [{ type: 'sewing', x: 480, y: 480 }, { type: 'lightswitch', x: 890, y: 168 }],
+    windows: [{ x: 400, y: 60, w: 160, h: 110 }],
+    decor(g) {                                                           // a conveyor belt running across the wall
+      g.fillStyle(0x6b7482, 1).fillRoundedRect(130, 340, 700, 26, 10);
+      for (let x = 150; x < 820; x += 70) g.fillStyle(0x4a5368, 1).fillCircle(x, 353, 7);
+      for (const [x, col] of [[220, 0x6aaee8], [420, 0xf59ab4], [650, 0xffd166]]) g.fillStyle(col, 1).fillRoundedRect(x, 318, 56, 30, 8);
+    },
+  },
+  workshop: {
+    label: '🧸 Toy workshop',
+    style: { wall: 'cream', floor: 'warm' },
+    shelves: [
+      { x: 15,  y: 295, items: ['teddy', 'robot', 'duck', 'rocket'] },
+      { x: 15,  y: 385, items: ['car', 'ball', 'puzzle', 'guitar'] },
+      { x: 645, y: 295, items: ['kite', 'balloon', 'crystal', 'dino'] },
+    ],
+    props: [{ type: 'claytable', x: 480, y: 480 }, { type: 'lightswitch', x: 890, y: 168 }],
+    windows: [{ x: 600, y: 60, w: 170, h: 130 }],
+  },
+  postoffice: {
+    label: '📮 Post office',
+    style: { wall: 'sky', floor: 'oak' },
+    shelves: [
+      { x: 15,  y: 295, items: ['cookie', 'apple', 'cake', 'jam'] },
+      { x: 645, y: 295, items: ['teddy', 'ball', 'kite', 'cap'] },
+    ],
+    props: [{ type: 'mailbox', x: 330, y: 470 }, { type: 'mailbox', x: 640, y: 470 }, { type: 'lightswitch', x: 890, y: 168 }],
+    windows: [{ x: 410, y: 60, w: 150, h: 110 }],
+    decor(g) {
+      g.fillStyle(0xf59ab4, 1).fillRoundedRect(420, 210, 120, 40, 8);                  // a sign
+      g.fillStyle(0xffffff, 1).fillRoundedRect(436, 222, 88, 14, 5);
+    },
+  },
+  market: {
+    label: '🛒 Supermarket',
+    style: { wall: 'mintTiles', floor: 'checker' },
+    shelves: [
+      { x: 15,  y: 295, items: ['flour', 'tomato', 'potato', 'corn'] },
+      { x: 15,  y: 385, items: ['meat', 'rice', 'fish', 'chocolate'] },
+      { x: 645, y: 295, items: ['egg', 'cheese', 'milk', 'bread'] },
+      { x: 645, y: 385, items: ['jam', 'fries', 'popcorn', 'cocoa'] },
+    ],
+    props: [{ type: 'cart', x: 480, y: 470 }, { type: 'lightswitch', x: 890, y: 168 }],
+    windows: [],
+  },
+  pond: {
+    label: '🎣 Fishing pond',
+    outdoor: true,
+    shelfStyle: 'stand',
+    openSky: true,
+    shelves: [
+      { x: 15,  y: 295, items: ['apple', 'banana', 'cookie', 'milk'] },
+      { x: 645, y: 295, items: ['fish', 'sushi', 'rice', 'cupcake'] },
+    ],
+    props: [{ type: 'dock', x: 480, y: 470 }],
+    draw(g) { paintOutdoor(g, 'pond'); },
+  },
+  campsite: {
+    label: '⛺ Campsite',
+    outdoor: true,
+    shelfStyle: 'stand',
+    openSky: true,
+    shelves: [
+      { x: 15,  y: 295, items: ['cocoa', 'cookie', 'jam', 'sandwich'] },
+      { x: 645, y: 295, items: ['pancakes', 'berry', 'apple', 'cheese'] },
+    ],
+    props: [{ type: 'campfire', x: 480, y: 500 }, { type: 'lamppost', x: 880, y: 434 }],
+    draw(g) { paintOutdoor(g, 'campsite'); },
+  },
   shop: {
     label: '🛍️ Shop',
     style: { wall: 'pinkStripes', floor: 'shop' },

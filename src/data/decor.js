@@ -48,6 +48,8 @@ export const WALLPAPERS = {
     g.fillStyle(0x93b8b2, 1).fillPoints(wobblyPoly(rectPoints(0, 300, w, WALL_H - 300), { amp: 2, seed: 8, step: 30 }), true);
     wob(g, { x: 0, y: 300 }, { x: w, y: 300 }, INK, 3.2, 9, 2.4);
   } },
+  arcade:   { name: 'Arcade night', swatch: 0x4a3f7a, paint: (g, w) => { g.fillStyle(0x4a3f7a, 1).fillRect(0, 0, w, WALL_H); for (let i = 0; i < w / 46; i++) g.fillStyle(0xffe27a, 1).fillPoints(blob((i * 97) % w + 20, 30 + ((i * 61) % 360), 5, 5, { n: 5, seed: i }), true); } },
+  grey:     { name: 'Factory grey', swatch: 0xb9bcc6, paint: (g, w) => { g.fillStyle(0xc8cad2, 1).fillRect(0, 0, w, WALL_H); for (let y = 0; y < WALL_H; y += 54) { wob(g, { x: 0, y }, { x: w, y: y + noise(y, 9) * 3 }, lineTone(0xc8cad2), 2, y); for (let x = (y / 54 % 2) * 40; x < w; x += 80) wob(g, { x, y }, { x: x + noise(x, 3), y: y + 54 }, lineTone(0xc8cad2), 2, x + y); } } },
   sky:      { name: 'Sky dots', swatch: 0xcfe6f8,       paint: (g, w) => { g.fillStyle(0xcfe6f8, 1).fillRect(0, 0, w, WALL_H); for (let y = 30; y < WALL_H; y += 62) for (let x = (y / 62 % 2) * 31; x < w; x += 62) g.fillStyle(0xffffff, 1).fillPoints(blob(x + 20, y, 7, 6, { n: 8, amp: 0.15, seed: x + y }), true); } },
 };
 
@@ -62,6 +64,7 @@ export const FLOORS = {
     wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 12, 2.4);
   } },
   carpet:  { name: 'Purple carpet', swatch: 0x9a86cc, paint: (g, w) => { g.fillStyle(0x9a86cc, 1).fillRect(0, WALL_H, w, H - WALL_H); wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 13, 2.4); for (let i = 0; i < 40; i++) inkStroke(g, [{ x: (i * 97) % w, y: WALL_H + 20 + ((i * 53) % 140) }, { x: ((i * 97) % w) + 6, y: WALL_H + 22 + ((i * 53) % 140) }], { w: 2, color: 0x7d6bb0, heavy: 0 }); } },
+  concrete: { name: 'Concrete', swatch: 0xb4b6be, paint: (g, w) => boards(g, w, 0xb9bbc3, 46, 7) },
   stars:   { name: 'Star tiles', swatch: 0xf3ece8,    paint: (g, w) => {
     g.fillStyle(0xf3ece8, 1).fillRect(0, WALL_H, w, H - WALL_H);
     for (let y = WALL_H + 30; y < H; y += 56) for (let x = (((y - WALL_H) / 56) % 2) * 50; x < w; x += 100) g.fillStyle(0xcdbfb8, 1).fillPoints(wobblyPoly([{ x: x + 50, y: y - 12 }, { x: x + 40, y: y + 6 }, { x: x + 60, y: y + 6 }], { amp: 0.6, seed: x + y, step: 8 }), true);
@@ -124,7 +127,19 @@ export function paintOutdoor(g, kind) {
     else inkStroke(g, [{ x: x - 5, y }, { x: x - 2, y: y - 5 }, { x, y }, { x: x + 3, y: y - 6 }, { x: x + 6, y }], { w: 1.8, heavy: 0, color: shade(MAP_COLORS.grass, 0.65) });
   }
   const pen = new InkPen(g, kind === 'park' ? 21 : 22);
-  if (kind === 'park') {
+  if (kind === 'pond') {                                                            // a pond with reeds and lily pads
+    inkFill(g, blob(480, 500, 400, 62, { n: 30, amp: 0.05, seed: 41 }), 0x7fc4e8, { w: 4.4, seed: 41, heavy: 2 });
+    for (const [x, y, rx] of [[330, 492, 24], [560, 510, 28], [680, 488, 20], [420, 520, 18]]) inkFill(g, blob(x, y, rx, rx * 0.42, { n: 10, seed: x }), 0x69b653, { w: 2.6, seed: x, heavy: 0 });
+    for (const x of [110, 150, 790, 840]) for (let k = 0; k < 3; k++) inkStroke(g, [{ x: x + k * 9, y: 520 }, { x: x + k * 9 + noise(k, x) * 4, y: 470 - k * 6 }], { w: 3.2, color: 0x4a8f48, heavy: 0 });
+    paintTree(g, 880, 430, 3.2, 17); paintBush(g, 140, 442, 2.2, 18);
+  } else if (kind === 'campsite') {                                                 // tents, logs and trees under a big sky
+    for (const [x, col] of [[180, 0xe0605a], [760, 0x6fb4ea]]) {
+      inkFill(g, wobblyPoly([{ x: x - 90, y: 470 }, { x, y: 350 }, { x: x + 90, y: 470 }], { amp: 1.4, seed: x, step: 16 }), col, { w: 4, seed: x });
+      inkFill(g, wobblyPoly([{ x: x - 24, y: 470 }, { x, y: 400 }, { x: x + 24, y: 470 }], { amp: 1, seed: x + 1, step: 12 }), 0x3a2a22, { w: 3, seed: x + 1, heavy: 0 });
+    }
+    pen.fillStyle(0x9a6238, 1).fillRoundedRect(330, 508, 90, 22, 10).fillRoundedRect(560, 512, 96, 22, 10);
+    paintTree(g, 60, 430, 3.4, 19); paintTree(g, 880, 430, 3.0, 20); paintBush(g, 480, 440, 2.4, 21);
+  } else if (kind === 'park') {
     paintTree(g, 335, 430, 3.4, 11); paintTree(g, 640, 430, 3.0, 12); paintBush(g, 200, 440, 2.4, 13); paintBush(g, 830, 442, 2.8, 14);
   } else {
     pen.fillStyle(0xe8cf93, 1).fillRoundedRect(300, 440, 360, 92, 34);                           // a sandbox with a rim

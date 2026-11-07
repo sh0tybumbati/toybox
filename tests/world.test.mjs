@@ -97,3 +97,22 @@ test('stretching a room spreads its furniture out and keeps shelves on their wal
   assert.equal(Math.max(...sh.map(s => s.x)), 645 + 960, 'right shelves move with the right wall');
   assert.equal(ROOM_W.def, 960);
 });
+
+import { MINIGAMES } from '../src/data/minigames.js';
+
+test('every station launches a registered mini-game, and every mini-game has a station', () => {
+  const stations = Object.entries(PROP_TYPES).filter(([, d]) => d.behaviour === 'station');
+  assert.ok(stations.length >= 5);
+  for (const [id, d] of stations) assert.ok(MINIGAMES[d.game], `${id} -> ${d.game}`);
+  const used = new Set(stations.map(([, d]) => d.game));
+  for (const g of Object.keys(MINIGAMES)) assert.ok(used.has(g) || g === 'arcade', `${g} has a station`);
+});
+
+test('the function buildings are buildable and every room they use exists with its furniture', () => {
+  for (const key of ['arcade', 'factory', 'workshop', 'postoffice', 'market', 'pond', 'campsite']) assert.ok(BUILDABLE.includes(key), key);
+  for (const t of ['arcade', 'factory', 'workshop', 'postoffice', 'market', 'pond', 'campsite']) {
+    const props = ROOMS[t].props.map(p => p.type);
+    assert.ok(props.length >= 1, t);
+    for (const p of props) assert.ok(PROP_TYPES[p], `${t}: ${p}`);
+  }
+});

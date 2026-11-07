@@ -8,6 +8,8 @@
 //   connector: elevator / stairs / ladder (`connector` = which). Tap to go to another floor of the building:
 //              an elevator reaches every floor with an elevator, stairs and ladders the neighbouring floors
 //              that have the same kind.
+//   station:   a mini-game station (`game` = id in data/minigames.js): tap to play.
+//   mail:      drop an item on it to post it to another building (systems/mail.js).
 //   pets:      tap for a new pet to hop out; drop a pet back on it to send it home.
 //   bell:      tap to ring (shop register). No state.
 //   storage:   drop items on it and they sit in its slots, visible, until dragged out again.
@@ -159,6 +161,86 @@ export const PROP_TYPES = {
       g.fillStyle(0xc99466, 1);
       for (let y = -100; y < 112; y += 32) g.fillRoundedRect(-24, y, 48, 8, 3);                           // rungs
       if (open) g.fillStyle(0xfff3a0, 0.5).fillRoundedRect(-30, -118, 60, 236, 8);
+    },
+  },
+  dock: {
+    name: 'Fishing Dock', mount: 'floor', behaviour: 'station', game: 'fishing', w: 240, h: 96,
+    draw(g, open) {
+      g.fillStyle(0xc99a62, 1).fillRect(-116, -20, 232, 40);                          // the boards
+      g.fillStyle(0xe0b678, 1).fillRect(-116, -20, 232, 12);
+      for (const x of [-60, 0, 60]) g.lineStyle(3, 0).lineBetween(x, -20, x + 2, 20);
+      g.fillStyle(0x8a5e3b, 1).fillRect(-106, 20, 12, 28).fillRect(94, 20, 12, 28).fillRect(-6, 20, 12, 28);   // posts
+      g.fillStyle(0x6aaee8, 1).fillEllipse(78, -30, 40, 18);                          // a bucket
+      g.fillStyle(0xe0605a, 1).fillCircle(40, -26, 7);                               // a bobber on the boards
+      g.lineStyle(5, 0).lineBetween(-80, -22, -40, -92).lineBetween(-40, -92, -10, -80);   // a rod leaning on the rail
+    },
+  },
+  tv: {
+    name: 'TV and Console', mount: 'floor', behaviour: 'station', game: 'arcade', w: 156, h: 150,
+    draw(g, on) {
+      g.fillStyle(0xb98657, 1).fillRoundedRect(-66, 34, 132, 38, 6);                  // the stand
+      g.fillStyle(0x8a5e3b, 1).fillRect(-58, 70, 12, 8).fillRect(46, 70, 12, 8);
+      g.fillStyle(0x4a5368, 1).fillRoundedRect(-54, -56, 108, 88, 12);                // the TV
+      g.fillStyle(on ? 0xa8f0d0 : 0x2e3a4a, 1).fillRoundedRect(-44, -46, 88, 68, 8);   // its screen (lit while playing)
+      g.fillStyle(on ? 0xfff3a0 : 0x56657a, 1).fillTriangle(-6, -34, 8, -34, 1, -48).fillCircle(0, -20, 10);
+      g.fillStyle(0xd0d4dc, 1).fillRoundedRect(-30, 44, 60, 14, 5);                   // the console
+      g.fillStyle(0xe0605a, 1).fillCircle(22, 51, 3);
+      g.lineStyle(3, 0).lineBetween(-10, -56, -26, -76).lineBetween(10, -56, 28, -78);   // rabbit ears
+    },
+  },
+  sewing: {
+    name: 'Sewing Machine', mount: 'floor', behaviour: 'station', game: 'shirt', w: 140, h: 112,
+    draw(g, busy) {
+      g.fillStyle(0xb98657, 1).fillRoundedRect(-62, 14, 124, 30, 6);                  // the table
+      g.fillStyle(0x8a5e3b, 1).fillRect(-54, 42, 10, 14).fillRect(44, 42, 10, 14);
+      g.fillStyle(0xf59ab4, 1).fillRoundedRect(-40, -44, 80, 58, 14);                 // the machine
+      g.fillStyle(0xd0d4dc, 1).fillRoundedRect(8, -52, 32, 14, 6);
+      g.fillStyle(0xe0453d, 1).fillCircle(-22, -50, 9);                               // a spool of thread
+      g.fillStyle(busy ? 0xffd166 : 0xf7efe0, 1).fillRoundedRect(-30, -28, 36, 24, 6);
+      g.lineStyle(4, 0).lineBetween(34, -30, 34, 8);                                  // the needle
+      g.fillStyle(0x6aaee8, 1).fillTriangle(-58, 14, -20, 14, -50, 36);               // cloth draped over the edge
+    },
+  },
+  claytable: {
+    name: 'Clay Table', mount: 'floor', behaviour: 'station', game: 'sculpt', w: 150, h: 104,
+    draw(g, busy) {
+      g.fillStyle(0xb98657, 1).fillRoundedRect(-66, 12, 132, 30, 6);
+      g.fillStyle(0x8a5e3b, 1).fillRect(-58, 40, 10, 18).fillRect(48, 40, 10, 18);
+      g.fillStyle(0xf59ab4, 1).fillEllipse(-28, -2, 54, 34);                          // lumps of clay
+      g.fillStyle(0x6aaee8, 1).fillEllipse(20, 0, 46, 30);
+      g.fillStyle(busy ? 0xffd166 : 0x7bd88f, 1).fillEllipse(-4, -22, 40, 30);
+      g.fillStyle(0xd9a066, 1).fillRoundedRect(36, -14, 8, 36, 3);                    // a modelling tool
+    },
+  },
+  campfire: {
+    name: 'Campfire', mount: 'floor', behaviour: 'station', game: 'camp', w: 120, h: 96,
+    draw(g, lit) {
+      g.fillStyle(0x9a9aa4, 1).fillCircle(-40, 28, 10).fillCircle(-18, 38, 10).fillCircle(8, 40, 10).fillCircle(32, 36, 10).fillCircle(46, 24, 9);   // a ring of stones
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-36, 20, 72, 14, 6).fillRoundedRect(-30, 10, 60, 12, 6);               // logs
+      g.fillStyle(0xf0902f, 1).fillTriangle(-26, 14, 0, -44, 26, 14);
+      g.fillStyle(0xf7d24a, 1).fillTriangle(-14, 14, 4, -22, 16, 14);
+      if (lit) g.fillStyle(0xffffff, 0.35).fillCircle(0, -4, 44);
+    },
+  },
+  mailbox: {
+    name: 'Mailbox', mount: 'floor', behaviour: 'mail', w: 84, h: 136,
+    draw(g, flag) {
+      g.fillStyle(0x8a5e3b, 1).fillRect(-6, 4, 12, 62);                               // the post
+      g.fillStyle(0x6aaee8, 1).fillRoundedRect(-34, -58, 68, 60, 16);                 // the box
+      g.fillStyle(0x4a8fd8, 1).fillRoundedRect(-24, -34, 48, 10, 4);                  // the slot
+      g.fillStyle(0xe0453d, 1).fillRect(32, -50, 6, 34);                              // the flag
+      g.fillStyle(0xe0453d, 1).fillRoundedRect(30, flag ? -66 : -50, 22, 14, 3);
+    },
+  },
+  cart: {
+    name: 'Shopping Cart', mount: 'floor', behaviour: 'dispenser', w: 120, h: 100, sfx: 'creak',
+    pool: ['flour', 'tomato', 'potato', 'corn', 'meat', 'rice', 'fish', 'chocolate', 'egg', 'cheese', 'milk', 'bread'],
+    draw(g, open) {
+      g.fillStyle(0xd0d4dc, 1).fillRoundedRect(-50, -26, 100, 56, 8);                 // the basket
+      g.lineStyle(3, 0).lineBetween(-50, -26, -62, -50).lineBetween(-62, -50, -40, -50);   // the handle
+      for (const x of [-30, -10, 10, 30]) g.lineStyle(2, 0).lineBetween(x, -24, x, 28);
+      g.fillStyle(0x4a5368, 1).fillCircle(-34, 40, 9).fillCircle(34, 40, 9);          // wheels
+      if (open) { g.fillStyle(0x7bd88f, 1).fillEllipse(-14, -30, 30, 18); g.fillStyle(0xe0453d, 1).fillCircle(16, -32, 10); }
     },
   },
   petbasket: {

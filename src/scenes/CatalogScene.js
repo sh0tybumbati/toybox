@@ -8,7 +8,7 @@ const ink = '#4a3426';
 const text = (size, extra = {}) => ({ fontSize: `${size}px`, color: ink, ...extra });
 const BLURB = {
   storage: 'Holds your things', dispenser: 'Hands out surprises', oven: 'Cooks recipes',
-  switch: 'Day / night', bell: 'Ding!', connector: 'Go to another floor', bed: 'Sleepy time', pets: 'Pets live here',
+  switch: 'Day / night', bell: 'Ding!', connector: 'Go to another floor', station: 'A game to play', mail: 'Post things away', bed: 'Sleepy time', pets: 'Pets live here',
 };
 const COLS = 6, CARD_W = 138, CARD_H = 124;
 
