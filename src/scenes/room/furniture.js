@@ -45,8 +45,9 @@ export const furnitureMethods = {
     for (const p of this.props) { p.input.draggable = true; this.attachRemoveButton(p); }
     const add = o => { pin(o).setDepth(9500); this.editUI.push(o); return o; };
     add(inkChip(this, W / 2, 76, '🛋️ Furniture mode — drag to move, ✖ to remove', { size: 21, depth: 9500 }));
-    add(inkButton(this, W / 2 - 110, 120, '➕ Add furniture', { w: 188, fill: COLORS.green, size: 21, depth: 9500, onTap: () => this.openCatalog() }));
-    add(inkButton(this, W / 2 + 110, 120, '✔ Done', { w: 120, fill: COLORS.orange, size: 21, depth: 9500, onTap: () => this.exitEdit() }));
+    add(inkButton(this, W / 2 - 190, 120, '➕ Add furniture', { w: 188, fill: COLORS.green, size: 21, depth: 9500, onTap: () => this.openCatalog() }));
+    add(inkButton(this, W / 2, 120, '🎨 Decorate', { w: 150, fill: COLORS.purple, size: 21, depth: 9500, onTap: () => this.enterDecorate() }));
+    add(inkButton(this, W / 2 + 150, 120, '✔ Done', { w: 110, fill: COLORS.orange, size: 21, depth: 9500, onTap: () => this.exitEdit() }));
     this.sfx.click();
   },
 

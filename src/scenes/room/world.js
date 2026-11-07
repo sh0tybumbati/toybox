@@ -43,6 +43,7 @@ export const worldMethods = {
     cam.fadeOut(180, 43, 34, 51);
     cam.once('camerafadeoutcomplete', () => {
       if (this.editMode) this.exitEdit();
+      if (this.decor) this.exitDecorate();
       this.closeLiftPanel();
       this.characters.forEach(c => { if (c.sleeping) this.wakeUp(c, true); c.goal = null; c.onArrive = null; });
       this.pets.forEach(p => { p.goal = null; });
@@ -154,6 +155,7 @@ export const worldMethods = {
     this.zoneGen = (this.zoneGen || 0) + 1;
     this.binObjs = [];
     this.beams = [];
+    this.sectionGfx = {};
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.worldW, H);
     this.props = [];
@@ -162,7 +164,10 @@ export const worldMethods = {
       const type = ROOMS[sec.type], look = this.sectionLook(sec);
       const g = this.add.graphics().setDepth(0).setPosition(sec.offset, 0);
       this.roomGfx.push(g);
+      this.sectionGfx[sec.id] = { room: g };
       paintRoom(g, type, look, sec.w);
+      const shelfG = this.add.graphics().setDepth(0.05).setPosition(sec.offset, 0);       // shelves sit on top, so repainting the room keeps them
+      this.roomGfx.push(shelfG);
       if (SUNBEAMS && !type.outdoor && look.windows.length) {          // light through the windows, off at night (the ink style has no lighting effects)
         const beam = this.add.graphics().setDepth(0.4).setPosition(sec.offset, 0).setVisible(!this.night);
         paintSunbeams(beam, look.windows, sec.w);
@@ -177,7 +182,7 @@ export const worldMethods = {
 
       for (const entry of this.sectionProps(sec)) this.props.push(this.createProp({ ...entry, x: entry.x + sec.offset }, sec));
 
-      const pen = new InkPen(g, 77 + sec.index);
+      const pen = new InkPen(shelfG, 77 + sec.index);
       for (const sh of shelvesFor(sec.type, sec.w)) {
         if (type.shelfStyle === 'stand') {                                       // posts down to the ground
           pen.fillStyle(0xb98657, 1).fillRect(sh.x + 14, sh.y + 12, 11, 432 - sh.y - 12).fillRect(sh.x + SHELF_W - 25, sh.y + 12, 11, 432 - sh.y - 12);

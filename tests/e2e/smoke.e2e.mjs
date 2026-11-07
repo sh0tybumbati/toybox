@@ -61,7 +61,7 @@ try {
     await wait(300);
     const at = await g.room("const p = r.props.find(p => p.type === 'cabinet'); return [Math.round(p.x), Math.round(p.y)];");
     await g.drag(at[0], at[1] - 60, 760, 380);                      // move it away from the shelves
-    await g.click(590, 118, 500);                                   // Done
+    await g.click(630, 120, 500);                                   // Done
     assert.equal(await g.room('return r.editMode;'), false);
     const cab = await g.room("const p = r.props.find(p => p.type === 'cabinet'); return [Math.round(p.x), Math.round(p.y)];");
     await g.room("r.createItem('ball', 300, 520);");
@@ -71,6 +71,24 @@ try {
     const ball = await g.room("const i = r.props.find(p => p.type === 'cabinet').stored.find(Boolean); return [Math.round(i.x), Math.round(i.y)];");
     await g.drag(ball[0], ball[1], 400, 540, 1500);
     assert.equal(await g.room("return Object.values(r.captureProps()).flat().find(p => p.type === 'cabinet').items.length;"), 0, 'ball taken out');
+  });
+
+  await step('decorating: repaint the walls, change the floor, add a window — and it is still there after a reload', async () => {
+    await g.room('r.detached = true; r.cameras.main.scrollX = 0; r.enterDecorate();');
+    await wait(300);
+    assert.equal(await g.room('return Boolean(r.decor);'), true, 'decorate mode is on');
+    const sec = await g.room('return r.currentSection().id;');
+    await g.room("const s = r.currentSection(); r.setLook(s, l => ({ ...l, wall: 'shells', floor: 'carpet' })); r.setLook(s, l => ({ ...l, windows: [...l.windows, { x: 560, y: 60, w: 150, h: 120 }] }));");
+    const look = await g.room('return r.sectionLook(r.currentSection());');
+    assert.equal(look.wall, 'shells'); assert.equal(look.floor, 'carpet'); assert.equal(look.windows.length, 2);
+    await g.room('r.exitDecorate();');
+    await wait(2200);                                              // autosave
+    await g.open();
+    const kept = await g.room('const l = r.looks; return JSON.stringify(l);');
+    assert.ok(kept.includes('shells') && kept.includes('carpet'), `the look was saved: ${kept}`);
+    assert.ok(kept.includes(`"${sec}"`));
+    await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.setLook(r.currentSection(), l => ({ wall: 'cream', floor: 'honey', windows: [{ x: 90, y: 70, w: 190, h: 150 }] }));");
+    assert.deepEqual(await g.room('return r.looks;'), {}, 'putting everything back leaves nothing stored');
   });
 
   await step('cooking: flour + egg + milk makes pancakes and discovers the recipe', async () => {

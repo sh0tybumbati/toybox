@@ -61,7 +61,7 @@ export const cameraMethods = {
     this.arrows[1].setVisible(max > 0 && cam.scrollX < max - 4);
 
     const sec = this.currentSection();
-    if (sec.id !== this.curSectionId) { this.curSectionId = sec.id; this.updateNav(); this.refreshTip(); }
+    if (sec.id !== this.curSectionId) { this.curSectionId = sec.id; this.updateNav(); if (this.decor) this.buildDecorUI(); else this.refreshTip(); }
   },
 
   // "Home · Floor 1 · Bedroom"

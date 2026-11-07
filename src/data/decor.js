@@ -33,13 +33,13 @@ function boards(g, w, base, rowH, seed) {
 }
 
 export const WALLPAPERS = {
-  cream:    { name: 'Cream',          paint: (g, w) => { g.fillStyle(0xf6e3b0, 1).fillRect(0, 0, w, WALL_H); for (let x = 90; x < w; x += 130) wob(g, { x, y: 0 }, { x: x + noise(x, 1) * 5, y: WALL_H }, lineTone(0xf6e3b0), 2, x); } },
-  sage:     { name: 'Sage',           paint: (g, w) => { g.fillStyle(0xb9dccb, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(shade(0xb9dccb, 0.9), 1).fillPoints(wobblyPoly(rectPoints(0, 332, w, 98), { amp: 2, seed: 4, step: 30 }), true); wob(g, { x: 0, y: 332 }, { x: w, y: 332 }, INK, 3.2, 5, 2.4); } },
-  blush:    { name: 'Blush',          paint: (g, w) => { g.fillStyle(0xf8e1d8, 1).fillRect(0, 0, w, WALL_H); for (let x = 70; x < w; x += 150) wob(g, { x, y: 0 }, { x: x + noise(x, 2) * 4, y: WALL_H }, lineTone(0xf8e1d8), 2, x + 3); } },
-  mintTiles: { name: 'Mint tiles',    paint: (g, w) => { g.fillStyle(0xc4e8dc, 1).fillRect(0, 0, w, WALL_H); for (let x = 0; x < w; x += 62) wob(g, { x, y: 0 }, { x: x + noise(x, 3) * 3, y: WALL_H }, lineTone(0xc4e8dc), 2, x); for (let y = 0; y < WALL_H; y += 62) wob(g, { x: 0, y }, { x: w, y: y + noise(y, 4) * 3 }, lineTone(0xc4e8dc), 2, y + 9); } },
-  pinkStripes: { name: 'Pink stripes', paint: (g, w) => { g.fillStyle(0xf9d9e2, 1).fillRect(0, 0, w, WALL_H); for (let x = 0; x < w; x += 84) patch(g, x, 0, 40, WALL_H, 0xf4b9ca, x, 2.2); } },
-  panel:    { name: 'Lavender panel', paint: (g, w) => { g.fillStyle(0xd7def0, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(shade(0xd7def0, 0.9), 1).fillPoints(wobblyPoly(rectPoints(0, 300, w, 130), { amp: 2, seed: 6, step: 30 }), true); wob(g, { x: 0, y: 300 }, { x: w, y: 300 }, INK, 3.2, 7, 2.4); } },
-  shells:   { name: 'Seashells',      paint: (g, w) => {
+  cream:    { name: 'Cream', swatch: 0xf6e3b0,          paint: (g, w) => { g.fillStyle(0xf6e3b0, 1).fillRect(0, 0, w, WALL_H); for (let x = 90; x < w; x += 130) wob(g, { x, y: 0 }, { x: x + noise(x, 1) * 5, y: WALL_H }, lineTone(0xf6e3b0), 2, x); } },
+  sage:     { name: 'Sage', swatch: 0xb9dccb,           paint: (g, w) => { g.fillStyle(0xb9dccb, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(shade(0xb9dccb, 0.9), 1).fillPoints(wobblyPoly(rectPoints(0, 332, w, 98), { amp: 2, seed: 4, step: 30 }), true); wob(g, { x: 0, y: 332 }, { x: w, y: 332 }, INK, 3.2, 5, 2.4); } },
+  blush:    { name: 'Blush', swatch: 0xf8e1d8,          paint: (g, w) => { g.fillStyle(0xf8e1d8, 1).fillRect(0, 0, w, WALL_H); for (let x = 70; x < w; x += 150) wob(g, { x, y: 0 }, { x: x + noise(x, 2) * 4, y: WALL_H }, lineTone(0xf8e1d8), 2, x + 3); } },
+  mintTiles: { name: 'Mint tiles', swatch: 0xc4e8dc,    paint: (g, w) => { g.fillStyle(0xc4e8dc, 1).fillRect(0, 0, w, WALL_H); for (let x = 0; x < w; x += 62) wob(g, { x, y: 0 }, { x: x + noise(x, 3) * 3, y: WALL_H }, lineTone(0xc4e8dc), 2, x); for (let y = 0; y < WALL_H; y += 62) wob(g, { x: 0, y }, { x: w, y: y + noise(y, 4) * 3 }, lineTone(0xc4e8dc), 2, y + 9); } },
+  pinkStripes: { name: 'Pink stripes', swatch: 0xf4b9ca, paint: (g, w) => { g.fillStyle(0xf9d9e2, 1).fillRect(0, 0, w, WALL_H); for (let x = 0; x < w; x += 84) patch(g, x, 0, 40, WALL_H, 0xf4b9ca, x, 2.2); } },
+  panel:    { name: 'Lavender panel', swatch: 0xd7def0, paint: (g, w) => { g.fillStyle(0xd7def0, 1).fillRect(0, 0, w, WALL_H); g.fillStyle(shade(0xd7def0, 0.9), 1).fillPoints(wobblyPoly(rectPoints(0, 300, w, 130), { amp: 2, seed: 6, step: 30 }), true); wob(g, { x: 0, y: 300 }, { x: w, y: 300 }, INK, 3.2, 7, 2.4); } },
+  shells:   { name: 'Seashells', swatch: 0x9fc9bd,      paint: (g, w) => {
     g.fillStyle(0xf1e6c8, 1).fillRect(0, 0, w, 300);
     for (let y = 0; y < 300; y += 72) for (let x = (y / 72 % 2) * 36; x < w; x += 72) {
       g.fillStyle(0x9fc9bd, 1).fillPoints(blob(x + 36, y + 36, 25, 24, { n: 12, amp: 0.1, seed: x + y }), true);
@@ -48,21 +48,21 @@ export const WALLPAPERS = {
     g.fillStyle(0x93b8b2, 1).fillPoints(wobblyPoly(rectPoints(0, 300, w, WALL_H - 300), { amp: 2, seed: 8, step: 30 }), true);
     wob(g, { x: 0, y: 300 }, { x: w, y: 300 }, INK, 3.2, 9, 2.4);
   } },
-  sky:      { name: 'Sky dots',       paint: (g, w) => { g.fillStyle(0xcfe6f8, 1).fillRect(0, 0, w, WALL_H); for (let y = 30; y < WALL_H; y += 62) for (let x = (y / 62 % 2) * 31; x < w; x += 62) g.fillStyle(0xffffff, 1).fillPoints(blob(x + 20, y, 7, 6, { n: 8, amp: 0.15, seed: x + y }), true); } },
+  sky:      { name: 'Sky dots', swatch: 0xcfe6f8,       paint: (g, w) => { g.fillStyle(0xcfe6f8, 1).fillRect(0, 0, w, WALL_H); for (let y = 30; y < WALL_H; y += 62) for (let x = (y / 62 % 2) * 31; x < w; x += 62) g.fillStyle(0xffffff, 1).fillPoints(blob(x + 20, y, 7, 6, { n: 8, amp: 0.15, seed: x + y }), true); } },
 };
 
 export const FLOORS = {
-  honey:   { name: 'Honey wood',    paint: (g, w) => boards(g, w, 0xd09a62, 40, 1) },
-  oak:     { name: 'Light oak',     paint: (g, w) => boards(g, w, 0xf0cfa8, 42, 2) },
-  warm:    { name: 'Warm wood',     paint: (g, w) => boards(g, w, 0xdcae72, 36, 3) },
-  shop:    { name: 'Boardwalk',     paint: (g, w) => boards(g, w, 0xd2b48c, 32, 4) },
-  checker: { name: 'Checkered',     paint: (g, w) => {
+  honey:   { name: 'Honey wood', swatch: 0xd09a62,    paint: (g, w) => boards(g, w, 0xd09a62, 40, 1) },
+  oak:     { name: 'Light oak', swatch: 0xf0cfa8,     paint: (g, w) => boards(g, w, 0xf0cfa8, 42, 2) },
+  warm:    { name: 'Warm wood', swatch: 0xdcae72,     paint: (g, w) => boards(g, w, 0xdcae72, 36, 3) },
+  shop:    { name: 'Boardwalk', swatch: 0xd2b48c,     paint: (g, w) => boards(g, w, 0xd2b48c, 32, 4) },
+  checker: { name: 'Checkered', swatch: 0xe2d0b4,     paint: (g, w) => {
     for (let row = 0; row < 3; row++) for (let col = 0; col * 62 < w; col++) patch(g, col * 62, WALL_H + row * 57, 62, 57, (row + col) % 2 ? 0xf3e7d2 : 0xe2d0b4, row * 31 + col, 1.4);
     for (let row = 1; row < 3; row++) wob(g, { x: 0, y: WALL_H + row * 57 }, { x: w, y: WALL_H + row * 57 }, lineTone(0xe2d0b4), 2.2, row);
     wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 12, 2.4);
   } },
-  carpet:  { name: 'Purple carpet', paint: (g, w) => { g.fillStyle(0x9a86cc, 1).fillRect(0, WALL_H, w, H - WALL_H); wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 13, 2.4); for (let i = 0; i < 40; i++) inkStroke(g, [{ x: (i * 97) % w, y: WALL_H + 20 + ((i * 53) % 140) }, { x: ((i * 97) % w) + 6, y: WALL_H + 22 + ((i * 53) % 140) }], { w: 2, color: 0x7d6bb0, heavy: 0 }); } },
-  stars:   { name: 'Star tiles',    paint: (g, w) => {
+  carpet:  { name: 'Purple carpet', swatch: 0x9a86cc, paint: (g, w) => { g.fillStyle(0x9a86cc, 1).fillRect(0, WALL_H, w, H - WALL_H); wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 13, 2.4); for (let i = 0; i < 40; i++) inkStroke(g, [{ x: (i * 97) % w, y: WALL_H + 20 + ((i * 53) % 140) }, { x: ((i * 97) % w) + 6, y: WALL_H + 22 + ((i * 53) % 140) }], { w: 2, color: 0x7d6bb0, heavy: 0 }); } },
+  stars:   { name: 'Star tiles', swatch: 0xf3ece8,    paint: (g, w) => {
     g.fillStyle(0xf3ece8, 1).fillRect(0, WALL_H, w, H - WALL_H);
     for (let y = WALL_H + 30; y < H; y += 56) for (let x = (((y - WALL_H) / 56) % 2) * 50; x < w; x += 100) g.fillStyle(0xcdbfb8, 1).fillPoints(wobblyPoly([{ x: x + 50, y: y - 12 }, { x: x + 40, y: y + 6 }, { x: x + 60, y: y + 6 }], { amp: 0.6, seed: x + y, step: 8 }), true);
     wob(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, INK, 5, 14, 2.4);

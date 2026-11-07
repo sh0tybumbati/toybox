@@ -7,7 +7,7 @@ export const walkingMethods = {
   // Called from the scene's pointerdown with the list of things under the pointer.
   // Nothing under it + a spot on the floor = walk there.
   onFloorTap(pointer, over) {
-    if (this.editMode || this.switching || over.length || !isFloorTap(this.worldPoint(pointer).x, this.worldPoint(pointer).y)) return;
+    if (this.editMode || this.decor || this.switching || over.length || !isFloorTap(this.worldPoint(pointer).x, this.worldPoint(pointer).y)) return;
     const at = this.worldPoint(pointer);
     const c = this.walkerFor(at);
     if (!c) return;
