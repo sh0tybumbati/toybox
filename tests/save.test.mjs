@@ -10,9 +10,9 @@ const v1 = {
   floors: { kitchen: [{ k: 'apple', x: 421, l: 552 }], bedroom: [{ k: 'car', x: 301, l: 552 }] },
 };
 
-test('v1 saves migrate to a one-character v12 save with a look', () => {
+test('v1 saves migrate to a one-character v13 save with a look', () => {
   const d = migrate(v1);
-  assert.equal(d.v, 12);
+  assert.equal(d.v, 13);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.deepEqual(d.furniture, {});                // nothing saved yet: rooms use their default layout
@@ -67,7 +67,7 @@ test('party is capped at 6, junk looks are repaired, an empty party gets the def
 
 test('v3 saves gain night=false; night survives sanitize', () => {
   const d = sanitize({ v: 3, room: 'bedroom', characters: [], floors: {} });
-  assert.equal(d.v, 12);
+  assert.equal(d.v, 13);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.equal(d.furniture['0.0'], null);          // nothing saved yet: the room uses its default layout
@@ -147,7 +147,7 @@ test('city saves: custom buildings survive, junk is repaired, a ruined city fall
       { id: 9, rooms: [] },
     ],
   };
-  const d = sanitize({ v: 10, zone: '0.4', city: [home, 'nope', null], characters: [{ id: 'kid', x: 5000 }], floors: {}, furniture: {}, looks: {
+  const d = sanitize({ v: 13, zone: '0.4', city: [home, 'nope', null], characters: [{ id: 'kid', x: 5000 }], floors: {}, furniture: {}, looks: {
     '0.0': { wall: 'shells', floor: 'oak', windows: [{ x: 5, y: 80, w: 100, h: 100 }, { x: 'a' }] }, '0.7': { wall: 'nope', floor: null, windows: null }, '9.9': { wall: 'sage' } } });
   const b = d.city[0];
   assert.equal(b.name, 'My place');

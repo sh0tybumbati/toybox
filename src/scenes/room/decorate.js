@@ -13,6 +13,7 @@ const D = 9600;
 export const decorateMethods = {
   enterDecorate() {
     if (this.switching || this.heldItem || this.characters.some(c => c.held)) return;
+    if (this.editRights() !== 'full') return;
     if (this.editMode) this.exitEdit();
     this.tipEvent('decorate');
     this.hideTip();

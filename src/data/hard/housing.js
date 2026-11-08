@@ -6,7 +6,9 @@ export const HOUSING = {
   flat:  { label: 'Flat',       cycle: 7,  due: 3,  grace: 4, bills: [['rent', 4200], ['utilities', 700]] },
   house: { label: 'House',      cycle: 28, due: 10, grace: 7, bills: [['rent', 24000], ['utilities', 5200]] },
 };
-export const TIERS = Object.keys(HOUSING);
+// A house you own has no landlord to evict you: only the power and water, which go late and cost extra but never end the tenancy.
+HOUSING.owned = { label: 'Your own place', cycle: 28, due: 10, grace: 7, owner: true, bills: [['utilities', 5200]] };
+export const TIERS = ['motel', 'flat', 'house'];                 // the places you can rent
 export const LATE_FEE = 0.1;
 export const BILL_LABELS = { rent: 'Rent', utilities: 'Power and water' };
 export const billLabel = (kind, tier) => (kind === 'rent' && tier === 'house' ? 'Mortgage and tax' : BILL_LABELS[kind] || kind);

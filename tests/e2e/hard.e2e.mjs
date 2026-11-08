@@ -547,8 +547,13 @@ try {
   });
 
   await step('the bank swaps kid-mode coins and cash at 1 coin = 100 cash, both ways', async () => {
-    await g.room('r.openBank();');
-    await wait(900);
+    await g.room("r.clock.minute = 600; r.goToZone('8.0');"); await wait(1500);
+    assert.equal(await g.room("return r.city[8].name;"), 'Bank', 'the bank is a place in town');
+    assert.equal(await g.room("return r.editDisc.visible;"), false, 'a public building cannot be rearranged');
+    await g.room("const c = r.characters[0]; c.x = 480; c.lane = 520; r.queueAction(c, 'bank', r.props.find(p => p.type === 'teller'));");
+    for (let i = 0; i < 40 && !(await active('Bank')); i++) await wait(500);
+    assert.ok(await active('Bank'), 'the counter opens the bank');
+    await wait(500);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 7, 'the kid world has its 7 coins');
     const cash0 = await g.room('return r.cash;');
     window_cash = cash0;
@@ -564,6 +569,34 @@ try {
     assert.equal(await g.room('return r.cash;'), cash0 + 400);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 3);
     await g.ev(`(c => { c.scene.resume('Room'); c.scene.stop(); })(${S('Bank')})`);
+  });
+
+  await step('property: houses are for sale on the map, buying one makes it yours to rebuild and move into; public places cannot be changed', async () => {
+    const keep = await g.room("return { cash: r.cash, home: r.hard.home };");
+    await g.room("r.cash = 1000000; r.hard.home = { slot: 0, tier: 'flat', next: 999 }; r.goToZone('0.0');"); await wait(1500);
+    assert.equal(await g.room('return r.editRights();'), 'furniture', 'in a rented flat you can only arrange your furniture');
+    await g.room('r.openCityMap();'); await wait(1000);
+    const listed = await g.room("return r.city.map((b, i) => b && b.forSale ? i : -1).filter(i => i >= 0);");
+    assert.ok(listed.length >= 3, 'houses are for sale');
+    await g.ev(`(h => h.buy(${listed[0]}))(${S('Hub')})`);
+    const bought = await g.room(`const b = r.city[${listed[0]}]; return { owned: b.owned, sale: b.forSale, cash: r.cash };`);
+    assert.equal(bought.owned, true); assert.equal(bought.sale, undefined); assert.ok(bought.cash < 1000000 && bought.cash > 0);
+    await g.ev(`(h => h.openBuildingMenu(${listed[0]}))(${S('Hub')})`);
+    assert.ok(await g.ev(`${S('Hub')}.popup.length > 0`), 'the menu for an owned house opens');
+    await g.ev(`(h => h.visit(${listed[0]}))(${S('Hub')})`); await wait(1800);
+    assert.equal(await g.room('return r.editRights();'), 'full');
+    assert.equal(await g.room('return r.editDisc.visible;'), true);
+    await g.room('r.enterEdit();');
+    assert.equal(await g.room('return r.editMode;'), true, 'you can rearrange your own house');
+    assert.ok(await g.room("const has = o => Boolean((o.text && /Decorate/.test(o.text)) || (o.list || []).some(has)); return r.editUI.some(has);"), 'with a Decorate button');
+    await g.room('r.exitEdit(); r.moveIn(' + listed[0] + ');');
+    assert.deepEqual(await g.room('return [r.hard.home.tier, r.hard.home.slot];'), ['owned', listed[0]]);
+    await g.room("r.goToZone('1.0');"); await wait(1500);
+    assert.equal(await g.room('return r.editRights();'), '', 'the park is not yours');
+    assert.equal(await g.room('return r.editDisc.visible;'), false);
+    await g.room('r.enterEdit();');
+    assert.equal(await g.room('return Boolean(r.editMode);'), false, 'furniture mode refuses in a public place');
+    await g.room(`r.cash = ${keep.cash}; r.hard.home = ${JSON.stringify(keep.home)}; r.city.forEach(b => { if (b && b.owned && b.name !== 'Flat') delete b.owned; }); r.updateNav();`);
   });
 
   await step('back to kid mode needs the PIN; the kid world is just as it was, and the adult game is kept', async () => {

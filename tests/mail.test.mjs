@@ -6,8 +6,8 @@ import { CATALOG } from '../src/data/items.js';
 
 test('you can post to any building, by lot', () => {
   const city = starterCity();
-  assert.deepEqual(destinations(city).map(d => d.name), ['Home', 'Park', 'Shop']);
-  assert.deepEqual(destinations(city).map(d => d.slot), [0, 1, 2]);
+  assert.deepEqual(destinations(city).map(d => d.name).slice(0, 3), ['Home', 'Park', 'Shop']);
+  assert.deepEqual(destinations(city).map(d => d.slot), city.map((b, i) => (b ? i : -1)).filter(i => i >= 0), 'every building, none of the empty lots');
 });
 
 test('parcels pile up to a limit, and are handed over when you reach their building', () => {
@@ -24,7 +24,7 @@ test('parcels pile up to a limit, and are handed over when you reach their build
 
 test('saved parcels drop junk: unknown items, buildings that are gone, extras', () => {
   const city = starterCity();
-  const clean = cleanParcels([{ k: 'apple', to: 1 }, { k: 'ghost', to: 1 }, { k: 'ball', to: 9 }, null, { k: 'cake', to: 'x' }], k => Boolean(CATALOG[k]), city);
+  const clean = cleanParcels([{ k: 'apple', to: 1 }, { k: 'ghost', to: 1 }, { k: 'ball', to: 5 }, null, { k: 'cake', to: 'x' }], k => Boolean(CATALOG[k]), city);
   assert.deepEqual(clean, [{ k: 'apple', to: 1 }]);
   assert.deepEqual(cleanParcels('nope', () => true, city), []);
 });

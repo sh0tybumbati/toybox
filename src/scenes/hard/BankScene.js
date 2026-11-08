@@ -3,7 +3,7 @@ import { W } from '../../config.js';
 import { COLORS, TEXT, inkButton } from '../../ui.js';
 import { exchange } from '../../systems/mode.js';
 import { saveStore } from '../../systems/save.js';
-import { backdrop, text } from './overlay.js';
+import { backdrop, leave, text } from './overlay.js';
 
 export default class BankScene extends Phaser.Scene {
   constructor() { super('Bank'); }
@@ -11,7 +11,7 @@ export default class BankScene extends Phaser.Scene {
   init(data) { this.room = data.room; this.kid = null; }
 
   async create() {
-    backdrop(this, 620, 440, 'Bank', { seed: 46 });
+    backdrop(this, 620, 440, 'Bank', { seed: 46, onClose: () => this.close() });
     text(this, W / 2, 168, '1 coin = 100 cash, both ways', 20, { color: '#7a6a58' }).setOrigin(0.5);
     this.cashText = text(this, W / 2, 218, '', 30, { fontStyle: 'bold' }).setOrigin(0.5);
     this.coinText = text(this, W / 2, 262, 'Kid-mode coins: …', 26).setOrigin(0.5);
@@ -23,6 +23,8 @@ export default class BankScene extends Phaser.Scene {
     this.kid = await saveStore.load();                         // the kid world's coins live in its own save
     this.show();
   }
+
+  close() { this.room.billsClosed(); leave(this); }
 
   show() {
     this.cashText.setText(`Cash: $ ${this.room.cash.toLocaleString('en-US')}`);

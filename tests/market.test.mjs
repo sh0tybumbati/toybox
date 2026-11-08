@@ -26,6 +26,6 @@ test('groceries remember which building the van set off from', () => {
   assert.deepEqual(p, [{ k: 'milk', to: 2, from: 1 }, { k: 'ball', to: 2 }]);
   assert.deepEqual(takeParcels(p, 2).delivered, ['milk', 'ball']);
   const city = starterCity();
-  assert.deepEqual(cleanParcels([{ k: 'milk', to: 2, from: 1 }, { k: 'milk', to: 2, from: 9 }], k => Boolean(CATALOG[k]), city),
+  assert.deepEqual(cleanParcels([{ k: 'milk', to: 2, from: 1 }, { k: 'milk', to: 2, from: 5 }], k => Boolean(CATALOG[k]), city),
     [{ k: 'milk', to: 2, from: 1 }, { k: 'milk', to: 2 }]);
 });

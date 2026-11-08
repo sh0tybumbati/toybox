@@ -4,7 +4,7 @@
 // city:     array of buildings / null, one per lot (data/buildings.js SLOTS)
 // zone:     "slot.floorId" — one floor of one building, a single wide panorama
 // section:  one room of a zone, with a stable id "slot.roomId"
-import { BLUEPRINTS } from '../data/buildings.js';
+import { BLUEPRINTS, isHouse } from '../data/buildings.js';
 import { ROOMS } from '../data/rooms.js';
 
 export const zoneKey = (slot, floorId) => `${slot}.${floorId}`;
@@ -92,6 +92,7 @@ export function whyNotBuild(city, slot, blueprint, coins) {
 // Can the building on lot `slot` be knocked down? '' if yes, else why not. The last building stays (somewhere has to be home).
 export function whyNotDemolish(city, slot) {
   if (!city[slot]) return 'nothing there';
+  if (!isHouse(city[slot])) return 'public places stay';
   if (city.filter(Boolean).length <= 1) return 'the last building stays';
   return '';
 }

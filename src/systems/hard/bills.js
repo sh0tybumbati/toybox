@@ -17,7 +17,7 @@ export function tickBills(h, day) {
   }
   if (issued) events.push({ type: 'issued', count: issued });
   for (const b of h.bills) if (!b.late && day > b.due) { b.late = true; b.amount += Math.ceil(b.amount * LATE_FEE); events.push({ type: 'late', bill: b }); }
-  if (h.bills.some(b => day > b.due + t.grace)) {                    // too far behind: the locks are changed and what is owed becomes debt
+  if (!t.owner && h.bills.some(b => day > b.due + t.grace)) {                    // too far behind: the locks are changed and what is owed becomes debt
     const owed = totalDue(h.bills);
     events.push({ type: 'evicted', slot: h.home.slot, owed });
     h.debt += owed; h.bills = []; h.lockedOut = h.home.slot; h.home = null;

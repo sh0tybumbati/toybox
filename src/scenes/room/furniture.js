@@ -8,6 +8,7 @@ import { spriteImage } from '../../systems/itemTextures.js';
 import { flushOven } from '../../systems/cooking.js';
 import { floatText, puff } from '../../systems/interactions.js';
 import { tapProp } from '../../systems/props.js';
+import { editRights } from '../../systems/hard/property.js';
 import { MAX_FURNITURE, clampPlacement } from '../../systems/slots.js';
 import { releaseAll, slotWorld } from '../../systems/storage.js';
 
@@ -31,6 +32,13 @@ export const furnitureMethods = {
 
   furnitureLimit() { return MAX_FURNITURE * this.zone.sections.length; },
 
+  // What you may change here: kid mode, anything; adult mode, everything you own or only the furniture of the home you rent.
+  editRights() {
+    if (!this.hard) return 'full';
+    const slot = this.zoneSlot();
+    return editRights(this.city[slot], this.hard.home, slot);
+  },
+
   toggleEdit() {
     if (this.editMode) this.exitEdit();
     else this.enterEdit();
@@ -38,6 +46,7 @@ export const furnitureMethods = {
 
   enterEdit() {
     if (this.switching || this.heldItem || this.characters.some(c => c.held)) return;
+    if (!this.editRights()) { this.sfx.nope(); this.notice('This place is not yours to change'); return; }
     this.editMode = true;
     this.dismountAll(true);                                 // gear is for moving now, not riding
     this.tipEvent('furniture');
@@ -47,7 +56,7 @@ export const furnitureMethods = {
     const add = o => { pin(o).setDepth(9500); this.editUI.push(o); return o; };
     add(inkChip(this, W / 2, 76, '🛋️ Furniture mode — drag to move, ✖ to remove', { size: 21, depth: 9500 }));
     add(inkButton(this, W / 2 - 190, 120, '➕ Add furniture', { w: 188, fill: COLORS.green, size: 21, depth: 9500, onTap: () => this.openCatalog() }));
-    add(inkButton(this, W / 2, 120, '🎨 Decorate', { w: 150, fill: COLORS.purple, size: 21, depth: 9500, onTap: () => this.enterDecorate() }));
+    if (this.editRights() === 'full') add(inkButton(this, W / 2, 120, '🎨 Decorate', { w: 150, fill: COLORS.purple, size: 21, depth: 9500, onTap: () => this.enterDecorate() }));
     add(inkButton(this, W / 2 + 150, 120, '✔ Done', { w: 110, fill: COLORS.orange, size: 21, depth: 9500, onTap: () => this.exitEdit() }));
     this.sfx.click();
   },

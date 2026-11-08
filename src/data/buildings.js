@@ -9,14 +9,14 @@
 export const ROOM_W = { min: 720, max: 1920, step: 120, def: 960 };
 export const MAX_FLOORS = 5;
 export const MAX_ROOMS = 5;               // per floor
-export const BUILD_COST = { room: 4, floor: 12 };
+export const BUILD_COST = { room: 0, floor: 0 };            // kid mode: building is free (hard mode prices it in cash, data/hard/property.js)
 
 const stairs = x => ({ type: 'stairs', x, y: 434 });
 const room = (id, type, extra) => ({ id, type, w: ROOM_W.def, ...(extra ? { extra } : {}) });
 
 export const BLUEPRINTS = {
   home: {
-    name: 'Home', cost: null, unique: true,
+    name: 'Home', house: true, cost: null, unique: true,
     exterior: { wall: 'butter', trim: 'white', roofStyle: 'gable', roofColor: 'terracotta' },
     floors: [
       { id: 0, rooms: [room(0, 'kitchen'), room(1, 'living', [stairs(860)])] },
@@ -24,7 +24,7 @@ export const BLUEPRINTS = {
     ],
   },
   flat: {                                     // hard mode only: a small rented flat
-    name: 'Flat', cost: null, unique: true,
+    name: 'Flat', house: true, cost: null, unique: true,
     exterior: { wall: 'sky', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
     floors: [{ id: 0, rooms: [room(0, 'kitchen'), room(1, 'bedroom')] }],
   },
@@ -38,13 +38,18 @@ export const BLUEPRINTS = {
     exterior: { wall: 'grey', trim: 'black', roofStyle: 'none', roofColor: 'slate' },
     floors: [{ id: 0, rooms: [room(0, 'alley')] }],
   },
+  bank: {                                     // hard mode only: swap coins and cash (and, later, loans)
+    name: 'Bank', cost: null, unique: true,
+    exterior: { wall: 'stone', trim: 'navy', roofStyle: 'flat', roofColor: 'slate' },
+    floors: [{ id: 0, rooms: [room(0, 'bank')] }],
+  },
   shelter: {                                  // hard mode only: a night shelter
     name: 'Shelter', cost: null, unique: true,
     exterior: { wall: 'blush', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
     floors: [{ id: 0, rooms: [room(0, 'shelter')] }],
   },
   park: {
-    name: 'Park', cost: 10,
+    name: 'Park', cost: null,
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
     floors: [{ id: 0, rooms: [room(0, 'park'), room(1, 'playground')] }],
   },
@@ -59,12 +64,12 @@ export const BLUEPRINTS = {
     floors: [{ id: 0, rooms: [room(0, 'shop')] }],
   },
   cottage: {
-    name: 'Cottage', cost: 15,
+    name: 'Cottage', house: true, cost: 0,
     exterior: { wall: 'sky', trim: 'white', roofStyle: 'gable', roofColor: 'slate' },
     floors: [{ id: 0, rooms: [room(0, 'living'), room(1, 'kitchen'), room(2, 'bedroom')] }],
   },
   apartments: {
-    name: 'Apartments', cost: 40,
+    name: 'Apartments', house: true, cost: 0,
     exterior: { wall: 'brick', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
     floors: [
       { id: 0, rooms: [room(0, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(1, 'living'), room(2, 'kitchen')] },
@@ -73,52 +78,55 @@ export const BLUEPRINTS = {
     ],
   },
   arcade: {
-    name: 'Arcade', cost: 25,
+    name: 'Arcade', cost: null,
     exterior: { wall: 'lilac', trim: 'navy', roofStyle: 'flat', roofColor: 'plum' },
     floors: [{ id: 0, rooms: [room(0, 'arcade')] }],
   },
   factory: {
-    name: 'Shirt Factory', cost: 30,
+    name: 'Shirt Factory', cost: null,
     exterior: { wall: 'stone', trim: 'black', roofStyle: 'flat', roofColor: 'slate' },
     floors: [{ id: 0, rooms: [room(0, 'factory')] }],
   },
   workshop: {
-    name: 'Toy Workshop', cost: 30,
+    name: 'Toy Workshop', cost: null,
     exterior: { wall: 'mint', trim: 'brown', roofStyle: 'gable', roofColor: 'sunny' },
     floors: [{ id: 0, rooms: [room(0, 'workshop')] }],
   },
   postoffice: {
-    name: 'Post Office', cost: 20,
+    name: 'Post Office', cost: null,
     exterior: { wall: 'sky', trim: 'white', roofStyle: 'gable', roofColor: 'berry' },
     floors: [{ id: 0, rooms: [room(0, 'postoffice')] }],
   },
   market: {
-    name: 'Supermarket', cost: 25,
+    name: 'Supermarket', cost: null,
     exterior: { wall: 'butter', trim: 'white', roofStyle: 'flat', roofColor: 'forest' },
     floors: [{ id: 0, rooms: [room(0, 'market'), room(1, 'market')] }],
   },
   ikea: {
-    name: 'Furniture Store', cost: 30,
+    name: 'Furniture Store', cost: null,
     exterior: { wall: 'sky', trim: 'butter', roofStyle: 'flat', roofColor: 'butter' },
     floors: [{ id: 0, rooms: [room(0, 'ikea')] }],
   },
   pond: {
-    name: 'Fishing Pond', cost: 15,
+    name: 'Fishing Pond', cost: null,
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
     floors: [{ id: 0, rooms: [room(0, 'pond')] }],
   },
   campsite: {
-    name: 'Campsite', cost: 15,
+    name: 'Campsite', cost: null,
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
     floors: [{ id: 0, rooms: [room(0, 'campsite')] }],
   },
   blank: {
-    name: 'New build', cost: 8,
+    name: 'New build', house: true, cost: 0,
     exterior: { wall: 'cream', trim: 'white', roofStyle: 'gable', roofColor: 'terracotta' },
     floors: [{ id: 0, rooms: [room(0, 'empty')] }],
   },
 };
-export const BUILDABLE = Object.keys(BLUEPRINTS).filter(k => BLUEPRINTS[k].cost != null);
+// Houses are all you can build; every public place (shops, arcade, park...) is already in town.
+export const BUILDABLE = Object.keys(BLUEPRINTS).filter(k => BLUEPRINTS[k].house && BLUEPRINTS[k].cost != null);
+// A building you can live in (flag kept on the building; older saves are recognised by their blueprint's name).
+export const isHouse = b => Boolean(b && (b.house || Object.values(BLUEPRINTS).some(bp => bp.house && bp.name === b.name)));
 
 // A fresh, independent copy of a blueprint (the city stores plain building data).
 export const newBuilding = key => JSON.parse(JSON.stringify(BLUEPRINTS[key]));
@@ -127,18 +135,22 @@ export const newBuilding = key => JSON.parse(JSON.stringify(BLUEPRINTS[key]));
 // winding paths. `x, y` = the middle of the dirt plot; a building stands on it with its base ~40px lower.
 // Slot i holds a building or null (an empty plot you can build on).
 export const SLOTS = [
-  { x: 125, y: 190 }, { x: 340, y: 178 }, { x: 565, y: 192 }, { x: 790, y: 180 },
-  { x: 835, y: 362 }, { x: 610, y: 376 }, { x: 385, y: 356 }, { x: 150, y: 370 },
-  { x: 150, y: 520 }, { x: 375, y: 530 }, { x: 600, y: 522 }, { x: 825, y: 532 },
+  { x: 100, y: 112 }, { x: 290, y: 112 }, { x: 480, y: 112 }, { x: 670, y: 112 }, { x: 860, y: 112 },
+  { x: 100, y: 242 }, { x: 290, y: 242 }, { x: 480, y: 242 }, { x: 670, y: 242 }, { x: 860, y: 242 },
+  { x: 100, y: 372 }, { x: 290, y: 372 }, { x: 480, y: 372 }, { x: 670, y: 372 }, { x: 860, y: 372 },
+  { x: 100, y: 502 }, { x: 290, y: 502 }, { x: 480, y: 502 }, { x: 670, y: 502 }, { x: 860, y: 502 },
 ];
-// Dirt paths: lists of waypoints that get smoothed into winding tracks.
+// Dirt paths: lists of waypoints that get smoothed into winding tracks (three streets and a few lanes between them).
 export const PATHS = [
-  [{ x: -20, y: 300 }, { x: 140, y: 268 }, { x: 290, y: 292 }, { x: 450, y: 266 }, { x: 610, y: 294 }, { x: 770, y: 266 }, { x: 980, y: 298 }],
-  [{ x: -20, y: 436 }, { x: 150, y: 458 }, { x: 300, y: 442 }, { x: 470, y: 464 }, { x: 620, y: 440 }, { x: 790, y: 460 }, { x: 980, y: 444 }],
-  [{ x: 450, y: 266 }, { x: 505, y: 330 }, { x: 482, y: 400 }, { x: 470, y: 464 }],
-  [{ x: 140, y: 268 }, { x: 70, y: 200 }, { x: 40, y: 110 }, { x: 60, y: 20 }],
-  [{ x: 770, y: 266 }, { x: 860, y: 205 }, { x: 905, y: 120 }, { x: 890, y: 20 }],
+  [{ x: -20, y: 204 }, { x: 150, y: 190 }, { x: 300, y: 206 }, { x: 480, y: 190 }, { x: 660, y: 206 }, { x: 830, y: 190 }, { x: 980, y: 204 }],
+  [{ x: -20, y: 334 }, { x: 150, y: 320 }, { x: 300, y: 336 }, { x: 480, y: 320 }, { x: 660, y: 336 }, { x: 830, y: 320 }, { x: 980, y: 334 }],
+  [{ x: -20, y: 464 }, { x: 150, y: 450 }, { x: 300, y: 466 }, { x: 480, y: 450 }, { x: 660, y: 466 }, { x: 830, y: 450 }, { x: 980, y: 464 }],
+  [{ x: 195, y: 190 }, { x: 205, y: 260 }, { x: 192, y: 336 }, { x: 204, y: 400 }, { x: 195, y: 466 }],
+  [{ x: 575, y: 190 }, { x: 565, y: 260 }, { x: 578, y: 336 }, { x: 566, y: 400 }, { x: 575, y: 466 }],
+  [{ x: 765, y: 190 }, { x: 775, y: 260 }, { x: 762, y: 336 }, { x: 774, y: 400 }, { x: 765, y: 466 }],
 ];
 
-export const starterCity = () => [newBuilding('home'), newBuilding('park'), newBuilding('shop'), ...Array(SLOTS.length - 3).fill(null)];
+// The starter town: every public place is already built (slot -> blueprint); the empty lots are for houses.
+export const TOWN = { 0: 'home', 1: 'park', 2: 'shop', 3: 'market', 4: 'postoffice', 6: 'arcade', 7: 'factory', 9: 'workshop', 10: 'pond', 11: 'ikea', 12: 'campsite' };
+export const starterCity = () => SLOTS.map((_, i) => (TOWN[i] ? newBuilding(TOWN[i]) : null));
 export const START_ZONE = '0.1';                              // the bedroom upstairs at home (floor id 1)

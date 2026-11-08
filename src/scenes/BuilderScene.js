@@ -17,6 +17,7 @@ const CONNECTORS = [
   { kind: 'stairs', label: '🪜 Stairs', blurb: 'this floor + above' },
   { kind: 'ladder', label: '🪜 Ladder', blurb: 'this floor + above' },
 ];
+const HARD_COST = { room: 300, floor: 900 };           // in coins, so $30,000 a room and $90,000 a floor in an adult game
 const D = 10;                            // everything here sits above the map beneath
 
 export default class BuilderScene extends Phaser.Scene {
@@ -29,6 +30,8 @@ export default class BuilderScene extends Phaser.Scene {
   }
 
   get b() { return this.room.city[this.slot]; }
+  get cost() { return this.room.hard ? HARD_COST : BUILD_COST; }
+  tag(n) { return this.room.hard ? ` $${n / 10}k` : n ? ` 🪙${n}` : ''; }
 
   create() {
     this.input.keyboard.on('keydown-ESC', () => this.close());
@@ -45,7 +48,7 @@ export default class BuilderScene extends Phaser.Scene {
     add(inkPanel(this, W / 2, H / 2, 920, 566, { depth: D, seed: 8 }));
     this.g = add(this.add.graphics()).setDepth(D + 0.5);                     // all the flat shapes of this render, above the panel
     add(richText(this, b.name, { fontSize: '34px', fontStyle: 'bold' })).setPosition(48 + 70, 46);
-    add(inkChip(this, W / 2 + 120, 46, `🪙 ${this.room.coins}`, { size: 24, depth: D, h: 40, fill: CARD }));
+    add(inkChip(this, W / 2 + 120, 46, this.room.hard ? `$ ${this.room.cash.toLocaleString('en-US')}` : `🪙 ${this.room.coins}`, { size: 24, depth: D, h: 40, fill: CARD }));
     this.ui.push(iconButton(this, W - 60, 46, '✖', () => this.close(), D));
 
     // left: the model on a bit of ground, and the paint box for the outside
@@ -131,12 +134,12 @@ export default class BuilderScene extends Phaser.Scene {
     add(this.add.text(424, y - 10, 'Add a room to this floor:', { fontSize: '18px', color: TEXT }));
     x = 424; y += 30;
     for (const type of Object.keys(ROOMS).filter(isBuildableRoom)) {
-      const t = this.btn(add, x, y, `${ROOMS[type].label.split(' ')[1]} 🪙${BUILD_COST.room}`, COLORS.green, () => this.buyRoom(floor.id, type), 16);
+      const t = this.btn(add, x, y, `${ROOMS[type].label.split(' ')[1]}${this.tag(this.cost.room)}`, COLORS.green, () => this.buyRoom(floor.id, type), 16);
       if (x + t.width > 900) { x = 424; y += 38; t.y = y; }                  // wrap to a second row
       place(t);
     }
     x = 424; y += 40;
-    place(this.btn(add, x, y, `➕ New floor 🪙${BUILD_COST.floor}`, COLORS.green, () => this.buyFloor(), 18));
+    place(this.btn(add, x, y, `➕ New floor${this.tag(this.cost.floor)}`, COLORS.green, () => this.buyFloor(), 18));
     place(this.btn(add, x, y, '🗑 This floor', COLORS.red, () => this.act(() => removeFloor(b, floor.id)), 18));
     y += 34;
     add(this.add.text(424, y - 10, 'Link floors from this room (stairs and ladders reach the floor above):', { fontSize: '17px', color: TEXT }));
@@ -149,7 +152,7 @@ export default class BuilderScene extends Phaser.Scene {
   }
 
   spend(cost) {
-    if (this.room.coins < cost) { this.room.sfx.nope(); floatText(this, W / 2, H - 30, `${cost - this.room.coins} more coins`, 24); return false; }
+    if (this.room.coins < cost) { this.room.sfx.nope(); floatText(this, W / 2, H - 30, this.room.hard ? `$${((cost - this.room.coins) * 100).toLocaleString('en-US')} more` : `${cost - this.room.coins} more coins`, 24); return false; }
     this.room.coins -= cost;
     this.room.sfx.coin();
     return true;
@@ -158,9 +161,9 @@ export default class BuilderScene extends Phaser.Scene {
   buyRoom(floorId, type) {
     const f = this.b.floors.find(x => x.id === floorId);
     if (f.rooms.length >= MAX_ROOMS) { this.room.sfx.nope(); floatText(this, W / 2, H - 30, 'That floor is full', 24); return; }
-    if (!this.spend(BUILD_COST.room)) return;
+    if (!this.spend(this.cost.room)) return;
     const made = addRoom(this.b, floorId, type);
-    if (!made) { this.room.coins += BUILD_COST.room; this.room.sfx.nope(); floatText(this, W / 2, H - 30, 'No more room on this floor', 24); return; }
+    if (!made) { this.room.coins += this.cost.room; this.room.sfx.nope(); floatText(this, W / 2, H - 30, 'No more room on this floor', 24); return; }
     this.selRoom = made.id;
     this.room.dirty = true;
     this.render();
@@ -168,7 +171,7 @@ export default class BuilderScene extends Phaser.Scene {
 
   buyFloor() {
     if (this.b.floors.length >= MAX_FLOORS) { this.room.sfx.nope(); floatText(this, W / 2, H - 30, `Buildings top out at ${MAX_FLOORS} floors`, 24); return; }
-    if (!this.spend(BUILD_COST.floor)) return;
+    if (!this.spend(this.cost.floor)) return;
     const f = addFloor(this.b);
     this.selRoom = f.rooms[0].id;
     this.room.dirty = true;

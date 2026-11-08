@@ -22,8 +22,8 @@ export const hudMethods = {
     disc(0, 'icon-gear', () => this.openSettings());
     disc(1, 'icon-palette', () => this.openCreator());
     disc(2, 'icon-book', () => this.openBook());
-    disc(3, 'icon-furniture', () => this.toggleEdit());
-    if (this.hard) disc(4, 'coin', () => this.openBank());
+    this.editDisc = disc(3, 'icon-furniture', () => this.toggleEdit());
+    this.updateNav();
   },
 
   // Settings' "start over": wipes the saved toybox (an adult game falls back to the kid world).
@@ -36,6 +36,7 @@ export const hudMethods = {
 
   updateNav() {
     this.roomLabel.setLabel(this.zoneLabel());
+    if (this.editDisc) this.editDisc.setVisible(this.editRights() !== '');             // adult mode: only your own places can be changed
     if (this.coinText) this.coinText.setLabel(this.hard ? `$ ${this.cash.toLocaleString('en-US')}` : `🪙 ${this.coins}`);
     this.refreshPrices();
   },
@@ -49,12 +50,6 @@ export const hudMethods = {
     if (this.switching || this.decor) return;
     this.scene.pause();
     this.scene.launch('Settings', { room: this });
-  },
-
-  openBank() {
-    if (this.switching) return;
-    this.scene.pause();
-    this.scene.launch('Bank', { room: this });
   },
 
   openBook() {

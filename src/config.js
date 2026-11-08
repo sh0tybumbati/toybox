@@ -17,7 +17,7 @@ export const MAX_FLOOR_ITEMS = 20;      // oldest floor clutter fades away beyon
 // Trash bin: anything that lands on the floor inside this footprint is binned.
 export const BIN = { x: 880, lane: 565, minLane: 500, halfW: 46 };
 
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 
 // Text defaults to this stack so emoji look the same everywhere (index.html loads the font).
 export const FONT = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", cursive';

@@ -10,7 +10,7 @@ test('every blueprint room exists, and the starter city is shaped like the map',
   const city = starterCity();
   assert.equal(city.length, SLOTS.length);
   assert.ok(zoneInfo(city, START_ZONE), 'the start zone exists');
-  assert.ok(BUILDABLE.length >= 4 && BUILDABLE.includes('blank'));
+  assert.ok(BUILDABLE.length >= 3 && BUILDABLE.includes('blank'), 'houses can be built');
   assert.notEqual(city[0], starterCity()[0], 'each city gets its own copies');
 });
 
@@ -45,7 +45,7 @@ test('floors list top first; entry is the ground floor', () => {
   const city = starterCity();
   assert.deepEqual(floorsOf(city, '0.0').map(f => f.label), ['Floor 1', 'Ground floor']);
   assert.equal(entryZone(city, 0), '0.0');
-  assert.equal(entryZone(city, 7), null);
+  assert.equal(entryZone(city, 5), null);
 });
 
 test('connectors: elevators reach any floor with an elevator; stairs and ladders only neighbours', () => {
@@ -69,8 +69,8 @@ test('section ids are unique across the whole city', () => {
 
 test('building: needs an empty lot, enough coins and respects unique buildings', () => {
   const city = starterCity();
-  assert.equal(whyNotBuild(city, 5, 'cottage', 15), '');
-  assert.equal(whyNotBuild(city, 5, 'cottage', 5), '10 more coins');
+  assert.equal(whyNotBuild(city, 5, 'cottage', 0), '', 'houses are free in kid mode');
+  assert.equal(whyNotBuild(city, 5, 'arcade', 99), 'not for sale', 'public places come built');
   assert.equal(whyNotBuild(city, 0, 'cottage', 99), 'lot is taken');
   assert.equal(whyNotBuild(city, 5, 'shop', 99), 'not for sale');
   assert.equal(whyNotBuild(city, 99, 'cottage', 99), 'no such lot');
@@ -109,7 +109,7 @@ test('every station launches a registered mini-game, and every mini-game has a s
 });
 
 test('the function buildings are buildable and every room they use exists with its furniture', () => {
-  for (const key of ['arcade', 'factory', 'workshop', 'postoffice', 'market', 'pond', 'campsite']) assert.ok(BUILDABLE.includes(key), key);
+  for (const key of ['arcade', 'factory', 'workshop', 'postoffice', 'market', 'pond', 'campsite']) assert.ok(starterCity().some(b => b && b.name === BLUEPRINTS[key].name), `${key} is already in town`);
   for (const t of ['arcade', 'factory', 'workshop', 'postoffice', 'market', 'pond', 'campsite']) {
     const props = ROOMS[t].props.map(p => p.type);
     assert.ok(props.length >= 1, t);
@@ -122,7 +122,9 @@ import { whyNotDemolish, demolishRefund } from '../src/systems/world.js';
 test('demolishing: there must be a building, and the last one stays', () => {
   const city = starterCity();
   assert.equal(whyNotDemolish(city, 5), 'nothing there');
-  assert.equal(whyNotDemolish(city, 1), '');
+  assert.equal(whyNotDemolish(city, 1), 'public places stay', 'only houses can be knocked down');
+  city[5] = newBuilding('cottage');
+  assert.equal(whyNotDemolish(city, 5), '');
   const lone = city.map((b, i) => (i === 0 ? b : null));
   assert.equal(whyNotDemolish(lone, 0), 'the last building stays');
 });

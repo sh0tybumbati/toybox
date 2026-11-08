@@ -4,7 +4,8 @@
 import { W, H } from '../config.js';
 import { CARD, COLORS, TEXT, iconButton, inkButton, inkChip, inkPanel, richText } from '../ui.js';
 import { spriteImage } from '../systems/itemTextures.js';
-import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, newBuilding } from '../data/buildings.js';
+import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, isHouse, newBuilding } from '../data/buildings.js';
+import { buildOnLot, buyHouse, editRights, lotPrice, shortMoney, whyNotBuyHouse, whyNotBuyLot } from '../systems/hard/property.js';
 import { paintBuildingMini } from '../data/exterior.js';
 import { INK, blob, inkFill, inkStroke, smoothPath } from '../data/ink.js';
 import { MAP_COLORS, paintPlot, paintScenery, paintSign, paintTerrain } from '../data/mapart.js';
@@ -14,7 +15,7 @@ import { floatText } from '../systems/interactions.js';
 const HAND = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", cursive';
 const label = { fontFamily: HAND, color: '#3a2a22', fontStyle: 'bold' };
 const RIVER = [{ x: -20, y: 584 }, { x: 160, y: 566 }, { x: 330, y: 592 }, { x: 520, y: 570 }, { x: 700, y: 594 }, { x: 980, y: 572 }];
-const LOT = { w: 150, h: 130 };
+const LOT = { w: 132, h: 108 };
 
 export default class HubScene extends Phaser.Scene {
   constructor() { super('Hub'); }
@@ -38,7 +39,7 @@ export default class HubScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-ESC', () => (this.popup.length ? this.closePopup() : this.close()));
   }
 
-  refreshCoins() { this.coinText.setLabel(`🪙 ${this.room.coins}`); }
+  refreshCoins() { this.coinText.setLabel(this.room.hard ? `$ ${this.room.cash.toLocaleString('en-US')}` : `🪙 ${this.room.coins}`); }
 
   // One plot per lot: a model of the building on flat dirt, or an empty dashed plot with a sign.
   drawLots() {
@@ -52,15 +53,19 @@ export default class HubScene extends Phaser.Scene {
       const hit = this.add.rectangle(pos.x, pos.y + 4, LOT.w, LOT.h, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       this.lots.add(hit);
       if (!b) {
-        const board = paintSign(g, pos.x + 22, pos.y + 56, 84, 36, i);
-        this.lots.add(this.add.text(board.x, board.y, 'BUILD\nHERE', { ...label, fontSize: '15px', align: 'center', lineSpacing: -2 }).setOrigin(0.5));
+        const board = paintSign(g, pos.x + 14, pos.y + 44, 66, 30, i);
+        this.lots.add(this.add.text(board.x, board.y, this.room.hard ? 'FOR\nSALE' : 'BUILD\nHERE', { ...label, fontSize: '12px', align: 'center', lineSpacing: -3 }).setOrigin(0.5));
         hit.on('pointerdown', () => this.openBuildPicker(i));
         return;
       }
       paintBuildingMini(g, b, pos.x, pos.y + 42, LOT.w - 14, LOT.h - 8, i * 13 + 5);
-      this.lots.add(inkChip(this, pos.x, pos.y + 64, b.name, { size: 19, h: 30, fill: 0xf3e3b8, depth: 5, seed: i + 30 }));
+      this.lots.add(inkChip(this, pos.x, pos.y + 58, b.name, { size: 16, h: 26, fill: b.owned ? 0xcfeec0 : 0xf3e3b8, depth: 5, seed: i + 30 }));
+      if (b.forSale) {
+        const board = paintSign(g, pos.x + 44, pos.y + 22, 58, 26, i + 7);
+        this.lots.add(this.add.text(board.x, board.y, 'FOR\nSALE', { ...label, fontSize: '11px', align: 'center', lineSpacing: -3 }).setOrigin(0.5));
+      }
       if (i === here) {
-        const pin = spriteImage(this, 'icon-pin', pos.x, pos.y - 70, 34);
+        const pin = spriteImage(this, 'icon-pin', pos.x, pos.y - 64, 30);
         this.tweens.add({ targets: pin, y: pin.y - 7, duration: 600, yoyo: true, repeat: -1 });
         this.lots.add(pin);
       }
@@ -123,38 +128,52 @@ export default class HubScene extends Phaser.Scene {
   }
 
   openBuildingMenu(slot) {
-    const b = this.room.city[slot];
-    const add = this.openPopup(b.name, 400, 372);
-    this.button(add, W / 2, H / 2 - 40, '🚪 Visit', COLORS.green, () => this.visit(slot), 250);
-    this.button(add, W / 2, H / 2 + 26, '🔨 Build & decorate', COLORS.orange, () => { this.closePopup(); this.openBuilder(slot); }, 250);
-    const why = whyNotDemolish(this.room.city, slot);
-    const kill = this.button(add, W / 2, H / 2 + 92, why ? '🗑 Demolish' : `🗑 Demolish (+${demolishRefund(b)} 🪙)`, why ? COLORS.grey : COLORS.red, () => {
-      if (why) { this.room.sfx.nope(); floatText(this, W / 2, H / 2 + 150, why === 'the last building stays' ? 'You need at least one building' : why, 24); return; }
-      if (!this.armed) {                                                    // the first tap asks, the second one does it
-        this.armed = true; kill.setLabel('Tap again to demolish');
-        this.time.delayedCall(2200, () => { this.armed = false; if (kill.active) kill.setLabel(`🗑 Demolish (+${demolishRefund(b)} 🪙)`); });
-        return;
-      }
-      this.armed = false;
-      this.demolish(slot);
-    }, 250);
-    this.button(add, W / 2, H / 2 + 154, 'Close', COLORS.grey, () => this.closePopup(), 250);
+    const b = this.room.city[slot], hard = Boolean(this.room.hard), house = isHouse(b);
+    const rights = hard ? editRights(b, this.room.hard.home, slot) : (house ? 'full' : '');
+    const acts = [{ text: '🚪 Visit', fill: COLORS.green, tap: () => this.visit(slot) }];
+    if (hard && b.forSale) {
+      const why = whyNotBuyHouse(this.room.city, slot, this.room.cash);
+      acts.push({ text: `🏷 Buy for ${shortMoney(b.forSale)}`, fill: why ? COLORS.grey : COLORS.gold, tap: () => (why ? this.nope(why) : this.buy(slot)) });
+    }
+    if (hard && b.owned && house && !(this.room.hard.home && this.room.hard.home.slot === slot)) acts.push({ text: '🔑 Move in', fill: COLORS.blue, tap: () => { this.room.moveIn(slot); this.closePopup(); floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, 'Home!', 28); } });
+    if (rights === 'full') acts.push({ text: '🔨 Build & decorate', fill: COLORS.orange, tap: () => { this.closePopup(); this.openBuilder(slot); } });
+    if (!hard && house) acts.push(this.demolishAction(slot));
+    const h = 130 + acts.length * 66 + 60, add = this.openPopup(b.name, 400, h), top = H / 2 - h / 2 + 100;
+    acts.forEach((a, i) => { const btn = this.button(add, W / 2, top + i * 66, a.text, a.fill, a.tap, 270); if (a.arm) a.arm(btn); });
+    this.button(add, W / 2, H / 2 + h / 2 - 44, 'Close', COLORS.grey, () => this.closePopup(), 270);
+  }
+
+  nope(why) { this.room.sfx.nope(); floatText(this, W / 2, H / 2 + 190, why, 26); }
+
+  // The kid-mode demolish button: the first tap asks, the second one does it.
+  demolishAction(slot) {
+    const b = this.room.city[slot], why = whyNotDemolish(this.room.city, slot), idle = why ? '🗑 Demolish' : `🗑 Demolish (+${demolishRefund(b)} 🪙)`;
+    let btn = null;
+    return {
+      text: idle, fill: why ? COLORS.grey : COLORS.red, arm: x => { btn = x; },
+      tap: () => {
+        if (why) { this.nope(why === 'the last building stays' ? 'You need at least one building' : why); return; }
+        if (!this.armed) { this.armed = true; btn.setLabel('Tap again to demolish'); this.time.delayedCall(2200, () => { this.armed = false; if (btn.active) btn.setLabel(idle); }); return; }
+        this.armed = false;
+        this.demolish(slot);
+      },
+    };
   }
 
   openBuildPicker(slot) {
-    const add = this.openPopup('What shall we build?', 920, 520);
+    const hard = Boolean(this.room.hard), add = this.openPopup(hard ? 'A lot for sale: buy it and build' : 'What shall we build?', 920, 440);
     BUILDABLE.forEach((key, i) => {
-      const bp = BLUEPRINTS[key], x = W / 2 - 322 + (i % 4) * 215, y = H / 2 - 128 + Math.floor(i / 4) * 140;
-      add(inkPanel(this, x, y, 205, 130, { fill: CARD, depth: 500, seed: 20 + i, radius: 14, shadow: false, weight: 3.2 }));
+      const bp = BLUEPRINTS[key], x = W / 2 - 280 + i * 280, y = H / 2 + 20;
+      add(inkPanel(this, x, y, 250, 260, { fill: CARD, depth: 500, seed: 20 + i, radius: 14, shadow: false, weight: 3.2 }));
       const g = add(this.add.graphics().setDepth(500));
-      paintBuildingMini(g, bp, x - 46, y + 38, 84, 72);
-      add(this.add.text(x - 94, y - 60, bp.name, { fontSize: '21px', fontStyle: 'bold', color: TEXT }).setDepth(500));
+      paintBuildingMini(g, bp, x, y + 8, 130, 96);
+      add(this.add.text(x, y - 108, bp.name, { fontSize: '24px', fontStyle: 'bold', color: TEXT }).setOrigin(0.5).setDepth(500));
       const rooms = bp.floors.reduce((n, f) => n + f.rooms.length, 0);
-      add(this.add.text(x + 4, y - 26, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}\n${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '16px', color: TEXT }).setDepth(500));
-      const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
-      const buy = this.button(add, x + 46, y + 40, `🪙 ${bp.cost}`, why ? COLORS.grey : COLORS.green, () => this.build(slot, key), 92);
-      buy.setScale(0.9);
-      if (why) buy.setAlpha(this.room.coins < bp.cost ? 0.6 : 1);
+      add(this.add.text(x, y + 38, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}, ${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '17px', color: TEXT }).setOrigin(0.5).setDepth(500));
+      const why = hard ? whyNotBuyLot(this.room.city, slot, key, this.room.cash) : whyNotBuild(this.room.city, slot, key, this.room.coins);
+      const buy = this.button(add, x, y + 88, hard ? shortMoney(lotPrice(key)) : 'Free', why ? COLORS.grey : COLORS.green, () => this.build(slot, key), 150);
+      buy.y = y + 92;
+      if (why) buy.setAlpha(0.7);
     });
   }
 
@@ -171,14 +190,17 @@ export default class HubScene extends Phaser.Scene {
   }
 
   build(slot, key) {
-    const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
-    if (why) {
-      this.room.sfx.nope();
-      floatText(this, W / 2, H / 2 + 190, why === 'lot is taken' ? why : `Need ${why}`, 26);
-      return;
+    const hard = Boolean(this.room.hard);
+    if (hard) {
+      const r = buildOnLot(this.room.city, slot, key, this.room.cash), why = r ? '' : whyNotBuyLot(this.room.city, slot, key, this.room.cash);
+      if (!r) { this.nope(why === 'lot is taken' ? why : `Need ${why}`); return; }
+      this.room.cash = r.cash;
+    } else {
+      const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
+      if (why) { this.nope(why === 'lot is taken' ? why : `Need ${why}`); return; }
+      this.room.coins -= BLUEPRINTS[key].cost;
+      this.room.city[slot] = newBuilding(key);
     }
-    this.room.coins -= BLUEPRINTS[key].cost;
-    this.room.city[slot] = newBuilding(key);
     this.room.tipEvent('build');
     this.room.sfx.fanfare();
     this.room.dirty = true;
@@ -186,6 +208,16 @@ export default class HubScene extends Phaser.Scene {
     this.closePopup();
     this.drawLots();
     floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, '🏗️ Built!', 30);
+  }
+
+  // Buy a house that is for sale (adult mode).
+  buy(slot) {
+    const r = buyHouse(this.room.city, slot, this.room.cash);
+    if (!r) { this.nope('Not enough cash'); return; }
+    this.room.cash = r.cash;
+    this.room.sfx.fanfare(); this.room.dirty = true;
+    this.refreshCoins(); this.closePopup(); this.drawLots();
+    floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, '🔑 Yours!', 30);
   }
 
   // --- leaving ----------------------------------------------------------------------------

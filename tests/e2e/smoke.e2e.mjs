@@ -281,13 +281,13 @@ try {
     await g.room('r.coins = 60;');
     await g.ev("(h => { h.build(5, 'cottage'); })(__toybox.scene.getScene('Hub'))");
     assert.equal(await g.room("return r.city[5] && r.city[5].name;"), 'Cottage');
-    assert.equal(await g.room('return r.coins;'), 45);
+    assert.equal(await g.room('return r.coins;'), 60, 'houses are free');
     await g.ev("(h => h.openBuilder(5))(__toybox.scene.getScene('Hub'))");
     await wait(600);
     assert.ok(await g.ev("__toybox.scene.isActive('Builder')"), 'builder is open');
     await g.ev("(b => { b.buyRoom(b.b.floors[0].id, 'bedroom'); b.buyFloor(); b.selRoom = b.b.floors[0].rooms[0].id; b.addConnector('stairs'); })(__toybox.scene.getScene('Builder'))");
     const city = await g.room("const b = r.city[5]; return { floors: b.floors.length, rooms: b.floors[0].rooms.length, coins: r.coins };");
-    assert.equal(city.floors, 2); assert.equal(city.rooms, 4); assert.equal(city.coins, 45 - 4 - 12);
+    assert.equal(city.floors, 2); assert.equal(city.rooms, 4); assert.equal(city.coins, 60, 'and so are rooms and floors');
     await g.ev("(b => b.close())(__toybox.scene.getScene('Builder'))");
     await wait(300);
     await g.ev("(h => h.visit(5))(__toybox.scene.getScene('Hub'))");
@@ -359,7 +359,7 @@ try {
   await step('demolishing: a mistaken building can be knocked down, giving a few coins back and clearing its post', async () => {
     await g.room("r.coins = 50; r.goToZone('0.1');"); await wait(1500);
     await g.room("r.openCityMap();"); await wait(1000);
-    await g.ev("(h => { h.build(8, 'pond'); })(__toybox.scene.getScene('Hub'))");
+    await g.ev("(h => { h.build(8, 'cottage'); })(__toybox.scene.getScene('Hub'))");
     await g.room("r.parcels = [{ k: 'apple', to: 8 }];");
     const before = await g.room('return { coins: r.coins, built: Boolean(r.city[8]) };');
     assert.ok(before.built);
@@ -393,10 +393,10 @@ try {
   });
 
   await step('supermarket: priced shelf items need coins, and the delivery cart charges a fee and sends groceries by van', async () => {
-    await g.room("r.city[3] = JSON.parse(JSON.stringify(r.city[2])); r.city[3].name = 'Supermarket'; r.city[3].floors[0].rooms = [{ id: 0, type: 'market', w: 960 }]; r.coins = 0; r.goToZone('3.0');");
+    await g.room("r.coins = 0; r.goToZone('3.0');");
     await wait(2000);
     assert.ok(await g.room('return r.bodies.some(b => b.onShelf && b.price > 0 && b.tag);'), 'a real supermarket shelves its goods with prices');
-    await g.room("r.city[3] = null; r.goToZone('0.1');");
+    await g.room("r.goToZone('0.1');");
     await wait(1500);
     await g.room("r.detached = true; r.cameras.main.scrollX = 0; r.coins = 0; r.spawnShelfItem('milk', { x: 560, y: 300 }, { price: 1 }); window.__cart = r.addFurniture('cart'); window.__cart.setPosition(830, 470);");
     await wait(900);
@@ -559,9 +559,9 @@ try {
     await t.room("r.tipsSeen = new Set(['grab','dress','walk','map','eat','cook','book','furniture','shop','build','play','decorate']); r.refreshTip(); r.coins = 120; r.updateNav();");
     await t.tap(46, 19, 900);                                           // Map
     assert.ok(await t.ev("__toybox.scene.isActive('Hub')"), 'the map opened');
-    await t.tap(610, 380, 700);                                         // an empty lot
+    await t.tap(670, 376, 700);                                         // an empty lot
     assert.ok(await t.ev("__toybox.scene.getScene('Hub').popup.length > 0"), 'the build picker opened');
-    await t.tap(419, 212, 900);                                         // the Cottage's price
+    await t.tap(200, 412, 900);                                         // the Cottage (free)
     assert.ok(await t.room('return r.city.some(b => b && b.name === "Cottage");'), 'built a cottage');
     await t.tap(916, 30, 1400);                                         // close the map
     assert.ok(await t.ev("__toybox.scene.isActive('Room') && !__toybox.scene.isActive('Hub')"), 'back in the room');

@@ -195,6 +195,17 @@ export const ROOMS = {
     props: [{ type: 'claytable', x: 480, y: 480 }, { type: 'lightswitch', x: 890, y: 168 }],
     windows: [{ x: 600, y: 60, w: 170, h: 130 }],
   },
+  bank: {
+    label: '🏦 Bank',
+    style: { wall: 'sky', floor: 'checker' },
+    shelves: [],
+    props: [{ type: 'lightswitch', x: 890, y: 168 }],
+    windows: [{ x: 160, y: 60, w: 150, h: 110 }],
+    decor(g) {
+      g.fillStyle(0xf0c868, 1).fillRoundedRect(380, 200, 200, 46, 10);                 // a sign
+      g.fillStyle(0x4a3426, 1).fillRect(410, 216, 140, 5).fillRect(430, 228, 100, 5);
+    },
+  },
   postoffice: {
     label: '📮 Post office',
     style: { wall: 'sky', floor: 'oak' },

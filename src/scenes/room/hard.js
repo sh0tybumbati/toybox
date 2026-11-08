@@ -19,7 +19,7 @@ import { deliverIfDue, inStock, newShop, totalStock } from '../../systems/hard/s
 import { SHOP_ITEMS } from '../../systems/save.js';
 import { SHELF_STEP } from '../../config.js';
 import { HOUSING } from '../../data/hard/housing.js';
-import { overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
+import { newHome, overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
 import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
 import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
 import { SLOTS } from '../../data/buildings.js';
@@ -230,7 +230,8 @@ export const hardMethods = {
   isLocked(prop, type) {
     if (type === 'rent') return false;
     const s = this.zone && sectionAt(this.zone, prop.x).section;
-    return Boolean(s && HOME_ROOMS.includes(s.type) && !(this.hard.home && this.hard.home.slot === this.zoneSlot()));
+    const b = this.city[this.zoneSlot()];
+    return Boolean(s && HOME_ROOMS.includes(s.type) && !(this.hard.home && this.hard.home.slot === this.zoneSlot()) && !(b && b.owned));
   },
 
   // The labour board gives you today's gig: somewhere in town, to reach by a deadline.
@@ -267,7 +268,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell', 'bank'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -279,6 +280,15 @@ export const hardMethods = {
     this.updateNav(); this.sfx.ding();
     floatText(this, c.x, c.headTopY() - 30, `🔑 Room rented: $${r.cost}`, 24);
     this.queueDirty = true;
+  },
+
+  // Move into a house you own: no rent, only the power and water. The old place is given up (what was owed on it becomes debt).
+  moveIn(slot) {
+    const h = this.hard;
+    if (h.home && h.home.slot === slot) return;
+    if (h.home) { h.debt += totalDue(h.bills); h.bills = []; }
+    h.home = newHome('owned', slot, this.clock.day + HOUSING.owned.cycle); h.lockedOut = null;
+    this.updateNav(); this.dirty = true;
   },
 
   notice(text) { const c = this.selected || this.characters[0]; if (c) floatText(this, c.x, c.headTopY() - 50, text, 22); },
@@ -507,6 +517,7 @@ export const hardMethods = {
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
       else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c, type: prop.type }); }
+      else if (type === 'bank') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bank', { room: this }); }
       else if (type === 'sell') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Sell', { room: this, who: c }); }
       else if (type === 'mix') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Lab', { room: this }); }
       else if (type === 'buyseeds') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Nursery', { room: this }); }
@@ -707,7 +718,7 @@ export const hardMethods = {
     this.shopChip = R(inkChip(this, W - 150, 178, '', { size: 15, depth: D, h: 30, fill: CARD })).setVisible(false);
     this.billChip = R(inkChip(this, W - 150, 216, '', { size: 15, depth: D, h: 30, fill: 0xffe3d4 })).setVisible(false);
     this.gigChip = R(inkChip(this, W - 150, 254, '', { size: 14, depth: D, h: 30, fill: 0xe3f2d0 })).setVisible(false);
-    this.phoneBtn = R(inkDisc(this, W - 36 - 5 * 56, 32, 'icon-phone', { onTap: () => this.openPhone(), seed: 49 }));
+    this.phoneBtn = R(inkDisc(this, W - 36 - 4 * 56, 32, 'icon-phone', { onTap: () => this.openPhone(), seed: 49 }));
     this.progressGfx = add(this.add.graphics().setDepth(D + 1));
     this.queueUI = [];
     this.setSpeed(1);

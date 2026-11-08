@@ -15,7 +15,7 @@ import { SAVE_VERSION, FLOOR_TOP, FLOOR_BOTTOM } from '../config.js';
 import { CATALOG, SLOTS_FOR } from '../data/items.js';
 import { ROOMS, defaultFurniture } from '../data/rooms.js';
 import { WALLPAPERS, FLOORS } from '../data/decor.js';
-import { ROOM_W, MAX_FLOORS, MAX_ROOMS, SLOTS, starterCity } from '../data/buildings.js';
+import { ROOM_W, MAX_FLOORS, MAX_ROOMS, SLOTS, isHouse, starterCity } from '../data/buildings.js';
 import { EXTERIOR_WALLS, TRIMS, ROOF_STYLES, ROOF_COLORS, defaultExterior } from '../data/exterior.js';
 import { allSections, zoneInfo, entryZone } from './world.js';
 import { isPremium } from '../data/economy.js';
@@ -28,7 +28,7 @@ import { DEFAULT_LOOK, sanitizeLook } from '../data/look.js';
 import { MAX_PARTY, defaultParty } from '../data/characters.js';
 import { PETS, MAX_PETS } from '../data/pets.js';
 import { PATTERNS } from '../data/patterns.js';
-import { SCENARIO_IDS } from '../data/hard/scenarios.js';
+import { SCENARIO_IDS, upgradeHardCity } from '../data/hard/scenarios.js';
 import { cleanSetup } from './mode.js';
 import { cleanClock } from './hard/clock.js';
 import { cleanNeeds } from './hard/needs.js';
@@ -78,6 +78,7 @@ export function migrate(d) {
   if (!d) return null;
   if (d.v === 10) d = { ...d, v: 11, shirts: [], toys: [] };
   if (d.v === 11) d = migrateStock(d);
+  if (d.v === 12) d = migrateTown(d);
   return d.v === SAVE_VERSION ? d : null;
 }
 
@@ -93,6 +94,26 @@ function migrateStock(d) {
     furniture[sec.id] = [...list, ...defaultFurniture(sec.type, sec.w).filter(p => STOCKED_TYPES.includes(p.type) && !have.has(p.type))];
   }
   return { ...d, v: 12, furniture };
+}
+
+// v12 -> v13: the town grew to 20 lots and every public place comes built. A kid world gets the new town (its home, park and shop
+// stay as they were, and any house the player built stays where it is if the lot is free); an adult game keeps its city and gains the bank
+// and the houses for sale. A house you were living in is yours.
+function migrateTown(d) {
+  const old = Array.isArray(d.city) ? d.city : [];
+  if (d.hard) {
+    const city = upgradeHardCity(SLOTS.map((_, i) => sanitizeBuilding(old[i])));
+    const home = d.hard.home;
+    if (home && home.tier === 'house' && city[home.slot]) city[home.slot].owned = true;
+    return { ...d, v: 13, city };
+  }
+  const fresh = starterCity();
+  const city = fresh.map((b, i) => {
+    const was = sanitizeBuilding(old[i]);
+    if (i <= 2) return was || b;                                     // home, park and shop keep their rooms and furniture
+    return !b && was && isHouse(was) ? was : b;
+  });
+  return { ...d, v: 13, city };
 }
 
 // v9 -> v10: the four old rooms become rooms of the starter city's buildings.
@@ -267,6 +288,7 @@ export function sanitizeBuilding(b) {
       roofStyle: has(ROOF_STYLES, e.roofStyle) ? e.roofStyle : d.roofStyle, roofColor: has(ROOF_COLORS, e.roofColor) ? e.roofColor : d.roofColor,
     },
     floors,
+    ...(b.house ? { house: true } : {}), ...(b.owned ? { owned: true } : {}), ...(ok(b.forSale) && b.forSale > 0 ? { forSale: Math.min(1e8, Math.floor(b.forSale)) } : {}),
   };
 }
 

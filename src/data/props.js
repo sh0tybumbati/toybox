@@ -502,6 +502,16 @@ export const PROP_TYPES = {
       g.fillStyle(0x4a3426, 1).fillRect(-24, -60, 48, 3);
     },
   },
+  teller: {
+    name: 'Bank Counter', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['bank'], hours: [[9, 16]], w: 190, h: 120, blurb: 'Swap coins and cash',
+    draw(g) {
+      g.fillStyle(0x6b7a99, 1).fillRoundedRect(-95, -2, 190, 58, 6);                         // the counter
+      g.fillStyle(0xc6d6e8, 1).fillRoundedRect(-84, -56, 168, 50, 6);                        // the glass
+      g.fillStyle(0xeaf2fa, 1).fillRoundedRect(-76, -50, 152, 38, 4);
+      g.fillStyle(0xf0c868, 1).fillRoundedRect(-38, -74, 76, 18, 4);                         // a gold sign
+      g.fillStyle(0x4a3426, 1).fillRect(-26, -69, 52, 3).fillRect(-18, -63, 36, 3);
+    },
+  },
   frontdesk: {
     name: 'Motel Front Desk', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['rent'], hours: [[8, 22]], w: 150, h: 110, blurb: 'Rent a room',
     draw(g) {

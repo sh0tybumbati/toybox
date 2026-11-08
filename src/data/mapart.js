@@ -96,9 +96,9 @@ export function paintTerrain(g, W, H, paths, riverPts) {
 
 // Trees, bushes and fences scattered about (called after the plots so they sit in front where needed).
 export function paintScenery(g) {
-  const trees = [[28, 120, 1], [250, 100, 0.9], [455, 92, 0.85], [690, 96, 0.95], [915, 130, 1.05], [38, 345, 1], [262, 330, 0.9], [492, 218, 0.8], [740, 326, 0.9], [938, 392, 1], [55, 480, 0.95], [262, 478, 0.9], [486, 504, 1], [706, 488, 0.9], [936, 496, 1], [262, 572, 0.8], [700, 576, 0.85]];
+  const trees = [];
+  for (const [i, x] of [195, 385, 575, 765].entries()) for (const [j, y] of [118, 250, 380, 512].entries()) if ((i + j) % 2 === 0) trees.push([x + (j % 2 ? 14 : -12), y, 0.78 + ((i * 3 + j) % 3) * 0.06]);
+  trees.push([24, 112, 0.9], [940, 236, 0.9], [26, 380, 0.9], [940, 505, 0.9], [20, 260, 0.8], [942, 120, 0.85]);
   for (const [x, y, s] of trees.sort((a, b) => a[1] - b[1])) paintTree(g, x, y, s, Math.round(x + y));
-  for (const [x, y, s] of [[215, 262, 1], [655, 248, 1], [330, 470, 1], [560, 455, 1], [880, 460, 0.9], [90, 440, 0.9]]) paintBush(g, x, y, s, Math.round(x * 3 + y));
-  paintFence(g, 215, 236, 290, 242, 21);
-  paintFence(g, 660, 340, 730, 345, 22);
+  for (const [x, y, s] of [[392, 188, 0.9], [196, 322, 0.9], [580, 452, 0.9], [770, 326, 0.9], [380, 454, 0.8], [60, 330, 0.9], [900, 190, 0.9]]) paintBush(g, x, y, s, Math.round(x * 3 + y));
 }
