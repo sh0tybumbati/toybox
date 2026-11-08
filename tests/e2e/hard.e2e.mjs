@@ -423,7 +423,7 @@ try {
     const shopSlot = 2;
     await g.room("r.cash = 1000; const shop = r.shopFor(2); shop.stock.bread = 2; shop.stock.rice = 6;");
     const prices = await g.room("const b = r.bodies.find(i => i.onShelf && i.key === 'bread'); return b && [b.price, b.shop, b.input.draggable];");
-    assert.ok(prices, 'bread is on the shelf'); assert.equal(prices[0], 60, 'bread costs $60'); assert.equal(prices[1], shopSlot); assert.equal(prices[2], true);
+    assert.ok(prices, 'bread is on the shelf'); assert.equal(prices[0], 6, 'bread costs $6'); assert.equal(prices[1], shopSlot); assert.equal(prices[2], true);
     // really drag a loaf off the shelf onto the person: paid, in the bag, one fewer in stock
     await g.room("const c = r.characters[0]; c.x = 480; c.lane = 520; c.goal = null; r.cameras.main.scrollX = 0;");
     await wait(300);
@@ -431,7 +431,7 @@ try {
     const body = await g.room("const c = r.characters[0], s = r.cameras.main.scrollX; return [Math.round(c.x - s), Math.round(c.y + 20)];");
     await g.drag(at[0], at[1], body[0], body[1], 800);
     await wait(500);
-    assert.equal(await g.room('return r.cash;'), 940, 'paid');
+    assert.equal(await g.room('return r.cash;'), 994, 'paid');
     assert.equal(await g.room('return r.characters[0].bag.length;'), 1, 'the loaf is in the bag');
     assert.equal(await g.room('return r.shopFor(2).stock.bread;'), 1, 'one fewer in stock');
     // the last loaf: after it is taken there is none left to restock the shelf

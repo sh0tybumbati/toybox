@@ -1,8 +1,8 @@
 // Hard-mode food economy: what things cost in cash, how long they keep, what you can carry and store (docs/hardcore-mode.md).
-// Cash prices are NOT the kid-mode coin prices: a meal is a few dollars, a day's food roughly a fifth of a day-labour wage.
+// Cash prices are NOT the kid-mode coin prices: a meal is a few dollars; a day's food is roughly a fiftieth of a day-labour wage.
 export const HARD_PRICES = {
-  flour: 50, tomato: 50, potato: 50, corn: 60, rice: 80, egg: 70, milk: 90, bread: 60,
-  meat: 220, fish: 200, cheese: 140, chocolate: 110, jam: 90, fries: 120, popcorn: 70, cocoa: 60,
+  flour: 5, tomato: 5, potato: 5, corn: 6, rice: 8, egg: 7, milk: 9, bread: 6,
+  meat: 22, fish: 20, cheese: 14, chocolate: 11, jam: 9, fries: 12, popcorn: 7, cocoa: 6,
 };
 export const hardPriceOf = key => HARD_PRICES[key] ?? 0;
 

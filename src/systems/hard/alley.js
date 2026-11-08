@@ -17,7 +17,7 @@ export function offers(day) {
   const picks = HOT_GOODS.map((k, i) => ({ k, r: hash01(day * 71 + i * 19 + 5) })).sort((a, b) => a.r - b.r).slice(0, 3).map(x => x.k);
   return [
     { id: 'burner', label: 'Burner phone', price: BURNER_PRICE, note: 'No questions. No contract.', heat: HEAT.phone },
-    ...picks.map(k => ({ id: k, food: k, label: `${k[0].toUpperCase()}${k.slice(1)} (hot)`, price: Math.round(hardPriceOf(k) * HOT_DISCOUNT / 5) * 5, note: 'Fell off a lorry.', heat: HEAT.goods, stock: HOT_STOCK })),
+    ...picks.map(k => ({ id: k, food: k, label: `${k[0].toUpperCase()}${k.slice(1)} (hot)`, price: Math.max(1, Math.floor(hardPriceOf(k) * HOT_DISCOUNT)), note: 'Fell off a lorry.', heat: HEAT.goods, stock: HOT_STOCK })),
   ];
 }
 
