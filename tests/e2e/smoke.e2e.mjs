@@ -561,7 +561,7 @@ try {
     assert.ok(await t.ev("__toybox.scene.isActive('Hub')"), 'the map opened');
     await t.tap(670, 376, 700);                                         // an empty lot
     assert.ok(await t.ev("__toybox.scene.getScene('Hub').popup.length > 0"), 'the build picker opened');
-    await t.tap(200, 412, 900);                                         // the Cottage (free)
+    await t.tap(200, 438, 900);                                         // the Cottage (free)
     assert.ok(await t.room('return r.city.some(b => b && b.name === "Cottage");'), 'built a cottage');
     await t.tap(916, 30, 1400);                                         // close the map
     assert.ok(await t.ev("__toybox.scene.isActive('Room') && !__toybox.scene.isActive('Hub')"), 'back in the room');
