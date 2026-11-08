@@ -118,6 +118,7 @@ export function sanitizeHard(raw) {
     clock: cleanClock(raw.clock),
     needs: Object.fromEntries(Object.entries(raw.needs && typeof raw.needs === 'object' ? raw.needs : {}).slice(0, MAX_PARTY).map(([id, n]) => [String(id).slice(0, 20), cleanNeeds(n)])),
     autonomy: raw.autonomy !== false,                         // people act on their own needs when idle
+    phone: Boolean(raw.phone),                                // you have a phone (it can be stolen)
     home: cleanHome(raw.home),                                // where you live (null = nowhere)
     bills: cleanBills(raw.bills),
     billId: ok(raw.billId) ? clamp(Math.floor(raw.billId), 0, 1e6) : 0,

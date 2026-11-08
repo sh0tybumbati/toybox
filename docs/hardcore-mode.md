@@ -173,7 +173,7 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
    separate saves, coins <-> cash at 1:100.
 1. **Clock + needs (BUILT, 2026-11-08):** 1 min = 1 hour clock driving day/night, pause + 3 speeds, hunger/energy/hygiene/mood, free-will autonomy and an action queue.
 2. **Survival home-less core (BUILT, 2026-11-08):** the *Park bench* scenario: weather/seasons, places to sleep, being moved on, scavenging/begging, shelter, day labour.
-3. **Food, shops and bills:** finite shop stock and prices, pantry/fridge stock and spoilage, rent/bills in the mailbox, the phone.
+3. **Food, shops and bills (BUILT, 2026-11-08):** finite shop stock and prices, pantry/fridge stock and spoilage, rent/bills in the mailbox, the phone.
 4. **Wear + maintenance** (paint, floors, furniture, clothes, cars) and the *Cheap flat* + *Inherited house* scenarios.
 5. **Jobs:** job board, shifts as scheduled blocks, tardiness, skills, retail/service then trades/makers and farming/food careers.
 6. **Making and selling:** quality + demand, gadget bench, stalls, farming plots (legal crops).
@@ -209,6 +209,11 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 - Free will extends to these: hungry + no fridge = the meal line, then (under 15) a bin; tired + no bed = a bench.
 - Every scenario's city now has a Shelter; the park has a fountain, a dumpster, a cardboard sign and the labour board.
 - Not yet: real police patrols (move-on is a dice roll), health/death (frozen people are rescued after 90 min), clothes warmth, the shelter's bed limit/queue.
+
+### Slice 3 as built
+- **Food economy** (`data/hard/food.js`, `systems/hard/{pantry,stock}.js`): cash prices ($50-$220) decoupled from the kid coin prices; shops have finite stock (6 of each, refilled by a weekly van due Monday 07:00 that is usually 0-30 min late, sometimes 1-6 h, now and then 1-2 days: the sign says when it is *due*) and are open 07:00-22:00. Taking an item pays and removes one from stock; dropping a food item on a person puts it in their bag (8); the household larder (fridge + pantry, 24) is filled with the "Put away" action; food spoils (burger 1 day ... rice 90 days; a fridge doubles it), oldest eaten first. Fridge/pantry no longer give free food: the free sources are the shelter meal line and scraps.
+- **Housing and bills** (`data/hard/housing.js`, `systems/hard/bills.js`): motel room (weekly, $3200), flat (weekly, $4200 + $700 utilities), house (monthly = 28 days, $24000 mortgage/tax + $5200 utilities). Bills are issued every cycle, due 2-10 days later; 10% is added when late; past the grace days you are evicted (what you owed becomes debt, the home is locked, its furniture is unusable). The motel front desk (08:00-22:00) rents a room: first period paid now. Bills arrive "in the mailbox" (flag goes up, read it by checking mail) and are paid at the post office counter (09:00-17:00), on a computer or on the phone.
+- **Phone / computer / newspaper** (`scenes/hard/DeviceScene.js`): the phone (bills, jobs, bank, time) is lost if you are robbed (40%) and is not owned at the *bench* and *jail* starts (a kiosk at the shop sells one for $3500); the computer (at home, and a public one at the post office 09:00-17:00) does bills and jobs; the paper ($80, stand at the shop) shows the day's classifieds (`systems/hard/jobs.js`: 4 of 7 job types, pay varies a little). The ads are informational until slice 5 makes them real jobs.
 
 ## 7. Still open
 Asked in conversation as we go: faction/territory mechanics on the map, weapons list and skill trees, the legal-career ladder vs crime balance,

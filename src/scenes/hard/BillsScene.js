@@ -7,6 +7,33 @@ import { overdue, pay, totalDue } from '../../systems/hard/bills.js';
 import { dayName } from '../../systems/hard/clock.js';
 import { backdrop, leave, text } from './overlay.js';
 
+// The bill rows, drawn into any scene (the mail, the post office counter, the computer, the phone). `ctx` = { room, canPay, keep, rebuild }.
+export function renderBills(scene, { room, canPay, keep, rebuild, top = 214, totalY = 484 }) {
+  const h = room.hard, day = room.clock.day, tier = h.home && h.home.tier;
+  const bills = [...h.bills].sort((a, b) => a.due - b.due);
+  keep(text(scene, W / 2, top - 46, h.home ? `Cash on you: $${room.cash.toLocaleString('en-US')}` : 'You have nowhere to live, so nothing comes in the post.', 20, { color: '#7a6a58' }).setOrigin(0.5));
+  const payBills = ids => {
+    const r = pay(room.hard.bills, room.cash, ids);
+    if (!r.paid) { room.sfx.nope(); return; }
+    room.hard.bills = r.bills; room.cash = r.cash;
+    room.updateNav(); room.dirty = true; room.sfx.coin();
+    rebuild();
+  };
+  bills.slice(0, 6).forEach((b, i) => {
+    const y = top + i * 50, late = day > b.due;
+    keep(inkPanel(scene, W / 2, y, 620, 42, { fill: late ? 0xfde0d8 : CARD, radius: 12, shadow: false, weight: 2.8, seed: 90 + i, depth: 4 }));
+    keep(text(scene, 192, y - 12, `${billLabel(b.kind, tier)}`, 22, { fontStyle: 'bold' }).setDepth(5));
+    keep(text(scene, 440, y - 11, `due ${dayName({ day: b.due })}${late ? ' · LATE' : ''}`, 19, { color: late ? '#b0584e' : '#7a6a58' }).setDepth(5));
+    keep(text(scene, 560, y - 12, `$${b.amount.toLocaleString('en-US')}`, 22, { fontStyle: 'bold' }).setDepth(5));
+    if (canPay) keep(inkButton(scene, 770, y, 'Pay', { w: 80, h: 34, size: 19, fill: room.cash >= b.amount ? COLORS.green : COLORS.grey, depth: 6, seed: 100 + i, onTap: () => payBills([b.id]) }));
+  });
+  if (!bills.length) keep(text(scene, W / 2, top + 76, h.home ? 'No bills. Nothing owed.' : '', 24).setOrigin(0.5));
+  const total = totalDue(bills), late = overdue(bills, day).length;
+  keep(text(scene, 192, totalY, bills.length ? `Total $${total.toLocaleString('en-US')}${late ? ` · ${late} late` : ''}` : (h.debt ? `Debts: $${h.debt.toLocaleString('en-US')}` : ''), 22, { fontStyle: 'bold' }));
+  if (canPay && bills.length) keep(inkButton(scene, 690, totalY + 8, 'Pay all', { w: 170, h: 44, size: 22, fill: COLORS.green, depth: 6, onTap: () => payBills() }));
+  if (!canPay && bills.length) keep(text(scene, W / 2, totalY - 32, 'Pay at the post office counter, on a computer or on your phone.', 18, { color: '#7a6a58' }).setOrigin(0.5));
+}
+
 export default class BillsScene extends Phaser.Scene {
   constructor() { super('Bills'); }
 
@@ -24,25 +51,10 @@ export default class BillsScene extends Phaser.Scene {
   build() {
     this.dyn.forEach(o => o.destroy());
     this.dyn = [];
-    const keep = o => { this.dyn.push(o); return o; };
-    const h = this.room.hard, day = this.room.clock.day, tier = h.home && h.home.tier;
-    const bills = [...h.bills].sort((a, b) => a.due - b.due);
-    keep(text(this, W / 2, 168, h.home ? `Cash on you: $${this.room.cash.toLocaleString('en-US')}` : 'You have nowhere to live, so nothing comes in the post.', 20, { color: '#7a6a58' }).setOrigin(0.5));
-    bills.slice(0, 6).forEach((b, i) => {
-      const y = 214 + i * 50, late = day > b.due;
-      keep(inkPanel(this, W / 2, y, 620, 42, { fill: late ? 0xfde0d8 : CARD, radius: 12, shadow: false, weight: 2.8, seed: 90 + i, depth: 4 }));
-      keep(text(this, 192, y - 12, `${billLabel(b.kind, tier)}`, 22, { fontStyle: 'bold' }).setDepth(5));
-      keep(text(this, 440, y - 11, `due ${dayName({ day: b.due })}${late ? ' · LATE' : ''}`, 19, { color: late ? '#b0584e' : '#7a6a58' }).setDepth(5));
-      keep(text(this, 560, y - 12, `$${b.amount.toLocaleString('en-US')}`, 22, { fontStyle: 'bold' }).setDepth(5));
-      if (this.canPay) keep(inkButton(this, 770, y, 'Pay', { w: 80, h: 34, size: 19, fill: this.room.cash >= b.amount ? COLORS.green : COLORS.grey, depth: 6, seed: 100 + i, onTap: () => this.payBills([b.id]) }));
-    });
-    if (!bills.length) keep(text(this, W / 2, 290, h.home ? 'No bills. Nothing owed.' : '', 24).setOrigin(0.5));
-    const total = totalDue(bills), late = overdue(bills, day).length;
-    keep(text(this, 192, 484, bills.length ? `Total $${total.toLocaleString('en-US')}${late ? ` · ${late} late` : ''}` : (h.debt ? `Debts: $${h.debt.toLocaleString('en-US')}` : ''), 22, { fontStyle: 'bold' }));
-    if (this.canPay && bills.length) keep(inkButton(this, 690, 492, 'Pay all', { w: 170, h: 44, size: 22, fill: COLORS.green, depth: 6, onTap: () => this.payBills() }));
-    if (!this.canPay && bills.length) keep(text(this, W / 2, 452, 'Pay at the post office counter (09:00-17:00).', 18, { color: '#7a6a58' }).setOrigin(0.5));
+    renderBills(this, { room: this.room, canPay: this.canPay, keep: o => { this.dyn.push(o); return o; }, rebuild: () => this.build() });
   }
 
+  // Pay all (or the given) bills with the cash on you.
   payBills(ids) {
     const r = pay(this.room.hard.bills, this.room.cash, ids);
     if (!r.paid) { this.room.sfx.nope(); return; }

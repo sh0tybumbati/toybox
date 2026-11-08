@@ -37,7 +37,12 @@ export const ACTIONS = {
   mail:  { label: 'Check mail', icon: '📬', minutes: 3 },
   pay:   { label: 'Pay bills', icon: '💵', minutes: 5 },
   rent:  { label: 'Rent a room', icon: '🔑', minutes: 5 },
+  use:   { label: 'Use computer', icon: '💻', minutes: 10 },
+  news:  { label: 'Buy a paper ($80)', icon: '📰', minutes: 5 },
+  buyphone: { label: 'Buy a phone ($3500)', icon: '📱', minutes: 5 },
 };
+export const PAPER_PRICE = 80;
+export const PHONE_PRICE = 3500;
 export const ACTION_IDS = Object.keys(ACTIONS);
 export const MAX_QUEUE = 5;
 

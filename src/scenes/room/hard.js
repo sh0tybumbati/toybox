@@ -2,7 +2,7 @@
 // HUD for them (docs/hardcore-mode.md). These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
 // Nothing here runs in kid mode (`this.hard` is null).
 import { W, FLOOR_BOTTOM, FLOOR_TOP } from '../../config.js';
-import { ACTIONS, MAX_QUEUE, nutritionOf } from '../../data/hard/needs.js';
+import { ACTIONS, MAX_QUEUE, PAPER_PRICE, PHONE_PRICE, nutritionOf } from '../../data/hard/needs.js';
 import { ROOMS } from '../../data/rooms.js';
 import { sectionAt } from '../../systems/world.js';
 import { roughHour, scavengeFind } from '../../systems/hard/street.js';
@@ -21,7 +21,7 @@ import { SHELF_STEP } from '../../config.js';
 import { HOUSING } from '../../data/hard/housing.js';
 import { overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
 import { shelvesFor } from '../../data/rooms.js';
-import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, pin } from '../../ui.js';
+import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
 
 const TEXT_DEPTH = 10000;
@@ -97,9 +97,30 @@ export const hardMethods = {
     return Boolean(s && HOME_ROOMS.includes(s.type) && !(this.hard.home && this.hard.home.slot === this.zoneSlot()));
   },
 
+  // A newspaper from the stand ($80): the classified ads.
+  buyPaper(c) {
+    if (this.cash < PAPER_PRICE) { floatText(this, c.x, c.headTopY() - 30, `A paper is $${PAPER_PRICE}`, 22); this.sfx.nope(); c.current = null; return; }
+    this.cash -= PAPER_PRICE; this.updateNav(); this.sfx.coin();
+    c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'paper' });
+  },
+
+  // A phone from the kiosk: cash, once.
+  buyPhone(c) {
+    if (this.hard.phone) floatText(this, c.x, c.headTopY() - 30, 'You already have a phone', 22);
+    else if (this.cash < PHONE_PRICE) { floatText(this, c.x, c.headTopY() - 30, `A phone is $${PHONE_PRICE}`, 22); this.sfx.nope(); }
+    else { this.cash -= PHONE_PRICE; this.hard.phone = true; this.updateNav(); this.sfx.ding(); floatText(this, c.x, c.headTopY() - 30, '📱 Got a phone!', 24); }
+    this.queueDirty = true;
+  },
+
+  openPhone() {
+    if (this.switching || this.decor || !this.hard.phone) return;
+    this.scene.pause();
+    this.scene.launch('Device', { room: this, kind: 'phone' });
+  },
+
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && (c.current.type === 'mail' || c.current.type === 'pay')) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -188,7 +209,7 @@ export const hardMethods = {
       c.roughAcc -= 60;
       for (const e of roughHour({ hour: hourOf(this.clock), cash: this.cash, publicPlace: this.isOutdoors(c), toggles: this.hard.setup.toggles })) {
         if (e.type === 'moveOn') { this.stopRough(c); apply(c.needs, { mood: -8 }); floatText(this, c.x, c.headTopY() - 30, '👮 "Move along."', 24); this.cancelCurrent(c); }
-        if (e.type === 'theft') { this.cash = Math.max(0, this.cash - e.amount); this.updateNav(); floatText(this, c.x, c.headTopY() - 30, `Robbed! −$${e.amount}`, 24); apply(c.needs, { mood: -10 }); }
+        if (e.type === 'theft') { this.cash = Math.max(0, this.cash - e.amount); const lost = e.phone && this.hard.phone; if (lost) this.hard.phone = false; this.updateNav(); floatText(this, c.x, c.headTopY() - 30, `Robbed! −$${e.amount}${lost ? ' and your phone' : ''}`, 24); apply(c.needs, { mood: -10 }); }
       }
     }
   },
@@ -304,6 +325,9 @@ export const hardMethods = {
       else if (type === 'beg') { c.current.waiting = true; this.openGame('beg', prop); }
       else if (type === 'mail' || type === 'pay') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bills', { room: this, canPay: type === 'pay' }); }
       else if (type === 'rent') this.rentRoom(c, prop);
+      else if (type === 'use') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'computer' }); }
+      else if (type === 'news') this.buyPaper(c);
+      else if (type === 'buyphone') this.buyPhone(c);
     };
     const g = { x: clamp(front.x, 60, this.worldW - 60), lane: front.lane };
     if (Math.hypot(g.x - c.x, g.lane - c.lane) < 14) arrive();
@@ -467,6 +491,10 @@ export const hardMethods = {
     this.bagButton = pin(inkButton(this, 720, 108, '🎒 Snack', { w: 112, h: 34, size: 17, fill: COLORS.gold, depth: TEXT_DEPTH, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
     this.shopChip = pin(inkChip(this, 790, 146, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
     this.billChip = pin(inkChip(this, 800, 182, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
+    const px = W - 34 - 6 * 52, disc = pin(this.add.graphics().setDepth(TEXT_DEPTH - 1));
+    inkSwatch(disc, px, 30, 25, 0xf8eed8, false, 49);
+    this.phoneBtn = pin(this.add.text(px, 30, '📱', { fontSize: '30px' }).setOrigin(0.5).setDepth(TEXT_DEPTH)); this.phoneDisc = disc;
+    touchable(this.phoneBtn, 14).on('pointerdown', () => this.openPhone());
     this.queueUI = [];
     this.setSpeed(1);
     this.queueDirty = true;
@@ -480,6 +508,7 @@ export const hardMethods = {
 
   refreshHardHud() {
     this.clockChip.setLabel(label(this.clock));
+    this.phoneBtn.setVisible(this.hard.phone); this.phoneDisc.setVisible(this.hard.phone);
     const w = this.weatherNow();
     this.weatherChip.setLabel(`${weatherLabel(w)} · ${w.season} ${dayInSeason(this.clock.day)}`);
     const c = this.selected || this.characters[0];

@@ -425,6 +425,35 @@ export const PROP_TYPES = {
       g.fillStyle(0xb0a090, 1).fillRect(-62, -26, 8, 22).fillRect(-50, -22, 8, 18);          // keys on hooks
     },
   },
+  computer: {
+    name: 'Computer', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['use'], w: 110, h: 100, blurb: 'Bills and jobs',
+    draw(g) {
+      g.fillStyle(0xb98657, 1).fillRoundedRect(-52, 18, 104, 14, 5).fillRect(-44, 30, 8, 24).fillRect(36, 30, 8, 24);   // the desk
+      g.fillStyle(0x4a5368, 1).fillRoundedRect(-34, -40, 68, 52, 8);                         // the monitor
+      g.fillStyle(0x9ad0f0, 1).fillRoundedRect(-28, -34, 56, 40, 4);
+      g.fillStyle(0x6b7482, 1).fillRect(-6, 12, 12, 8).fillRoundedRect(-24, 8, 48, 10, 3);
+      g.fillStyle(0xdddddd, 1).fillRoundedRect(-22, 14, 44, 8, 3);                           // the keyboard
+    },
+  },
+  newsstand: {
+    name: 'Newsstand', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['news'], hours: [[6, 22]], w: 110, h: 110, blurb: 'Today\'s paper',
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-48, -4, 96, 58, 6);                          // the stand
+      g.fillStyle(0xf1ebdc, 1).fillRoundedRect(-40, -44, 38, 44, 3).fillRoundedRect(-4, -48, 38, 48, 3).fillRoundedRect(28, -40, 30, 40, 3);   // papers
+      g.fillStyle(0x4a3426, 1).fillRect(-36, -38, 30, 4).fillRect(0, -42, 30, 5).fillRect(32, -34, 22, 3).fillRect(-36, -30, 28, 3).fillRect(2, -32, 28, 3);
+      g.fillStyle(0xe5685c, 1).fillRect(-40, -44, 38, 6);
+    },
+  },
+  phonekiosk: {
+    name: 'Phone Kiosk', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['buyphone'], hours: [[9, 20]], w: 96, h: 120, blurb: 'Buy a phone',
+    draw(g) {
+      g.fillStyle(0x6aaee8, 1).fillRoundedRect(-40, -52, 80, 106, 8);                        // the kiosk
+      g.fillStyle(0xdcecf8, 1).fillRoundedRect(-32, -44, 64, 34, 4);                         // the display window
+      g.fillStyle(0x233a5a, 1).fillRoundedRect(-14, -40, 28, 26, 4);                         // a phone in it
+      g.fillStyle(0x9ad0f0, 1).fillRect(-10, -36, 20, 14);
+      g.fillStyle(0xf5c14a, 1).fillRoundedRect(-30, -2, 60, 14, 4);                          // a price tag
+    },
+  },
   mailbox: {
     name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', hardActions: ['mail'], w: 84, h: 136,
     draw(g, flag) {

@@ -11,6 +11,6 @@ export function newHardSave(rawSetup) {
   return sanitize({
     v: 12, zone: sc.zone, city: sc.city(), coins: 0,
     characters: [{ id: 'adult1', name: 'You', look: { ...DEFAULT_LOOK, age: 'adult', hair: { ...DEFAULT_LOOK.hair } }, worn: {} }],
-    hard: { setup, cash: sc.cash, debt: sc.debt, record: sc.record, fresh: true, home: sc.home ? newHome(sc.home.tier, sc.home.slot, 0) : null },
+    hard: { setup, cash: sc.cash, debt: sc.debt, record: sc.record, fresh: true, phone: Boolean(sc.phone), home: sc.home ? newHome(sc.home.tier, sc.home.slot, 0) : null },
   });
 }

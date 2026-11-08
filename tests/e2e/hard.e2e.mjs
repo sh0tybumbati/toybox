@@ -135,6 +135,43 @@ try {
     await g.room('r.hard.autonomy = true;');
   });
 
+  await step('devices: the phone (bills, jobs, bank, time), the computer, the newspaper ($80), a phone from the kiosk, and theft can take it', async () => {
+    await g.room("r.hard.autonomy = false; r.setSpeed(1); r.characters.forEach(c => { r.cancelCurrent(c); c.queue = []; }); r.hard.home = null; r.hard.bills = []; r.hard.phone = true; r.hard.debt = 0; r.cash = 10000;");
+    await wait(500);
+    assert.ok(await g.room('return r.phoneBtn.visible;'), 'the phone button shows when you have a phone');
+    await g.room('r.openPhone();');
+    await wait(700);
+    assert.ok(await active('Device'), 'the phone opened');
+    for (const tab of ['jobs', 'bank', 'clock', 'bills']) { await g.ev(`(d => { d.tab = '${tab}'; d.build(); })(${S('Device')})`); await wait(200); }
+    assert.ok(await g.ev(`${S('Device')}.kind === 'phone' && ${S('Device')}.dyn.length > 0`));
+    await g.ev(`${S('Device')}.close()`);
+    await wait(400);
+    // the computer (a public one at the post office) and the paper at the shop
+    await g.room("r.goToZone('3.0');");
+    await wait(2000);
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'computer'), f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.minute = 12 * 60; r.queueAction(c, 'use', d); r.passTime(10);");
+    await wait(800);
+    assert.ok(await active('Device') && await g.ev(`${S('Device')}.kind === 'computer'`), 'the computer opened');
+    await g.ev(`${S('Device')}.close()`);
+    await wait(400);
+    await g.room("r.goToZone('2.0');");
+    await wait(2000);
+    await g.room("const c = r.characters[0], n = r.props.find(p => p.type === 'newsstand'), f = r.frontOf(n); window.__news = n; c.x = f.x; c.lane = f.lane; c.goal = null; r.cash = 50; r.clock.minute = 12 * 60; r.queueAction(c, 'news', n); r.passTime(10);");
+    assert.ok(!(await active('Device')), 'no paper without $80');
+    await g.room("r.cash = 500; r.queueAction(r.characters[0], 'news', window.__news); r.passTime(10);");
+    await wait(800);
+    assert.ok(await active('Device') && await g.ev(`${S('Device')}.kind === 'paper'`), 'the paper opened');
+    assert.equal(await g.room('return r.cash;'), 420, 'for $80');
+    await g.ev(`${S('Device')}.close()`);
+    await wait(400);
+    // lost the phone? a kiosk sells another
+    await g.room("r.hard.phone = false; r.cash = 2000; r.refreshHardHud(); const c = r.characters[0], k = r.props.find(p => p.type === 'phonekiosk'), f = r.frontOf(k); window.__kiosk = k; c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'buyphone', k); r.passTime(10);");
+    assert.equal(await g.room('return r.hard.phone;'), false, 'a phone is $3500');
+    await g.room("r.cash = 5000; r.queueAction(r.characters[0], 'buyphone', window.__kiosk); r.passTime(10); r.refreshHardHud();");
+    assert.deepEqual(await g.room('return [r.hard.phone, r.cash, r.phoneBtn.visible];'), [true, 1500, true]);
+    await g.room('r.hard.autonomy = true;');
+  });
+
   await step('night follows the clock and the kid tips are off', async () => {
     await g.room('r.clock.minute = 21 * 60;');
     await wait(1200);
