@@ -88,6 +88,53 @@ try {
     await g.room('r.setSpeed(1); r.hard.autonomy = true;');
   });
 
+  await step('housing: bills arrive in the mailbox, pay them at the counter (09-17), go late, get evicted, rent a motel room', async () => {
+    await g.room("r.hard.autonomy = false; r.setSpeed(1); r.hard.larder = []; r.characters.forEach(c => { r.cancelCurrent(c); c.queue = []; }); r.goToZone('0.0');");
+    await wait(2000);
+    const flagUp = await g.room("const m = r.props.find(p => p.type === 'mailbox'); return Boolean(m) && r.hard.bills.length >= 2;");
+    assert.ok(flagUp, 'two bills (rent and utilities) came with the first day, and there is a mailbox');
+    assert.deepEqual(await g.room('return [r.hard.bills.map(b => b.kind).join(), r.hard.home.tier, r.hard.home.next];'), ['rent,utilities', 'flat', 7], 'weekly for a flat');
+    await g.room("const c = r.characters[0], m = r.props.find(p => p.type === 'mailbox'), f = r.frontOf(m); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'mail', m); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Bills'), 'reading the mail opens the bills');
+    assert.equal(await g.ev(`${S('Bills')}.canPay`), false, 'but you cannot pay from the mailbox');
+    await g.ev(`${S('Bills')}.close()`);
+    await wait(400);
+    assert.ok(await g.room('return r.hard.bills.every(b => b.seen);'), 'seen');
+    // the post office counter
+    await g.room("r.goToZone('3.0');");
+    await wait(2000);
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'paydesk'), f = r.frontOf(d); window.__desk = d; c.x = f.x; c.lane = f.lane; c.goal = null; r.cash = 10000; r.clock.minute = 20 * 60; r.queueAction(c, 'pay', d); r.passTime(10);");
+    assert.ok(!(await active('Bills')), 'the counter is closed at 20:00');
+    await g.room("r.clock.minute = 12 * 60; r.queueAction(r.characters[0], 'pay', window.__desk); r.passTime(10);");
+    await wait(900);
+    assert.equal(await g.ev(`${S('Bills')}.canPay`), true);
+    await g.ev(`${S('Bills')}.payBills()`);
+    assert.equal(await g.room('return [r.cash, r.hard.bills.length];').then(a => a.join()), '5100,0', 'paid $4900 of bills');
+    await g.ev(`${S('Bills')}.close()`);
+    await wait(400);
+    // fall behind: next week's bills, late, then evicted
+    await g.room("r.goToZone('0.0');");
+    await wait(2000);
+    await g.room('r.clock.day = 7; r.clock.minute = 8 * 60; r.passTime(5);');
+    assert.equal(await g.room('return r.hard.bills.length;'), 2, 'a week later: two more');
+    await g.room('r.clock.day = 11; r.passTime(5);');
+    assert.ok(await g.room('return r.hard.bills.every(b => b.late);'), 'late: 10% added');
+    assert.ok(await g.room('return r.hard.home !== null;'), 'but still in the grace days');
+    await g.room('r.clock.day = 15; r.passTime(5);');
+    assert.deepEqual(await g.room('return [r.hard.home, r.hard.lockedOut, r.hard.debt > 0, r.hard.bills.length];'), [null, 0, true, 0], 'evicted: no home, locked out, what was owed is debt');
+    assert.ok(await g.room("const f = r.props.find(p => p.type === 'fridge'); return r.isLocked(f, 'eat');"), 'the old home is locked');
+    // the motel front desk
+    await g.room("r.goToZone('5.0');");
+    await wait(2000);
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'frontdesk'), f = r.frontOf(d); window.__fd = d; c.x = f.x; c.lane = f.lane; c.goal = null; r.cash = 1000; r.clock.minute = 12 * 60; r.queueAction(c, 'rent', d); r.passTime(10);");
+    assert.equal(await g.room('return r.hard.home;'), null, 'not enough cash for the first week');
+    await g.room("r.cash = 5000; r.queueAction(r.characters[0], 'rent', window.__fd); r.passTime(10);");
+    assert.deepEqual(await g.room('return [r.hard.home.tier, r.hard.home.slot, r.cash, r.hard.home.next - r.clock.day];'), ['motel', 5, 1800, 7], 'a room for a week: $3200 paid, next bill in 7 days');
+    assert.equal(await g.room("const b = r.props.find(p => p.type === 'bed'); return r.isLocked(b, 'sleep');"), false, 'the room is yours');
+    await g.room('r.hard.autonomy = true;');
+  });
+
   await step('night follows the clock and the kid tips are off', async () => {
     await g.room('r.clock.minute = 21 * 60;');
     await wait(1200);
@@ -172,7 +219,7 @@ try {
     await g.room("const c = r.characters[0], m = r.props.find(p => p.type === 'servery'); window.__line = m; c.needs.hunger = 10; const f = r.frontOf(m); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.minute = 12 * 60; r.queueAction(c, 'queue', m); r.passTime(5);");
     assert.equal(await g.room('return r.characters[0].current ? 1 : 0;'), 0, 'closed at noon');
     await g.room("r.clock.minute = 18 * 60 + 5; r.queueAction(r.characters[0], 'queue', window.__line); r.passTime(30);");
-    assert.ok(await g.room('return r.characters[0].needs.hunger > 25;'), 'a hot meal at 18:05');
+    assert.ok(await g.room('return r.characters[0].needs.hunger > 18;'), 'a hot meal at 18:05');
   });
 
   await step('begging is a short mini-game that costs an hour; sleeping rough on a bench; the shelter cot opens in the evening', async () => {

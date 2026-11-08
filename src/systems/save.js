@@ -33,6 +33,7 @@ import { cleanSetup } from './mode.js';
 import { cleanClock } from './hard/clock.js';
 import { cleanNeeds } from './hard/needs.js';
 import { cleanFood } from './hard/pantry.js';
+import { cleanBills, cleanHome } from './hard/bills.js';
 import { cleanShop } from './hard/stock.js';
 import { BAG_CAP, LARDER_CAP } from '../data/hard/food.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
@@ -117,6 +118,10 @@ export function sanitizeHard(raw) {
     clock: cleanClock(raw.clock),
     needs: Object.fromEntries(Object.entries(raw.needs && typeof raw.needs === 'object' ? raw.needs : {}).slice(0, MAX_PARTY).map(([id, n]) => [String(id).slice(0, 20), cleanNeeds(n)])),
     autonomy: raw.autonomy !== false,                         // people act on their own needs when idle
+    home: cleanHome(raw.home),                                // where you live (null = nowhere)
+    bills: cleanBills(raw.bills),
+    billId: ok(raw.billId) ? clamp(Math.floor(raw.billId), 0, 1e6) : 0,
+    lockedOut: Number.isInteger(raw.lockedOut) && raw.lockedOut >= 0 && raw.lockedOut < 12 ? raw.lockedOut : null,       // the lot you were evicted from
     larder: cleanFood(raw.larder, LARDER_CAP),                // the household's fridge and pantry
     bags: Object.fromEntries(Object.entries(raw.bags && typeof raw.bags === 'object' ? raw.bags : {}).slice(0, MAX_PARTY).map(([id, b]) => [String(id).slice(0, 20), cleanFood(b, BAG_CAP)])),
     shops: Object.fromEntries(Object.entries(raw.shops && typeof raw.shops === 'object' ? raw.shops : {}).filter(([k]) => /^\d{1,2}$/.test(k)).slice(0, 12).map(([k, v]) => [k, cleanShop(v, SHOP_ITEMS)])),
@@ -131,6 +136,7 @@ export function sanitize(raw) {
   const zone = zoneInfo(city, d.zone) ? d.zone : (city.findIndex(Boolean) >= 0 ? entryZone(city, city.findIndex(Boolean)) : null);
   if (!zone) return null;
   const worldW = zoneInfo(city, zone).width;
+  if (hard && hard.home && !city[hard.home.slot]) hard.home = null;               // their home was knocked down
 
   const characters = (Array.isArray(d.characters) ? d.characters : [])
     .filter(c => c && typeof c.id === 'string')

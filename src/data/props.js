@@ -405,8 +405,28 @@ export const PROP_TYPES = {
       g.fillStyle(0xf0c868, 1).fillCircle(-8, 32, 4).fillCircle(8, 33, 4);
     },
   },
+  paydesk: {
+    name: 'Post Office Counter', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['pay'], hours: [[9, 17]], w: 170, h: 110, blurb: 'Pay your bills',
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-85, -2, 170, 56, 6);                         // the counter
+      g.fillStyle(0x6aaee8, 1).fillRoundedRect(-74, -46, 148, 40, 6);                        // the glass window
+      g.fillStyle(0xdcecf8, 1).fillRoundedRect(-66, -40, 132, 28, 4);
+      g.fillStyle(0xf5c14a, 1).fillRoundedRect(-34, -64, 68, 16, 4);                         // a little sign
+      g.fillStyle(0x4a3426, 1).fillRect(-24, -60, 48, 3);
+    },
+  },
+  frontdesk: {
+    name: 'Motel Front Desk', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['rent'], hours: [[8, 22]], w: 150, h: 110, blurb: 'Rent a room',
+    draw(g) {
+      g.fillStyle(0x7a5a3a, 1).fillRoundedRect(-75, -4, 150, 54, 6);                         // the desk
+      g.fillStyle(0xe8913a, 1).fillRoundedRect(-52, -50, 104, 36, 6);                        // a big "MOTEL" sign
+      g.fillStyle(0xfff4e0, 1).fillRect(-40, -42, 80, 8).fillRect(-30, -30, 60, 6);
+      g.fillStyle(0xf5c14a, 1).fillCircle(48, -14, 7);                                       // the bell
+      g.fillStyle(0xb0a090, 1).fillRect(-62, -26, 8, 22).fillRect(-50, -22, 8, 18);          // keys on hooks
+    },
+  },
   mailbox: {
-    name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', w: 84, h: 136,
+    name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', hardActions: ['mail'], w: 84, h: 136,
     draw(g, flag) {
       g.fillStyle(0x8a5e3b, 1).fillRect(-6, 4, 12, 62);                               // the post
       g.fillStyle(0x6aaee8, 1).fillRoundedRect(-34, -58, 68, 60, 16);                 // the box

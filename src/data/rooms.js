@@ -227,6 +227,16 @@ export const ROOMS = {
     ],
     windows: [{ x: 360, y: 60, w: 150, h: 110 }],
   },
+  motel: {
+    label: '🛏️ Motel room',
+    style: { wall: 'sage', floor: 'concrete' },
+    shelves: [],
+    props: [
+      { type: 'frontdesk', x: 160, y: 520 }, { type: 'bed', x: 480, y: 540 }, { type: 'chair', x: 700, y: 540 },
+      { type: 'lightswitch', x: 890, y: 168 },
+    ],
+    windows: [{ x: 640, y: 60, w: 150, h: 110 }],
+  },
   pond: {
     label: '🎣 Fishing pond',
     outdoor: true,

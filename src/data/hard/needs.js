@@ -34,6 +34,9 @@ export const ACTIONS = {
   labour: { label: 'Day labour', icon: '🧱', minutes: 240, perMin: { energy: -0.12, hunger: -0.03, hygiene: -0.05 }, pay: 1200 },
   queue: { label: 'Meal line', icon: '🍲', minutes: 20 },
   store: { label: 'Put away', icon: '🧊', minutes: 5 },
+  mail:  { label: 'Check mail', icon: '📬', minutes: 3 },
+  pay:   { label: 'Pay bills', icon: '💵', minutes: 5 },
+  rent:  { label: 'Rent a room', icon: '🔑', minutes: 5 },
 };
 export const ACTION_IDS = Object.keys(ACTIONS);
 export const MAX_QUEUE = 5;

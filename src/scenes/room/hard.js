@@ -18,6 +18,8 @@ import { addFood, expire, store, takeBest, cleanFood } from '../../systems/hard/
 import { deliverIfDue, inStock, newShop, totalStock } from '../../systems/hard/stock.js';
 import { SHOP_ITEMS } from '../../systems/save.js';
 import { SHELF_STEP } from '../../config.js';
+import { HOUSING } from '../../data/hard/housing.js';
+import { overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
 import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, pin } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
@@ -26,6 +28,7 @@ const TEXT_DEPTH = 10000;
 const BAR_COLORS = { hunger: 0xe8913a, energy: 0x6aaee8, hygiene: 0x6fd0c0, warmth: 0xf08060, mood: 0xf5c14a };
 const NEED_ICONS = { hunger: '🍎', energy: '⚡', hygiene: '🚿', warmth: '🔥', mood: '🙂' };
 const NEED_KEYS = ['hunger', 'energy', 'hygiene', 'warmth', 'mood'];
+const HOME_ROOMS = ['kitchen', 'living', 'bedroom', 'motel'];            // rooms that belong to whoever lives there
 const IDLE_BEFORE_FREE_WILL = 10;                      // game minutes standing around before someone decides for themselves
 
 export const hardMethods = {
@@ -75,6 +78,41 @@ export const hardMethods = {
     this.queueDirty = true;
   },
 
+  // Once a day: bills arrive, go late, or cost you your home.
+  daily(day) {
+    for (const e of tickBills(this.hard, day)) {
+      if (e.type === 'issued') this.notice('📬 Bills have come in the mail');
+      if (e.type === 'late') this.notice('⚠️ A bill is late: 10% added');
+      if (e.type === 'evicted') { this.notice('🔒 Evicted! The locks have been changed'); this.sfx.nope(); }
+    }
+    this.updateNav();
+    this.queueDirty = true;
+  },
+
+  // The lot we are standing in, and whether a piece of furniture belongs to a home that isn't ours.
+  zoneSlot() { return Number(this.zoneKey.split('.')[0]); },
+  isLocked(prop, type) {
+    if (type === 'rent') return false;
+    const s = this.zone && sectionAt(this.zone, prop.x).section;
+    return Boolean(s && HOME_ROOMS.includes(s.type) && !(this.hard.home && this.hard.home.slot === this.zoneSlot()));
+  },
+
+  // The bills window closed: whoever was reading them is done.
+  billsClosed() {
+    for (const c of this.characters) if (c.current && c.current.waiting && (c.current.type === 'mail' || c.current.type === 'pay')) { c.current = null; this.queueDirty = true; }
+  },
+
+  // At the motel front desk: pay the first week and the room is yours.
+  rentRoom(c, prop) {
+    const slot = this.zoneSlot(), r = rent('motel', slot, this.cash, this.clock.day);
+    if (!r) { floatText(this, c.x, c.headTopY() - 30, `You need $${HOUSING.motel.bills.reduce((n, [, a]) => n + a, 0)} for the first week`, 22); this.sfx.nope(); return; }
+    if (this.hard.home && this.hard.home.slot !== slot) { this.hard.debt += totalDue(this.hard.bills); this.hard.bills = []; }          // the old place is given up
+    this.cash = r.cash; this.hard.home = r.home; this.hard.lockedOut = null;
+    this.updateNav(); this.sfx.ding();
+    floatText(this, c.x, c.headTopY() - 30, `🔑 Room rented: $${r.cost}`, 24);
+    this.queueDirty = true;
+  },
+
   notice(text) { const c = this.selected || this.characters[0]; if (c) floatText(this, c.x, c.headTopY() - 50, text, 22); },
 
   // A shop's stock (made the first time we need it: full shelves, the first van due next Monday).
@@ -101,6 +139,8 @@ export const hardMethods = {
     if (isNight(this.clock) !== this.night) this.setNight(isNight(this.clock));
     const toggles = this.hard.setup.toggles, total = this.totalMinutes(), hour = Math.floor(total / 60);
     if (hour !== this.lastHour) { this.lastHour = hour; this.hourly(total); }
+    const today = Math.floor(total / 1440);
+    if (today !== this.lastDay) { this.lastDay = today; this.daily(today); }
     for (const c of this.characters) {
       tick(c.needs, mins, { sleeping: c.sleeping ? 'bed' : c.rough ? 'bench' : c.collapsed ? 'floor' : false, env: toggles.survival ? this.envFor(c) : undefined });
       if (c.rough) this.roughRisks(c, mins);
@@ -239,6 +279,7 @@ export const hardMethods = {
     }
     if (!prop || !prop.active || (type === 'sleep' && prop.sleeper)) { floatText(this, c.x, c.headTopY() - 20, '…', 24); return; }
     if (!this.openCheck(prop, c)) return;
+    if (this.isLocked(prop, type)) { floatText(this, c.x, c.headTopY() - 20, 'This is not your home', 22); this.sfx.nope(); return; }
     c.current = { type, prop, phase: 'walk', elapsed: 0, fed: false };
     c.idleMin = 0;
     if (c.sleeping) this.wakeUp(c, true);
@@ -261,6 +302,8 @@ export const hardMethods = {
       else if (type === 'wash') { puff(this, prop.x, prop.y - prop.def.h / 3, 0x8cc4f4, 6); this.sfx.whoosh(); }
       else if (type === 'scavenge') { prop.boing(0.7); this.sfx.creak ? this.sfx.creak() : this.sfx.pop(); }
       else if (type === 'beg') { c.current.waiting = true; this.openGame('beg', prop); }
+      else if (type === 'mail' || type === 'pay') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bills', { room: this, canPay: type === 'pay' }); }
+      else if (type === 'rent') this.rentRoom(c, prop);
     };
     const g = { x: clamp(front.x, 60, this.worldW - 60), lane: front.lane };
     if (Math.hypot(g.x - c.x, g.lane - c.lane) < 14) arrive();
@@ -359,7 +402,7 @@ export const hardMethods = {
   // --- free will ----------------------------------------------------------------------------------
   usable(p, action, c) {
     return p.active && p.def.hardActions && p.def.hardActions.includes(action) && openNow(p.def.hours, this.clock.minute)
-      && (action !== 'eat' || this.hard.larder.length > 0 || (c && c.bag.length > 0)) && (action !== 'store' || !c || c.bag.length > 0)
+      && !this.isLocked(p, action) && (action !== 'eat' || this.hard.larder.length > 0 || (c && c.bag.length > 0)) && (action !== 'store' || !c || c.bag.length > 0)
       && (action !== 'sleep' || !p.sleeper) && (action !== 'sit' || freeSeat(p.def.ride, p.riders.map(r => r.riding)))
       && (action !== 'rough' || freeSeat(p.def.ride, p.riders.map(r => r.riding)));
   },
@@ -423,6 +466,7 @@ export const hardMethods = {
     this.weatherChip = pin(inkChip(this, 110, 112, '', { size: 18, depth: TEXT_DEPTH, h: 32 }));
     this.bagButton = pin(inkButton(this, 720, 108, '🎒 Snack', { w: 112, h: 34, size: 17, fill: COLORS.gold, depth: TEXT_DEPTH, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
     this.shopChip = pin(inkChip(this, 790, 146, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
+    this.billChip = pin(inkChip(this, 800, 182, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
     this.queueUI = [];
     this.setSpeed(1);
     this.queueDirty = true;
@@ -448,6 +492,9 @@ export const hardMethods = {
     });
     const st = status(c.needs), flags = [st.starving && 'starving', st.hungry && !st.starving && 'hungry', st.exhausted && 'exhausted', st.tired && !st.exhausted && 'tired', st.freezing && 'freezing', st.cold && !st.freezing && 'cold', st.dirty && 'dirty'].filter(Boolean);
     this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}  ·  🎒${c.bag.length}/${BAG_CAP} 🧊${this.hard.larder.length}`);
+    const due = this.hard.bills, late = overdue(due, this.clock.day).length;
+    this.billChip.setVisible(due.length > 0 && due.every(b => b.seen)).setLabel(`📬 ${due.length} bill${due.length > 1 ? 's' : ''} · $${totalDue(due).toLocaleString('en-US')}${late ? ' · LATE' : ''}`);
+    this.props.filter(p => p.def.behaviour === 'mail').forEach(p => p.setState(unseen(due).length > 0));         // the flag goes up when there is post
     const market = this.zone && this.zone.sections.find(s => s.type === 'market');
     this.shopChip.setVisible(Boolean(market));
     if (market) {
