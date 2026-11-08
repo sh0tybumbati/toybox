@@ -40,7 +40,7 @@ export default class BedScene extends Phaser.Scene {
         keep(inkButton(this, W / 2, 310, 'Clear the bed', { w: 220, h: 48, size: 22, fill: COLORS.grey, depth: 6, onTap: () => { delete h.beds[this.key]; this.finish(); } }));
       } else {
         say(240, `Day ${bed.grown} of ${c.days}`, 22);
-        if (bed.lit === false) say(306, bed.out === false ? '💡 Dark in here: it needs a grow lamp in the room' : '🌙 Too dark to grow', 17, { color: '#b0584e' });
+        if (bed.lit === false) say(306, CROPS[bed.crop].dark && bed.out ? '🚫 It will not grow outdoors: it needs a lamp indoors' : '💡 Dark in here: it needs a grow lamp in the room', 17, { color: '#b0584e' });
         say(274, `Soil ${bed.water >= 60 ? '💧 damp' : bed.water > 0 ? '🏜️ drying' : '🏜️ bone dry'}`, 20, { color: '#7a6a58' });
         keep(inkButton(this, W / 2, 336, 'Water', { w: 220, h: 48, size: 24, fill: bed.water >= WATER_FULL ? COLORS.grey : COLORS.green, depth: 6, onTap: () => { h.beds[this.key] = water(bed); this.finish(); } }));
       }

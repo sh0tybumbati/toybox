@@ -37,6 +37,8 @@ import { cleanBills, cleanHome } from './hard/bills.js';
 import { cleanGig } from './hard/gig.js';
 import { cleanBeds, cleanStock } from './hard/garden.js';
 import { CROP_IDS, GEAR_IDS } from '../data/hard/plants.js';
+import { ADDITIVE_IDS } from '../data/hard/lab.js';
+import { cleanGoods } from './hard/lab.js';
 import { cleanShop } from './hard/stock.js';
 import { BAG_CAP, LARDER_CAP } from '../data/hard/food.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
@@ -127,6 +129,9 @@ export function sanitizeHard(raw) {
     seeds: cleanStock(raw.seeds, CROP_IDS),                   // seed packets in the household
     gear: cleanStock(raw.gear, GEAR_IDS),                     // fertiliser and the like
     beds: cleanBeds(raw.beds),
+    raw: cleanStock(raw.raw, CROP_IDS),                       // harvested plants that are not food
+    adds: cleanStock(raw.adds, ADDITIVE_IDS),                 // additives for the bench
+    goods: cleanGoods(raw.goods),                             // finished product waiting to be sold
     power: ok(raw.power) ? clamp(Math.floor(raw.power), 0, 1e7) : 0,                 // grow-lamp power waiting to land on the next utilities bill                                // garden plots, keyed 'lot:x'
     gig: cleanGig(raw.gig),                                   // the day-labour job you have been given (null = none)
     phone: Boolean(raw.phone),                                // you have a phone (it can be stolen)

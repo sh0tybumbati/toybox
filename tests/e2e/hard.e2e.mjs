@@ -276,6 +276,43 @@ try {
     await g.room('r.hard.autonomy = true;');
   });
 
+  await step('the dark plant: seeds, additives and a bench from the alley contact; it grows only indoors under a lamp; harvest goes to the stash and the bench mixes it into a named product', async () => {
+    await g.room("r.hard.autonomy = false; r.hard.home = { tier: 'flat', slot: 0, next: 99 }; r.hard.seeds = {}; r.hard.adds = {}; r.hard.gear = {}; r.hard.raw = {}; r.hard.goods = []; r.hard.beds = {}; r.hard.deals = null; r.hard.heat = 0; r.cash = 20000; r.clock.day = 30; r.clock.minute = 22 * 60;");
+    const slot = await g.room("return r.city.findIndex(b => b && b.name === 'Back Alley');");
+    await wait(800);
+    await g.room(`r.goToZone('${slot}.0');`);
+    await wait(2500);
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'dealer'), f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'deal', d); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Deal'), 'the contact is there at 22:00');
+    await g.ev(`(async s => { const { supplies } = await import('/src/systems/hard/alley.js'); for (const o of supplies()) if (['seed:nightbloom', 'add:mint', 'gear:bench'].includes(o.id)) s.buy(o); })(${S('Deal')})`);
+    await wait(300);
+    assert.deepEqual(await g.room('return [r.hard.seeds.nightbloom, r.hard.adds.mint, r.hard.gear.bench, r.hard.heat > 0, r.cash];'), [1, 1, 1, true, 20000 - 900 - 120 - 2500]);
+    await g.ev(`${S('Deal')}.close()`);
+    await wait(400);
+    // home: a tent with a lamp, and the bench
+    await g.room("r.goToZone('0.0');");
+    await wait(2500);
+    await g.room("r.addFurniture('growtent'); r.addFurniture('growlamp'); r.addFurniture('labbench'); const t = r.props.find(p => p.type === 'growtent'), l = r.props.find(p => p.type === 'growlamp'); l.x = t.x + 120; l.y = t.y; window.__key = r.bedKey(t); r.hard.beds[window.__key] = { crop: 'nightbloom', grown: 13, water: 100, dry: 0, fert: false, mult: 2, out: false, lit: true }; r.refreshBeds();");
+    assert.equal(await g.room('return r.hard.beds[window.__key].lit;'), true, 'tent + lamp indoors: lit');
+    await g.room("r.hard.beds[window.__key].water = 100; r.daily(r.clock.day + 1);");
+    assert.equal(await g.room('return r.props.find(p => p.type === "growtent").state;'), 'ready:nightbloom', 'ready after the long wait');
+    await g.room("window.__bag = r.characters[0].bag.length; r.harvestBed(window.__key, r.characters[0]);");
+    assert.deepEqual(await g.room('return [r.hard.raw.nightbloom, r.characters[0].bag.length === window.__bag];'), [6, true], 'a double crop of six, not food');
+    // the bench
+    await g.room("const c = r.characters[0], b = r.props.find(p => p.type === 'labbench'), f = r.frontOf(b); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'mix', b); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Lab'), 'the bench opens');
+    await g.ev(`(s => { s.count = 2; s.toggle('mint'); s.doMix(); })(${S('Lab')})`);
+    assert.deepEqual(await g.room('const p = r.hard.goods[0]; return [p.name, p.units, p.purity, r.hard.raw.nightbloom, r.hard.adds.mint || 0];'), ['Cool bloom', 2, 95, 4, 0], 'a named product, ingredients used up');
+    await g.ev(`${S('Lab')}.close()`);
+    await wait(300);
+    // taking the lamp away puts the tent in the dark
+    await g.room("r.hard.beds[window.__key] = { crop: 'nightbloom', grown: 3, water: 100, dry: 0, fert: false, mult: 2, out: false, lit: true }; r.removeFurniture(r.props.find(p => p.type === 'growlamp')); r.refreshBeds();");
+    assert.equal(await g.room('return r.hard.beds[window.__key].lit;'), false);
+    await g.room('r.hard.autonomy = true;');
+  });
+
   await step('night follows the clock and the kid tips are off', async () => {
     await g.room('r.clock.minute = 21 * 60;');
     await wait(1200);

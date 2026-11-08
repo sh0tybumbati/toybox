@@ -1,7 +1,7 @@
 // The Garden Centre: seed packets and garden gear. Everything here is legal; the dark seeds are sold elsewhere.
 import { W } from '../../config.js';
 import { CARD, COLORS, inkButton, inkPanel } from '../../ui.js';
-import { CROPS, CROP_IDS, GEAR, GEAR_IDS } from '../../data/hard/plants.js';
+import { CROPS, LEGAL_IDS, GEAR, GEAR_IDS } from '../../data/hard/plants.js';
 import { give } from '../../systems/hard/garden.js';
 import { backdrop, leave, text } from './overlay.js';
 
@@ -22,8 +22,8 @@ export default class NurseryScene extends Phaser.Scene {
     this.dyn = [];
     const keep = o => { this.dyn.push(o); return o; }, r = this.room, h = r.hard;
     keep(text(this, W / 2, 168, `Cash: $${r.cash.toLocaleString('en-US')}   ·   Pots, tents and lamps are set up from the furniture catalogue`, 19, { color: '#7a6a58' }).setOrigin(0.5));
-    const rows = [...CROP_IDS.map(id => ({ id, pack: true, label: `${CROPS[id].icon} ${CROPS[id].label} seeds`, price: CROPS[id].seed, note: `${CROPS[id].days} days · ${CROPS[id].yield} crops`, have: h.seeds[id] || 0 })),
-      ...GEAR_IDS.map(id => ({ id, label: `${GEAR[id].icon} ${GEAR[id].label}`, price: GEAR[id].price, note: GEAR[id].note, have: h.gear[id] || 0 }))];
+    const rows = [...LEGAL_IDS.map(id => ({ id, pack: true, label: `${CROPS[id].icon} ${CROPS[id].label} seeds`, price: CROPS[id].seed, note: `${CROPS[id].days} days · ${CROPS[id].yield} crops`, have: h.seeds[id] || 0 })),
+      ...GEAR_IDS.filter(id => !GEAR[id].sold).map(id => ({ id, label: `${GEAR[id].icon} ${GEAR[id].label}`, price: GEAR[id].price, note: GEAR[id].note, have: h.gear[id] || 0 }))];
     rows.forEach((o, i) => {
       const y = 204 + i * 44, ok = r.cash >= o.price;
       keep(inkPanel(this, W / 2, y, 600, 42, { fill: CARD, radius: 12, shadow: false, weight: 2.8, seed: 170 + i, depth: 4 }));

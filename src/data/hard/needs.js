@@ -43,6 +43,7 @@ export const ACTIONS = {
   out:   { label: 'Go out', icon: '🚪', minutes: 1 },
   tend:  { label: 'Tend', icon: '🌱', minutes: 10 },
   buyseeds: { label: 'Browse', icon: '🪴', minutes: 5 },
+  mix:   { label: 'Mix', icon: '⚗️', minutes: 5 },
   use:   { label: 'Use computer', icon: '💻', minutes: 10 },
   news:  { label: 'Buy a paper ($80)', icon: '📰', minutes: 5 },
   buyphone: { label: 'Buy a phone ($3500)', icon: '📱', minutes: 5 },

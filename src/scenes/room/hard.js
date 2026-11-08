@@ -24,8 +24,8 @@ import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
 import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
 import { SLOTS } from '../../data/buildings.js';
 import { decayHeat } from '../../systems/hard/alley.js';
-import { harvestOf, powerToday, stage, tickBeds } from '../../systems/hard/garden.js';
-import { PLOTS, POWER_DAY } from '../../data/hard/plants.js';
+import { give, harvestOf, powerToday, stage, tickBeds } from '../../systems/hard/garden.js';
+import { CROPS, PLOTS, POWER_DAY } from '../../data/hard/plants.js';
 import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
@@ -113,7 +113,7 @@ export const hardMethods = {
       if (b) {                                           // sun and rain outdoors; indoors it needs a lamp in the same room
         const sec = sectionAt(this.zone, p.x).section, outdoor = Boolean(sec && ROOMS[sec.type].outdoor), open = PLOTS[p.type].open;
         const lamp = this.props.some(q => q.type === 'growlamp' && q.active && sectionAt(this.zone, q.x).section === sec);
-        b.out = outdoor; b.lit = (outdoor && open) || lamp;
+        b.out = outdoor; b.lit = CROPS[b.crop].dark ? !outdoor && lamp : (outdoor && open) || lamp;       // the dark plant wants a lamp and a roof
       }
       p.setState(`${stage(b)}:${b ? b.crop : ''}`);
     }
@@ -124,6 +124,12 @@ export const hardMethods = {
     const bed = this.hard.beds[key];
     if (!bed || stage(bed) !== 'ready') return;
     const { item, count } = harvestOf(bed), now = this.totalMinutes();
+    if (CROPS[item].dark) {                              // not food: it goes in the stash, for the bench
+      this.hard.raw = give(this.hard.raw, item, count);
+      delete this.hard.beds[key];
+      floatText(this, c.x, c.headTopY() - 30, `+${count} ${CROPS[item].label}`, 22);
+      return;
+    }
     let kept = 0;
     for (let i = 0; i < count; i++) {
       const inBag = addFood(c.bag, item, now, BAG_CAP);
@@ -177,7 +183,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -346,6 +352,7 @@ export const hardMethods = {
     if (action === 'eat' && !this.hard.larder.length && !c.bag.length) return { ok: false, why: 'Nothing to eat: buy food at the shop' };
     if (action === 'store' && !c.bag.length) return { ok: false, why: 'Nothing in your bag' };
     if (action === 'store' && this.hard.larder.length >= LARDER_CAP) return { ok: false, why: 'The larder is full' };
+    if (action === 'mix' && !Object.values(this.hard.raw).some(n => n > 0)) return { ok: false, why: 'Nothing to mix: grow something first' };
     if (action === 'buyseeds' && !openNow(hours, this.clock.minute)) return { ok: false, why: 'Closed' };
     if (action === 'sleep' && prop.sleeper) return { ok: false, why: 'Someone is in it' };
     if ((action === 'sit' || action === 'rough') && !freeSeat(prop.def.ride, prop.riders.map(r => r.riding))) return { ok: false, why: 'Taken' };
@@ -413,6 +420,7 @@ export const hardMethods = {
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
       else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c, type: prop.type }); }
+      else if (type === 'mix') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Lab', { room: this }); }
       else if (type === 'buyseeds') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Nursery', { room: this }); }
       else if (type === 'use') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'computer' }); }
       else if (type === 'news') this.buyPaper(c);

@@ -1,15 +1,16 @@
 // The back alley contact: cheap things, no questions. What you buy here draws attention (heat).
 import { W } from '../../config.js';
 import { CARD, COLORS, TEXT, inkButton, inkPanel } from '../../ui.js';
-import { BURNER_PRICE, addHeat, offers } from '../../systems/hard/alley.js';
+import { addHeat, offers, supplies } from '../../systems/hard/alley.js';
 import { BAG_CAP } from '../../data/hard/food.js';
+import { give } from '../../systems/hard/garden.js';
 import { addFood } from '../../systems/hard/pantry.js';
 import { backdrop, leave, text } from './overlay.js';
 
 export default class DealScene extends Phaser.Scene {
   constructor() { super('Deal'); }
 
-  init(data) { this.room = data.room; this.who = data.who; this.dyn = []; }
+  init(data) { this.room = data.room; this.who = data.who; this.dyn = []; this.page = 'goods'; }
 
   create() {
     backdrop(this, 640, 440, 'The contact', { seed: 49, onClose: () => this.close() });
@@ -27,8 +28,9 @@ export default class DealScene extends Phaser.Scene {
     const r = this.room, h = r.hard;
     keep(text(this, W / 2, 168, '"Keep your voice down. Cash only."', 20, { color: '#7a6a58', fontStyle: 'italic' }).setOrigin(0.5));
     keep(text(this, W / 2, 196, `Cash: $${r.cash.toLocaleString('en-US')}${h.heat ? `   ·   🚨 Heat ${h.heat}` : ''}`, 20).setOrigin(0.5));
-    offers(r.clock.day).forEach((o, i) => {
-      const y = 246 + i * 58, left = o.stock != null ? o.stock - (h.deals.counts[o.id] || 0) : null, soldOut = left === 0, own = o.id === 'burner' && h.phone;
+    ['goods', 'supplies'].forEach((p, i) => keep(inkButton(this, W / 2 - 110 + i * 220, 232, p === 'goods' ? 'Goods' : 'Dark supplies', { w: 200, h: 34, size: 18, fill: this.page === p ? COLORS.gold : COLORS.grey, depth: 6, seed: 140 + i, onTap: () => { this.page = p; this.build(); } })));
+    (this.page === 'goods' ? offers(r.clock.day) : supplies()).forEach((o, i) => {
+      const y = 290 + i * (this.page === 'goods' ? 58 : 46), left = o.stock != null ? o.stock - (h.deals.counts[o.id] || 0) : null, soldOut = left === 0, own = o.id === 'burner' && h.phone;       // (y is set above)
       keep(inkPanel(this, W / 2, y, 560, 50, { fill: CARD, radius: 12, shadow: false, weight: 2.8, seed: 150 + i, depth: 4 }));
       keep(text(this, 214, y - 20, o.label, 22, { fontStyle: 'bold' }).setDepth(5));
       keep(text(this, 214, y + 4, `${o.note}${left != null ? `  (${left} left)` : ''}`, 15, { color: '#7a6a58' }).setDepth(5));
@@ -42,7 +44,10 @@ export default class DealScene extends Phaser.Scene {
     const r = this.room, h = r.hard, c = this.who || r.selected || r.characters[0];
     const left = o.stock != null ? o.stock - (h.deals.counts[o.id] || 0) : null;
     if (r.cash < o.price || left === 0 || (o.id === 'burner' && h.phone)) { r.sfx.nope(); return; }
-    if (o.food) {
+    if (o.seed) h.seeds = give(h.seeds, o.seed);
+    else if (o.additive) h.adds = give(h.adds, o.additive);
+    else if (o.gear) h.gear = give(h.gear, o.gear);
+    else if (o.food) {
       const bag = addFood(c.bag, o.food, r.totalMinutes(), BAG_CAP);
       if (!bag) { r.sfx.nope(); this.note('Your bag is full.'); return; }
       c.bag = bag;

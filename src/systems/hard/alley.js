@@ -2,6 +2,8 @@
 // and what you do there is noticed. `heat` (0..100) is how much attention you have drawn; it fades with time.
 import { hash01 } from './weather.js';
 import { hardPriceOf } from '../../data/hard/food.js';
+import { CROPS, GEAR } from '../../data/hard/plants.js';
+import { ADDITIVES, ADDITIVE_IDS } from '../../data/hard/lab.js';
 
 export const BURNER_PRICE = 1800;
 export const HOT_GOODS = ['bread', 'rice', 'cheese', 'meat', 'fish', 'milk', 'egg', 'potato'];
@@ -15,6 +17,16 @@ export function offers(day) {
   return [
     { id: 'burner', label: 'Burner phone', price: BURNER_PRICE, note: 'No questions. No contract.', heat: HEAT.phone },
     ...picks.map(k => ({ id: k, food: k, label: `${k[0].toUpperCase()}${k.slice(1)} (hot)`, price: Math.round(hardPriceOf(k) * HOT_DISCOUNT / 5) * 5, note: 'Fell off a lorry.', heat: HEAT.goods, stock: HOT_STOCK })),
+  ];
+}
+
+// The dark stock: the first invented plant's seeds, additives for the mixing bench, and the bench itself. Draws more heat.
+export const SUPPLY_HEAT = { seed: 6, additive: 3, bench: 5 };
+export function supplies() {
+  return [
+    { id: 'seed:nightbloom', seed: 'nightbloom', label: `${CROPS.nightbloom.icon} Nightbloom seeds`, price: CROPS.nightbloom.seed, note: 'Slow and fussy. Indoors, under a lamp.', heat: SUPPLY_HEAT.seed, stock: 2 },
+    ...ADDITIVE_IDS.map(a => ({ id: `add:${a}`, additive: a, label: `${ADDITIVES[a].icon} ${ADDITIVES[a].label}`, price: ADDITIVES[a].price, note: ADDITIVES[a].note, heat: SUPPLY_HEAT.additive, stock: 5 })),
+    { id: 'gear:bench', gear: 'bench', label: `${GEAR.bench.icon} ${GEAR.bench.label}`, price: GEAR.bench.price, note: GEAR.bench.note, heat: SUPPLY_HEAT.bench, stock: 1 },
   ];
 }
 

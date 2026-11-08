@@ -381,7 +381,7 @@ export const PROP_TYPES = {
       const tall = { seed: 4, growing: 22, ready: 38, dead: 10 }[stageName] ?? 4, col = stageName === 'dead' ? 0x9a8a5a : 0x4fa14a;
       for (let i = 0; i < 5; i++) {
         g.fillStyle(col, 1).fillTriangle(-56 + i * 28, -8, -48 + i * 28, -8 - tall, -40 + i * 28, -8);
-        if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a }[crop] || 0xf08a2f, 1).fillCircle(-48 + i * 28, -8 - tall - 4, 6);
+        if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a, nightbloom: 0x8a5ad8 }[crop] || 0xf08a2f, 1).fillCircle(-48 + i * 28, -8 - tall - 4, 6);
       }
     },
   },
@@ -404,7 +404,7 @@ export const PROP_TYPES = {
       if (stageName === 'empty') return;
       const tall = { seed: 4, growing: 18, ready: 30, dead: 8 }[stageName] ?? 4, col = stageName === 'dead' ? 0x9a8a5a : 0x4fa14a;
       for (let i = 0; i < 3; i++) g.fillStyle(col, 1).fillTriangle(-18 + i * 18, -10, -12 + i * 18, -10 - tall, -6 + i * 18, -10);
-      if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a }[crop] || 0xf08a2f, 1).fillCircle(0, -44, 6);
+      if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a, nightbloom: 0x8a5ad8 }[crop] || 0xf08a2f, 1).fillCircle(0, -44, 6);
     },
   },
   growtent: {
@@ -418,7 +418,7 @@ export const PROP_TYPES = {
       if (stageName !== 'empty') {
         const tall = { seed: 6, growing: 34, ready: 62, dead: 12 }[stageName] ?? 6, col = stageName === 'dead' ? 0x9a8a5a : 0x58b04e;
         for (let i = 0; i < 4; i++) g.fillStyle(col, 1).fillTriangle(-40 + i * 26, 40, -32 + i * 26, 40 - tall, -24 + i * 26, 40);
-        if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a }[crop] || 0xf08a2f, 1).fillCircle(0, -26, 8);
+        if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a, nightbloom: 0x8a5ad8 }[crop] || 0xf08a2f, 1).fillCircle(0, -26, 8);
       }
       g.fillStyle(0xc77dff, 0.14).fillRoundedRect(-58, -78, 116, 156, 6);                      // a purple glow leaks out
     },
@@ -430,6 +430,18 @@ export const PROP_TYPES = {
       g.fillStyle(0x6b5a8a, 1).fillRoundedRect(-34, -86, 68, 22, 8);                          // the shade
       g.fillStyle(0xe2b6ff, 0.9).fillRect(-26, -66, 52, 5);                                   // the purple tubes
       g.fillStyle(0xc77dff, 0.18).fillTriangle(-30, -62, 30, -62, 0, 48);
+    },
+  },
+  labbench: {
+    name: 'Mixing Bench', cat: 'home', mount: 'floor', behaviour: 'none', hardOnly: true, gear: 'bench', hardActions: ['mix'], w: 170, h: 120, blurb: 'Mix what you grow',
+    draw(g) {
+      g.fillStyle(0x6b5648, 1).fillRoundedRect(-80, -10, 160, 14, 4).fillRect(-72, 4, 10, 50).fillRect(62, 4, 10, 50);          // the bench
+      g.fillStyle(0xc9d2cc, 1).fillRoundedRect(-80, -14, 160, 8, 3);
+      g.fillStyle(0xdcecf8, 0.9).fillTriangle(-56, -14, -32, -14, -44, -54).fillRect(-48, -64, 8, 12);                           // a flask
+      g.fillStyle(0xc77dff, 1).fillTriangle(-50, -16, -38, -16, -44, -34);
+      g.fillStyle(0x9aa6a0, 1).fillRoundedRect(-8, -40, 34, 26, 4);                                                               // a scale
+      g.fillStyle(0xf1ebdc, 1).fillRect(-2, -34, 22, 8);
+      g.fillStyle(0x7a4a2e, 1).fillRoundedRect(44, -34, 24, 20, 3);                                                               // a tin of additives
     },
   },
   dumpster: {
