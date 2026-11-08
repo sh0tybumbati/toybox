@@ -8,6 +8,7 @@ import { canAccept } from '../../systems/cooking.js';
 import { comboPartner, handleDrop, land, squashTo, trash } from '../../systems/interactions.js';
 import { inBin, laneForFeet, throwVelocity } from '../../systems/physics.js';
 import { adopt } from '../../systems/support.js';
+import { inStock } from '../../systems/hard/stock.js';
 import { clampPlacement } from '../../systems/slots.js';
 import { slotWorld, storageFor, takeOut } from '../../systems/storage.js';
 import { clamp } from '../../util.js';
@@ -56,12 +57,13 @@ export const dragMethods = {
       // Grabbing from a shelf leaves a fresh copy behind.
       if (obj.onShelf) {
         obj.onShelf = false;
-        const price = obj.price;
+        const price = obj.price, shop = obj.shop;
         if (price) this.payFor(obj);
         const gen = this.zoneGen;
         this.time.delayedCall(300, () => {
           if (this.zoneGen !== gen) return;       // left the zone meanwhile: shelves restock on return
-          this.spawnShelfItem(obj.key, obj.shelfPos, { pop: true, price });
+          if (shop != null && !inStock(this.shopFor(shop), obj.key)) return;          // hard mode: that was the last one
+          this.spawnShelfItem(obj.key, obj.shelfPos, { pop: true, price, shop });
           this.sfx.pop();
         });
       }

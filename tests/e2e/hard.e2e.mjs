@@ -73,7 +73,8 @@ try {
     const fast = await g.room('return { m: r.clock.day * 1440 + r.clock.minute, h: r.characters[0].needs.hunger };');
     assert.ok(fast.m - (t0.day * 1440 + t0.minute) > 8, `time moved (${fast.m - (t0.day * 1440 + t0.minute)} game minutes in 2s at speed 3)`);
     assert.ok(fast.h < t0.hunger, 'and hunger fell');
-    // a hungry person with a fridge nearby looks after themselves
+    // a hungry person with food in the fridge looks after themselves
+    await g.room("r.hard.larder = [{ k: 'bread', exp: 999999999 }, { k: 'rice', exp: 999999999 }];");
     await g.room("r.characters.forEach(c => { c.needs.hunger = 8; c.needs.energy = 90; c.needs.hygiene = 90; c.needs.mood = 90; });");
     const fed = await (async () => { for (let i = 0; i < 60; i++) { if (await g.room('return r.characters[0].needs.hunger > 30;')) return true; await wait(500); } return false; })();
     assert.ok(fed, 'free will: the hungry person went and ate');
@@ -95,6 +96,48 @@ try {
     await wait(1200);
     assert.equal(await g.room('return r.night;'), false, 'day at 09:00');
     assert.equal(await g.room('return r.tipShown ? 1 : 0;'), 0);
+  });
+
+  await step('shopping: cash prices, finite stock, a bag, the fridge and spoilage, shops open 7 to 22, a delivery van that may run late', async () => {
+    await g.room("r.hard.autonomy = false; r.setSpeed(1); r.hard.larder = []; r.characters[0].bag = []; r.clock.day = 10; r.clock.minute = 10 * 60; r.goToZone('2.0');");
+    await wait(2200);
+    const shopSlot = 2;
+    await g.room("r.cash = 1000; const shop = r.shopFor(2); shop.stock.bread = 2; shop.stock.rice = 6;");
+    const prices = await g.room("const b = r.bodies.find(i => i.onShelf && i.key === 'bread'); return b && [b.price, b.shop, b.input.draggable];");
+    assert.ok(prices, 'bread is on the shelf'); assert.equal(prices[0], 60, 'bread costs $60'); assert.equal(prices[1], shopSlot); assert.equal(prices[2], true);
+    // really drag a loaf off the shelf onto the person: paid, in the bag, one fewer in stock
+    await g.room("const c = r.characters[0]; c.x = 480; c.lane = 520; c.goal = null; r.cameras.main.scrollX = 0;");
+    await wait(300);
+    const at = await g.room("const b = r.bodies.find(i => i.onShelf && i.key === 'bread'), s = r.cameras.main.scrollX; return [Math.round(b.x - s), Math.round(b.y)];");
+    const body = await g.room("const c = r.characters[0], s = r.cameras.main.scrollX; return [Math.round(c.x - s), Math.round(c.y + 20)];");
+    await g.drag(at[0], at[1], body[0], body[1], 800);
+    await wait(500);
+    assert.equal(await g.room('return r.cash;'), 940, 'paid');
+    assert.equal(await g.room('return r.characters[0].bag.length;'), 1, 'the loaf is in the bag');
+    assert.equal(await g.room('return r.shopFor(2).stock.bread;'), 1, 'one fewer in stock');
+    // the last loaf: after it is taken there is none left to restock the shelf
+    await g.room("r.shopFor(2).stock.bread = 0; r.bodies.filter(i => i.onShelf && i.key === 'bread').forEach(i => r.discard(i, { alpha: 0, duration: 10 }));");
+    await wait(400);
+    assert.equal(await g.room("return r.bodies.some(i => i.onShelf && !i.dead && i.key === 'bread');"), false, 'sold out: none on the shelf');
+    // closed at night
+    await g.room('r.clock.minute = 23 * 60; r.refreshPrices();');
+    assert.equal(await g.room("const b = r.bodies.find(i => i.onShelf && !i.dead && i.price); return b.input.draggable;"), false, 'closed at 23:00');
+    await g.room('r.clock.minute = 8 * 60; r.refreshPrices();');
+    assert.equal(await g.room("const b = r.bodies.find(i => i.onShelf && !i.dead && i.price); return b.input.draggable;"), true, 'open at 08:00');
+    // a snack from the bag fills you up
+    await g.room("const c = r.characters[0]; c.needs.hunger = 20; r.queueAction(c, 'eat', null); r.passTime(30);");
+    assert.ok(await g.room('return r.characters[0].needs.hunger > 40;'), 'the bread filled you up');
+    assert.equal(await g.room('return r.characters[0].bag.length;'), 0);
+    // food goes off: a burger keeps a day, rice for months; and a fridge stretches it
+    await g.room("const c = r.characters[0]; c.bag = [{ k: 'burger', exp: r.totalMinutes() + 600 }, { k: 'rice', exp: r.totalMinutes() + 90 * 1440 }]; r.passTime(11 * 60);");
+    assert.deepEqual(await g.room('return r.characters[0].bag.map(f => f.k);'), ['rice'], 'the burger went off');
+    // the delivery van: due Monday 07:00; late some weeks, and the shelves stay empty until it comes
+    await g.room("const sh = r.shopFor(2); r.clock.day = 14; r.clock.minute = 6 * 60; sh.stock.rice = 0; sh.due = 14 * 1440 + 7 * 60; sh.next = sh.due + 120; r.lastHour = -1; r.passTime(120);");
+    assert.equal(await g.room('return r.shopFor(2).stock.rice;'), 0, 'Monday 07:00 came and went: the van is running late');
+    await g.room('r.passTime(120);');
+    assert.equal(await g.room('return r.shopFor(2).stock.rice;'), 6, 'then it arrived and the shelves are full again');
+    assert.ok(await g.room('return r.shopFor(2).due > r.totalMinutes();'), 'the next one is booked');
+    await g.room('r.hard.autonomy = true;');
   });
 
   await step('survival: the cold bites outdoors and warms indoors, bins, day labour (open 6-9) and a meal line (opens at set hours)', async () => {

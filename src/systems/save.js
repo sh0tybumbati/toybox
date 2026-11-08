@@ -32,6 +32,9 @@ import { SCENARIO_IDS } from '../data/hard/scenarios.js';
 import { cleanSetup } from './mode.js';
 import { cleanClock } from './hard/clock.js';
 import { cleanNeeds } from './hard/needs.js';
+import { cleanFood } from './hard/pantry.js';
+import { cleanShop } from './hard/stock.js';
+import { BAG_CAP, LARDER_CAP } from '../data/hard/food.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
 import { cleanParcels } from './mail.js';
 import { furnType } from './ikea.js';
@@ -100,6 +103,8 @@ function migrateRoomsToCity(d) {
 
 // Accepts anything, returns a clean save or null. Unknown items/rooms are
 // dropped and numbers clamped, so a damaged or hand-edited save can't crash us.
+export const SHOP_ITEMS = ROOMS.market.shelves.flatMap(s => s.items);          // what a supermarket stocks
+
 // The hard-mode block of a save (docs/hardcore-mode.md); null for a kid-mode save.
 export function sanitizeHard(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -112,6 +117,9 @@ export function sanitizeHard(raw) {
     clock: cleanClock(raw.clock),
     needs: Object.fromEntries(Object.entries(raw.needs && typeof raw.needs === 'object' ? raw.needs : {}).slice(0, MAX_PARTY).map(([id, n]) => [String(id).slice(0, 20), cleanNeeds(n)])),
     autonomy: raw.autonomy !== false,                         // people act on their own needs when idle
+    larder: cleanFood(raw.larder, LARDER_CAP),                // the household's fridge and pantry
+    bags: Object.fromEntries(Object.entries(raw.bags && typeof raw.bags === 'object' ? raw.bags : {}).slice(0, MAX_PARTY).map(([id, b]) => [String(id).slice(0, 20), cleanFood(b, BAG_CAP)])),
+    shops: Object.fromEntries(Object.entries(raw.shops && typeof raw.shops === 'object' ? raw.shops : {}).filter(([k]) => /^\d{1,2}$/.test(k)).slice(0, 12).map(([k, v]) => [k, cleanShop(v, SHOP_ITEMS)])),
   };
 }
 

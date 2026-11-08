@@ -4,6 +4,9 @@ import { FLOOR_BOTTOM, FLOOR_TOP } from '../../config.js';
 import { PREMIUM, earnAmount } from '../../data/economy.js';
 import { floatText, puff } from '../../systems/interactions.js';
 import { priceOf } from '../../systems/market.js';
+import { SHOP_HOURS } from '../../data/hard/food.js';
+import { nextOpen, openNow, pad } from '../../systems/hard/clock.js';
+import { take } from '../../systems/hard/stock.js';
 import { spriteImage } from '../../systems/itemTextures.js';
 
 export const economyMethods = {
@@ -57,15 +60,19 @@ export const economyMethods = {
   // Supermarket shelf items wear a price tag; you can only take one if you can pay for it.
   priceItem(item, price) {
     item.price = price;
-    item.tag = this.add.text(item.x, item.y + 46, `${price} 🪙`,
+    item.tag = this.add.text(item.x, item.y + 46, this.hard ? `$${price}` : `${price} 🪙`,
       { fontSize: '15px', color: '#4a3426', backgroundColor: '#fff4e0', padding: { x: 6, y: 2 } })
       .setOrigin(0.5).setDepth(item.depth);
-    item.on('pointerdown', () => { if (item.onShelf && this.coins < price) this.tooPricey(item); });
+    item.on('pointerdown', () => { if (item.onShelf && !(this.canPay(item.price) && this.shopOpen(item))) this.tooPricey(item); });
     this.dimUnaffordable(item);
   },
 
+  // Can the household pay `n`? (hard mode: cash; kid mode: coins.) And is the shop this item is in open?
+  canPay(n) { return this.hard ? this.cash >= n : this.coins >= n; },
+  shopOpen(item) { return !this.hard || item.shop == null || openNow(SHOP_HOURS, this.clock.minute); },
+
   dimUnaffordable(item) {
-    const ok = this.coins >= item.price;
+    const ok = this.canPay(item.price) && this.shopOpen(item);
     item.input.draggable = ok && !this.editMode;
     item.setAlpha(ok ? 1 : 0.6);
   },
@@ -78,18 +85,19 @@ export const economyMethods = {
   tooPricey(item) {
     this.sfx.nope();
     this.tweens.add({ targets: item, x: item.x + 6, duration: 50, yoyo: true, repeat: 3, onComplete: () => { item.x = item.shelfPos.x; } });
-    floatText(this, item.x, item.y - 60, `${item.price - this.coins} more 🪙`, 24);
+    const closed = !this.shopOpen(item);
+    floatText(this, item.x, item.y - 60, closed ? `Closed until ${pad(nextOpen(SHOP_HOURS, this.clock.minute))}:00` : this.hard ? `$${item.price - this.cash} more` : `${item.price - this.coins} more 🪙`, 24);
   },
 
   // Taken off the shelf: pay up (the tag goes with it).
   payFor(item) {
-    this.coins -= item.price;
+    if (this.hard) { this.cash -= item.price; if (item.shop != null) take(this.shopFor(item.shop), item.key); } else this.coins -= item.price;
     this.tipEvent('groceries');
     if (item.tag) { item.tag.destroy(); item.tag = null; }
     item.setAlpha(1);
     this.updateNav();
     this.sfx.coin();
-    floatText(this, item.x, item.y - 60, `-${item.price} 🪙`, 24);
+    floatText(this, item.x, item.y - 60, this.hard ? `-$${item.price}` : `-${item.price} 🪙`, 24);
     item.price = 0;
   },
 

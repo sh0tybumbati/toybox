@@ -23,7 +23,7 @@
 export const PROP_TYPES = {
   fridge: {
     name: 'Fridge', cat: 'home', mount: 'floor',
-    hardActions: ['eat'],
+    hardActions: ['eat', 'store'],
     surface: { top: -120 },
     behaviour: 'dispenser', w: 92, h: 240, sfx: 'creak',
     pool: ['egg', 'cheese', 'milk', 'apple', 'berry', 'carrot', 'icecream'],
@@ -481,7 +481,7 @@ export const PROP_TYPES = {
   },
   pantry: {
     name: 'Pantry Crate', cat: 'home', mount: 'floor',
-    hardActions: ['eat'],
+    hardActions: ['eat', 'store'],
     surface: { top: -4 },
     behaviour: 'dispenser', w: 112, h: 78, sfx: 'creak',
     pool: ['flour', 'tomato', 'potato', 'corn', 'meat', 'rice', 'fish', 'chocolate', 'egg', 'milk', 'broccoli', 'pepper', 'lemon', 'melon'],

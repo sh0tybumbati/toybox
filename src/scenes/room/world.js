@@ -11,6 +11,8 @@ import { sectionAt, zoneInfo, entryZone } from '../../systems/world.js';
 import { SHELF_STEP, SHELF_W } from '../../config.js';
 import { clamp } from '../../util.js';
 import { priceOf } from '../../systems/market.js';
+import { hardPriceOf } from '../../data/hard/food.js';
+import { inStock } from '../../systems/hard/stock.js';
 import { TEX_SIZE, ensureSpriteTexture, spriteImage } from '../../systems/itemTextures.js';
 
 const SUNBEAMS = false;            // the hand-inked style (art/reference/) is flat: no light effects
@@ -204,7 +206,9 @@ export const worldMethods = {
         }
         pen.fillStyle(0xe3c291, 1).fillRect(sh.x, sh.y, SHELF_W, 14);           // shelf board
         sh.items.forEach((key, i) => {
-          this.spawnShelfItem(key, { x: sec.offset + sh.x + SHELF_STEP / 2 + i * SHELF_STEP, y: sh.y }, { pop: true, delay: 150 + n++ * 40, price: sec.type === 'market' ? priceOf(key) : 0 });
+          const hardShop = this.hard && sec.type === 'market' ? Number(sec.id.split('.')[0]) : null;       // hard mode: a shop with finite stock and cash prices
+          if (hardShop != null && !inStock(this.shopFor(hardShop), key)) return;
+          this.spawnShelfItem(key, { x: sec.offset + sh.x + SHELF_STEP / 2 + i * SHELF_STEP, y: sh.y }, { pop: true, delay: 150 + n++ * 40, price: hardShop != null ? hardPriceOf(key) : sec.type === 'market' ? priceOf(key) : 0, shop: hardShop });
         });
       }
 

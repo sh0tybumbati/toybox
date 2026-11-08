@@ -13,6 +13,12 @@ import { apply, cleanNeeds, newNeeds, status, tick, wantsToDo } from '../../syst
 import { floatText, puff, eat } from '../../systems/interactions.js';
 import { freeSeat } from '../../systems/play.js';
 import { clamp } from '../../util.js';
+import { BAG_CAP, LARDER_CAP, SHOP_HOURS, hardPriceOf } from '../../data/hard/food.js';
+import { addFood, expire, store, takeBest, cleanFood } from '../../systems/hard/pantry.js';
+import { deliverIfDue, inStock, newShop, totalStock } from '../../systems/hard/stock.js';
+import { SHOP_ITEMS } from '../../systems/save.js';
+import { SHELF_STEP } from '../../config.js';
+import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, pin } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
 
@@ -35,11 +41,12 @@ export const hardMethods = {
   initPerson(c) {
     c.needs = this.hard.needs[c.id] ? cleanNeeds(this.hard.needs[c.id]) : newNeeds();
     c.queue = []; c.current = null; c.idleMin = 0; c.collapsed = false;
+    c.bag = cleanFood(this.hard.bags && this.hard.bags[c.id], BAG_CAP);          // food you carry
   },
 
   // What goes into the save.
   hardSave() {
-    return { ...this.hard, cash: this.cash, clock: { day: this.clock.day, minute: this.clock.minute }, needs: Object.fromEntries(this.characters.map(c => [c.id, { ...c.needs }])) };
+    return { ...this.hard, cash: this.cash, clock: { day: this.clock.day, minute: this.clock.minute }, needs: Object.fromEntries(this.characters.map(c => [c.id, { ...c.needs }])), bags: Object.fromEntries(this.characters.map(c => [c.id, c.bag])) };
   },
 
   // --- every frame -----------------------------------------------------------------------------
@@ -51,11 +58,49 @@ export const hardMethods = {
     this.drawWeather(dt);
   },
 
+  totalMinutes() { return Math.floor(this.clock.day * 1440 + this.clock.minute); },
+
+  // Once an hour: food goes off, vans arrive, shops open and close.
+  hourly(total) {
+    const gone = expire(this.hard.larder, total);
+    if (gone.spoiled.length) { this.hard.larder = gone.kept; this.notice(`The ${gone.spoiled[0]} in the fridge went off`); }
+    for (const c of this.characters) {
+      const e = expire(c.bag, total);
+      if (e.spoiled.length) { c.bag = e.kept; floatText(this, c.x, c.headTopY() - 30, `🤢 ${e.spoiled[0]} went off`, 20); }
+    }
+    for (const [slot, shop] of Object.entries(this.hard.shops)) {
+      if (deliverIfDue(shop, total)) { if (this.zone && this.zone.sections.some(s => s.type === 'market' && s.id.startsWith(`${slot}.`))) { this.fillShelves(Number(slot)); this.notice('🚚 The delivery van has arrived'); } }
+    }
+    this.refreshPrices();
+    this.queueDirty = true;
+  },
+
+  notice(text) { const c = this.selected || this.characters[0]; if (c) floatText(this, c.x, c.headTopY() - 50, text, 22); },
+
+  // A shop's stock (made the first time we need it: full shelves, the first van due next Monday).
+  shopFor(slot) {
+    if (!this.hard.shops[slot]) this.hard.shops[slot] = newShop(SHOP_ITEMS, this.totalMinutes());
+    return this.hard.shops[slot];
+  },
+
+  // After a delivery, put the missing items back on the shelves of this room.
+  fillShelves(slot) {
+    for (const sec of this.zone.sections.filter(s => s.type === 'market' && s.id.startsWith(`${slot}.`))) {
+      let n = 0;
+      for (const sh of shelvesFor(sec.type, sec.w)) sh.items.forEach((key, i) => {
+        const pos = { x: sec.offset + sh.x + SHELF_STEP / 2 + i * SHELF_STEP, y: sh.y };
+        const there = this.bodies.some(b => b.onShelf && !b.dead && b.shop === slot && Math.abs(b.shelfPos.x - pos.x) < 4 && Math.abs(b.shelfPos.y - pos.y) < 4);
+        if (!there && inStock(this.shopFor(slot), key)) this.spawnShelfItem(key, pos, { pop: true, delay: n++ * 50, price: hardPriceOf(key), shop: slot });
+      });
+    }
+  },
+
   // `mins` game minutes pass: the clock, the weather on everyone, needs, actions, free will.
   stepGame(mins) {
     advance(this.clock, mins);
     if (isNight(this.clock) !== this.night) this.setNight(isNight(this.clock));
-    const toggles = this.hard.setup.toggles;
+    const toggles = this.hard.setup.toggles, total = this.totalMinutes(), hour = Math.floor(total / 60);
+    if (hour !== this.lastHour) { this.lastHour = hour; this.hourly(total); }
     for (const c of this.characters) {
       tick(c.needs, mins, { sleeping: c.sleeping ? 'bed' : c.rough ? 'bench' : c.collapsed ? 'floor' : false, env: toggles.survival ? this.envFor(c) : undefined });
       if (c.rough) this.roughRisks(c, mins);
@@ -188,6 +233,10 @@ export const hardMethods = {
     if (!next) return;
     this.queueDirty = true;
     const { type, prop } = next;
+    if (type === 'eat' && !prop) {                                  // a snack from the bag, right where you stand
+      if (!c.bag.length) { floatText(this, c.x, c.headTopY() - 20, 'The bag is empty', 22); return; }
+      c.current = { type, prop: null, phase: 'do', elapsed: 0, fed: false }; c.idleMin = 0; return;
+    }
     if (!prop || !prop.active || (type === 'sleep' && prop.sleeper)) { floatText(this, c.x, c.headTopY() - 20, '…', 24); return; }
     if (!this.openCheck(prop, c)) return;
     c.current = { type, prop, phase: 'walk', elapsed: 0, fed: false };
@@ -227,6 +276,7 @@ export const hardMethods = {
     cur.elapsed += mins;
     if (def.perMin) apply(c.needs, Object.fromEntries(Object.entries(def.perMin).map(([k, v]) => [k, v * mins])));
     if ((cur.type === 'eat' || cur.type === 'queue') && !cur.fed) { cur.fed = true; this.eatFrom(c, cur.prop); }
+    if (cur.type === 'store' && !cur.fed) { cur.fed = true; this.putAway(c, cur.prop); }
     if (cur.type === 'labour' && !openNow(cur.prop.def.hours, this.clock.minute) && cur.elapsed < 10) { this.cancelCurrent(c); return; }
     const rested = def.until && Object.entries(def.until).every(([k, v]) => c.needs[k] >= v);
     if (rested || cur.elapsed >= def.minutes) this.finishAction(c);
@@ -260,13 +310,42 @@ export const hardMethods = {
     if (result.minutes) this.passTime(result.minutes);
   },
 
-  // Take something to eat out of the fridge, pantry or meal line and eat it.
+  // Eat something: from the meal line (free), the fridge/pantry (the household's larder) or the bag you carry, oldest food first.
   eatFrom(c, prop) {
-    const pool = (prop.def.pool || []).filter(k => CATALOG[k] && CATALOG[k].kind === 'food');
-    const key = pool.length ? pool[Math.floor(Math.random() * pool.length)] : 'bread';
+    let key;
+    if (prop && prop.def.pool) {                                     // the shelter's meal line
+      const pool = prop.def.pool.filter(k => CATALOG[k] && CATALOG[k].kind === 'food');
+      key = pool[Math.floor(Math.random() * pool.length)] || 'bread';
+    } else {
+      const total = this.totalMinutes(), fromBag = !prop || !this.hard.larder.length;
+      const list = expire(fromBag ? c.bag : this.hard.larder, total).kept, best = takeBest(list);
+      if (!best) { floatText(this, c.x, c.headTopY() - 30, 'Nothing to eat', 22); return; }
+      key = best.item.k;
+      if (fromBag) c.bag = best.rest; else this.hard.larder = best.rest;
+    }
     const item = this.createItem(key, c.x, c.lane);
     eat(this, item, c);
-    prop.boing(0.5);
+    if (prop) prop.boing(0.5);
+    this.queueDirty = true;
+  },
+
+  // Put the food you carry into the fridge or pantry (a fridge keeps it twice as long).
+  putAway(c, prop) {
+    const r = store(c.bag, this.hard.larder, this.totalMinutes(), LARDER_CAP, prop.type === 'fridge');
+    c.bag = r.from; this.hard.larder = r.to;
+    floatText(this, c.x, c.headTopY() - 30, r.moved ? `Put away ${r.moved}` : c.bag.length ? 'No room!' : 'Nothing to put away', 22);
+    prop.boing(0.5); this.queueDirty = true;
+  },
+
+  // A food item dropped on a person goes in their bag. Returns true if it was taken.
+  addToBag(c, item) {
+    const next = addFood(c.bag, item.key, this.totalMinutes(), BAG_CAP);
+    if (!next) { floatText(this, c.x, c.headTopY() - 30, 'The bag is full', 22); this.sfx.nope(); return false; }
+    c.bag = next;
+    this.discard(item, { x: c.x, y: c.y, scale: 0.2, duration: 200 });
+    this.sfx.pop(); floatText(this, c.x, c.headTopY() - 30, `🎒 ${c.bag.length}/${BAG_CAP}`, 22);
+    this.queueDirty = true;
+    return true;
   },
 
   // Called from eating (interactions.eat): hunger goes up by how filling the food is.
@@ -278,20 +357,22 @@ export const hardMethods = {
   },
 
   // --- free will ----------------------------------------------------------------------------------
-  usable(p, action) {
+  usable(p, action, c) {
     return p.active && p.def.hardActions && p.def.hardActions.includes(action) && openNow(p.def.hours, this.clock.minute)
+      && (action !== 'eat' || this.hard.larder.length > 0 || (c && c.bag.length > 0)) && (action !== 'store' || !c || c.bag.length > 0)
       && (action !== 'sleep' || !p.sleeper) && (action !== 'sit' || freeSeat(p.def.ride, p.riders.map(r => r.riding)))
       && (action !== 'rough' || freeSeat(p.def.ride, p.riders.map(r => r.riding)));
   },
 
   // Nearest suitable piece of furniture for an action (null if none here).
   propFor(action, c) {
-    return this.props.filter(p => this.usable(p, action)).sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0] || null;
+    return this.props.filter(p => this.usable(p, action, c)).sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0] || null;
   },
 
   // What would this person do about `want` here: { action, prop } or null. A hungry person with no fridge joins the meal line,
   // and as a last resort searches a bin; a tired one without a bed finds a bench.
   resolveWant(want, c) {
+    if (want === 'eat' && c.bag.length) return { action: 'eat', prop: null };                    // there is food in the bag
     const tries = { eat: ['eat', 'queue', c.needs.hunger < 15 ? 'scavenge' : null], sleep: ['sleep', 'rough'], wash: ['wash'], sit: ['sit'] }[want] || [];
     for (const action of tries) { const prop = action && this.propFor(action, c); if (prop) return { action, prop }; }
     return null;
@@ -309,6 +390,7 @@ export const hardMethods = {
     if (c.idleMin < IDLE_BEFORE_FREE_WILL) return;
     const want = wantsToDo(c.needs, this.availableActions(c));
     c.idleMin = 0;
+    if (!want && c.bag.length && c.needs.hunger > 55) { const p = this.propFor('store', c); if (p) { this.queueAction(c, 'store', p); return; } }       // home with the shopping: put it away
     const r = want && this.resolveWant(want, c);
     if (r) this.queueAction(c, r.action, r.prop);
   },
@@ -339,6 +421,8 @@ export const hardMethods = {
     this.needLabels = NEED_KEYS.map((k, i) => pin(this.add.text(392 + i * 104, 76, NEED_ICONS[k], { fontSize: '20px' }).setOrigin(0.5).setDepth(TEXT_DEPTH + 1)));
     this.nameChip = pin(this.add.text(380, 100, '', { fontSize: '16px', color: '#fff7e0', stroke: '#3a2a22', strokeThickness: 4 }).setDepth(TEXT_DEPTH));
     this.weatherChip = pin(inkChip(this, 110, 112, '', { size: 18, depth: TEXT_DEPTH, h: 32 }));
+    this.bagButton = pin(inkButton(this, 720, 108, '🎒 Snack', { w: 112, h: 34, size: 17, fill: COLORS.gold, depth: TEXT_DEPTH, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
+    this.shopChip = pin(inkChip(this, 790, 146, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
     this.queueUI = [];
     this.setSpeed(1);
     this.queueDirty = true;
@@ -363,7 +447,13 @@ export const hardMethods = {
       if (v > 0.02) g.fillStyle(v < 0.25 ? 0xe5685c : BAR_COLORS[k], 1).fillRect(x + 2, 70, (bw - 4) * v, 12);
     });
     const st = status(c.needs), flags = [st.starving && 'starving', st.hungry && !st.starving && 'hungry', st.exhausted && 'exhausted', st.tired && !st.exhausted && 'tired', st.freezing && 'freezing', st.cold && !st.freezing && 'cold', st.dirty && 'dirty'].filter(Boolean);
-    this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}`);
+    this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}  ·  🎒${c.bag.length}/${BAG_CAP} 🧊${this.hard.larder.length}`);
+    const market = this.zone && this.zone.sections.find(s => s.type === 'market');
+    this.shopChip.setVisible(Boolean(market));
+    if (market) {
+      const shop = this.shopFor(Number(market.id.split('.')[0])), total = this.totalMinutes(), late = total > shop.due && total < shop.next + 1;
+      this.shopChip.setLabel(`${openNow(SHOP_HOURS, this.clock.minute) ? 'Open' : 'Closed'} · ${totalStock(shop)} in stock · van due ${label({ day: Math.floor(shop.due / 1440), minute: shop.due % 1440 })}${total > shop.due ? ' (late)' : ''}`);
+    }
     if (this.queueDirty) this.drawQueue(c);
   },
 

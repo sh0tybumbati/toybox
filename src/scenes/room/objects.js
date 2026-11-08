@@ -21,9 +21,10 @@ export const objectMethods = {
   },
 
   // Put a catalog item on its shelf slot ({ x, y } in world coordinates).
-  spawnShelfItem(key, slot, { pop = false, delay = 0, price = 0 } = {}) {
+  spawnShelfItem(key, slot, { pop = false, delay = 0, price = 0, shop = null } = {}) {
     const item = this.createItem(key, slot.x, slot.y, { onShelf: true });
     item.shelfPos = slot;
+    item.shop = shop;                                          // hard mode: which shop's stock it comes out of
     if (isPremium(key) && !this.unlocked.has(key)) this.lockItem(item);
     else if (price) this.priceItem(item, price);
     if (pop) {  // pop into existence

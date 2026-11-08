@@ -76,6 +76,7 @@ export function handleDrop(scene, item) {
   for (const c of chars) {
     if (item.kind === 'food') {
       if (c.getZone('mouth').contains(item.x, item.y)) return eat(scene, item, c);
+      if (scene.hard && c.getZone('body').contains(item.x, item.y) && scene.addToBag(c, item)) return;       // hard mode: into their bag
       continue;
     }
     // Wearable kinds: the first matching slot zone the item's centre is inside.
