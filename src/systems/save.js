@@ -126,7 +126,8 @@ export function sanitizeHard(raw) {
     heat: ok(raw.heat) ? clamp(Math.floor(raw.heat), 0, 100) : 0,       // attention you have drawn (fades daily)
     seeds: cleanStock(raw.seeds, CROP_IDS),                   // seed packets in the household
     gear: cleanStock(raw.gear, GEAR_IDS),                     // fertiliser and the like
-    beds: cleanBeds(raw.beds),                                // garden plots, keyed 'lot:x'
+    beds: cleanBeds(raw.beds),
+    power: ok(raw.power) ? clamp(Math.floor(raw.power), 0, 1e7) : 0,                 // grow-lamp power waiting to land on the next utilities bill                                // garden plots, keyed 'lot:x'
     gig: cleanGig(raw.gig),                                   // the day-labour job you have been given (null = none)
     phone: Boolean(raw.phone),                                // you have a phone (it can be stolen)
     home: cleanHome(raw.home),                                // where you live (null = nowhere)

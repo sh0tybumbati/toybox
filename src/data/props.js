@@ -372,7 +372,7 @@ export const PROP_TYPES = {
     },
   },
   gardenbed: {
-    name: 'Garden Bed', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['tend'], w: 170, h: 90, blurb: 'Grow food',
+    name: 'Garden Bed', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, plot: true, hardActions: ['tend'], w: 170, h: 90, blurb: 'Grow food',
     draw(g, st) {
       const [stageName, crop] = (typeof st === 'string' ? st : 'empty').split(':');
       g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-80, -4, 160, 54, 8);                          // the frame
@@ -392,6 +392,44 @@ export const PROP_TYPES = {
       g.fillStyle(0xf1ebdc, 1).fillRect(-54, -56, 108, 8).fillRect(-54, -18, 108, 8).fillRect(-54, 20, 108, 8);
       [0xf08a2f, 0xe5484d, 0xc9a56a, 0x5a6fd0, 0xf5d24a].forEach((c, i) => { g.fillStyle(c, 1).fillRoundedRect(-52 + i * 22, -52, 18, 26, 3); g.fillStyle(0x4fa14a, 1).fillRoundedRect(-52 + i * 22, -14, 18, 26, 3); });
       g.fillStyle(0x4fa14a, 1).fillRoundedRect(-52, 24, 50, 24, 4);                           // a bag of feed
+    },
+  },
+  growpot: {
+    name: 'Plant Pot', cat: 'home', mount: 'floor', behaviour: 'none', hardOnly: true, gear: 'pot', plot: true, hardActions: ['tend'], w: 80, h: 90, blurb: 'Grows anywhere with light',
+    draw(g, st) {
+      const [stageName, crop] = (typeof st === 'string' ? st : 'empty').split(':');
+      g.fillStyle(0xc4693f, 1).fillTriangle(-30, -2, 30, -2, 22, 44).fillTriangle(-30, -2, 22, 44, -22, 44);
+      g.fillStyle(0xa8532f, 1).fillRoundedRect(-34, -10, 68, 14, 4);
+      g.fillStyle(0x5a3b28, 1).fillRect(-26, -12, 52, 6);
+      if (stageName === 'empty') return;
+      const tall = { seed: 4, growing: 18, ready: 30, dead: 8 }[stageName] ?? 4, col = stageName === 'dead' ? 0x9a8a5a : 0x4fa14a;
+      for (let i = 0; i < 3; i++) g.fillStyle(col, 1).fillTriangle(-18 + i * 18, -10, -12 + i * 18, -10 - tall, -6 + i * 18, -10);
+      if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a }[crop] || 0xf08a2f, 1).fillCircle(0, -44, 6);
+    },
+  },
+  growtent: {
+    name: 'Grow Tent', cat: 'home', mount: 'floor', behaviour: 'none', hardOnly: true, gear: 'tent', plot: true, hardActions: ['tend'], w: 150, h: 190, blurb: 'Indoors, with a lamp',
+    draw(g, st) {
+      const [stageName, crop] = (typeof st === 'string' ? st : 'empty').split(':');
+      g.fillStyle(0x2f3a34, 1).fillRoundedRect(-66, -86, 132, 172, 8);                        // the dark tent
+      g.fillStyle(0x3d4b43, 1).fillRoundedRect(-58, -78, 116, 156, 6);
+      g.fillStyle(0x9aa6a0, 1).fillRect(-4, -78, 8, 156);                                     // the zip
+      g.fillStyle(0xc9d2cc, 1).fillRoundedRect(-52, 40, 104, 14, 4);                          // a silvery floor
+      if (stageName !== 'empty') {
+        const tall = { seed: 6, growing: 34, ready: 62, dead: 12 }[stageName] ?? 6, col = stageName === 'dead' ? 0x9a8a5a : 0x58b04e;
+        for (let i = 0; i < 4; i++) g.fillStyle(col, 1).fillTriangle(-40 + i * 26, 40, -32 + i * 26, 40 - tall, -24 + i * 26, 40);
+        if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a }[crop] || 0xf08a2f, 1).fillCircle(0, -26, 8);
+      }
+      g.fillStyle(0xc77dff, 0.14).fillRoundedRect(-58, -78, 116, 156, 6);                      // a purple glow leaks out
+    },
+  },
+  growlamp: {
+    name: 'Grow Lamp', cat: 'home', mount: 'floor', behaviour: 'none', hardOnly: true, gear: 'lamp', w: 70, h: 190, blurb: 'Lights pots and tents',
+    draw(g) {
+      g.fillStyle(0x4a4f58, 1).fillRect(-4, -70, 8, 130).fillRoundedRect(-26, 56, 52, 10, 4);  // the stand
+      g.fillStyle(0x6b5a8a, 1).fillRoundedRect(-34, -86, 68, 22, 8);                          // the shade
+      g.fillStyle(0xe2b6ff, 0.9).fillRect(-26, -66, 52, 5);                                   // the purple tubes
+      g.fillStyle(0xc77dff, 0.18).fillTriangle(-30, -62, 30, -62, 0, 48);
     },
   },
   dumpster: {

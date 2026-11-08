@@ -59,3 +59,37 @@ test('every scenario has a Garden Centre; homes have a front door in the first r
   }
   assert.ok(ROOMS.garden.outdoor && PROP_TYPES.gardenbed.hardActions.includes('tend'));
 });
+
+import { powerToday } from '../src/systems/hard/garden.js';
+import { GEAR, GROW, PLOTS } from '../src/data/hard/plants.js';
+
+test('a bed with no light does not grow; indoors the rain does not water it', () => {
+  let b = { ...newBed('carrot'), lit: false, out: false };
+  b = tickBed(b, true);
+  assert.equal(b.grown, 0); assert.equal(b.water, 60);
+  b = tickBed({ ...newBed('carrot'), out: true }, true);
+  assert.equal(b.grown, 1);
+});
+
+test('a tent doubles the crop and a pot shrinks it', () => {
+  assert.equal(harvestOf(newBed('carrot', PLOTS.growtent.mult)).count, 10);
+  assert.equal(harvestOf(newBed('carrot', PLOTS.growpot.mult)).count, 3);
+});
+
+test('lit indoor plots with something growing add to the power bill', () => {
+  const indoors = { ...newBed('corn'), out: false };
+  assert.equal(powerToday({ a: indoors, b: { ...indoors, lit: false }, c: newBed('corn') }, 60), 60);
+});
+
+test('every piece of grow gear is for sale and has a catalogue piece', async () => {
+  const { PROP_TYPES } = await import('../src/data/props.js');
+  for (const [id, g] of Object.entries(GROW)) { assert.ok(GEAR[id].price > 0); assert.equal(PROP_TYPES[g.prop].gear, id); }
+});
+
+test('the power from grow lamps lands on the next utilities bill, once', async () => {
+  const { tickBills } = await import('../src/systems/hard/bills.js');
+  const h = { home: { tier: 'flat', slot: 0, next: 5 }, bills: [], billId: 0, debt: 0, power: 300 };
+  tickBills(h, 5);
+  assert.equal(h.bills.find(b => b.kind === 'utilities').amount, 700 + 300);
+  assert.equal(h.power, 0);
+});

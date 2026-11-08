@@ -1,14 +1,14 @@
 // A garden bed: plant a seed from the household's packets, water it, harvest it when it is ready.
 import { W } from '../../config.js';
 import { COLORS, inkButton } from '../../ui.js';
-import { CROPS, CROP_IDS } from '../../data/hard/plants.js';
+import { CROPS, CROP_IDS, PLOTS } from '../../data/hard/plants.js';
 import { newBed, stage, take, water, WATER_FULL } from '../../systems/hard/garden.js';
 import { backdrop, leave, text } from './overlay.js';
 
 export default class BedScene extends Phaser.Scene {
   constructor() { super('Bed'); }
 
-  init(data) { this.room = data.room; this.key = data.key; this.who = data.who; this.dyn = []; }
+  init(data) { this.room = data.room; this.key = data.key; this.type = data.type || 'gardenbed'; this.who = data.who; this.dyn = []; }
 
   create() {
     backdrop(this, 600, 440, 'Garden bed', { seed: 53, onClose: () => this.close() });
@@ -40,6 +40,7 @@ export default class BedScene extends Phaser.Scene {
         keep(inkButton(this, W / 2, 310, 'Clear the bed', { w: 220, h: 48, size: 22, fill: COLORS.grey, depth: 6, onTap: () => { delete h.beds[this.key]; this.finish(); } }));
       } else {
         say(240, `Day ${bed.grown} of ${c.days}`, 22);
+        if (bed.lit === false) say(306, bed.out === false ? '💡 Dark in here: it needs a grow lamp in the room' : '🌙 Too dark to grow', 17, { color: '#b0584e' });
         say(274, `Soil ${bed.water >= 60 ? '💧 damp' : bed.water > 0 ? '🏜️ drying' : '🏜️ bone dry'}`, 20, { color: '#7a6a58' });
         keep(inkButton(this, W / 2, 336, 'Water', { w: 220, h: 48, size: 24, fill: bed.water >= WATER_FULL ? COLORS.grey : COLORS.green, depth: 6, onTap: () => { h.beds[this.key] = water(bed); this.finish(); } }));
       }
@@ -50,7 +51,7 @@ export default class BedScene extends Phaser.Scene {
     const h = this.room.hard, left = take(h.seeds, id);
     if (!left) { this.room.sfx.nope(); return; }
     h.seeds = left;
-    const bed = newBed(id), fert = take(h.gear, 'fert');
+    const bed = newBed(id, PLOTS[this.type].mult), fert = take(h.gear, 'fert');
     if (fert) { h.gear = fert; bed.fert = true; }
     h.beds[this.key] = bed;
     this.finish();

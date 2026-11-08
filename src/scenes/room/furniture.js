@@ -95,6 +95,10 @@ export const furnitureMethods = {
     this.dismountProp(prop, true);
     releaseAll(this, prop);                                  // anything stored tumbles out
     if (prop.def.behaviour === 'oven') flushOven(this, prop);
+    if (this.hard && prop.def.gear) {                        // grow gear goes back into the household's stock (a plant in it is lost)
+      this.hard.gear = { ...this.hard.gear, [prop.def.gear]: (this.hard.gear[prop.def.gear] || 0) + 1 };
+      if (prop.def.plot) delete this.hard.beds[this.bedKey(prop)];
+    }
     this.props = this.props.filter(p => p !== prop);
     this.roomGfx = this.roomGfx.filter(o => o !== prop);
     puff(this, prop.x, prop.y, 0xdddddd, 6);

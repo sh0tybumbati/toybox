@@ -12,7 +12,19 @@ export const CROP_IDS = Object.keys(CROPS);
 export const GEAR = {
   fert: { label: 'Fertiliser', icon: '🧪', price: 100, note: 'One bed grows one extra crop' },
 };
+export const GROW = {                 // grow gear: furniture you set up from the catalogue (it comes back if you take it down)
+  pot:  { label: 'Plant pot',  icon: '🪴', price: 300,  note: 'Grows anywhere with light; a small crop', prop: 'growpot' },
+  tent: { label: 'Grow tent',  icon: '⛺', price: 4500, note: 'Indoors, needs a lamp; a double crop', prop: 'growtent' },
+  lamp: { label: 'Grow lamp',  icon: '💡', price: 1800, note: 'Lights a pot or tent in its room; costs power', prop: 'growlamp' },
+};
+Object.assign(GEAR, GROW);
+export const PLOTS = {                // what a plot prop does: sun/rain outdoors, a lamp indoors, how big the crop is
+  gardenbed: { mult: 1, open: true },
+  growpot:   { mult: 0.6, open: true },
+  growtent:  { mult: 2, open: false },
+};
+export const POWER_DAY = 60;          // cash a day added to the power bill for each lit indoor plot with something growing
 export const GEAR_IDS = Object.keys(GEAR);
 
 export const GARDEN_HOURS = [[8, 18]];
-export const BED_CAP = 6;               // plots in a household's gardens (the save keeps this many)
+export const BED_CAP = 12;               // plots in a household's gardens (the save keeps this many)

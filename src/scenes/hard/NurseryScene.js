@@ -21,16 +21,16 @@ export default class NurseryScene extends Phaser.Scene {
     this.dyn.forEach(o => o.destroy());
     this.dyn = [];
     const keep = o => { this.dyn.push(o); return o; }, r = this.room, h = r.hard;
-    keep(text(this, W / 2, 168, `Cash: $${r.cash.toLocaleString('en-US')}   ·   Grows in your garden beds`, 19, { color: '#7a6a58' }).setOrigin(0.5));
+    keep(text(this, W / 2, 168, `Cash: $${r.cash.toLocaleString('en-US')}   ·   Pots, tents and lamps are set up from the furniture catalogue`, 19, { color: '#7a6a58' }).setOrigin(0.5));
     const rows = [...CROP_IDS.map(id => ({ id, pack: true, label: `${CROPS[id].icon} ${CROPS[id].label} seeds`, price: CROPS[id].seed, note: `${CROPS[id].days} days · ${CROPS[id].yield} crops`, have: h.seeds[id] || 0 })),
       ...GEAR_IDS.map(id => ({ id, label: `${GEAR[id].icon} ${GEAR[id].label}`, price: GEAR[id].price, note: GEAR[id].note, have: h.gear[id] || 0 }))];
     rows.forEach((o, i) => {
-      const y = 214 + i * 50, ok = r.cash >= o.price;
+      const y = 204 + i * 44, ok = r.cash >= o.price;
       keep(inkPanel(this, W / 2, y, 600, 42, { fill: CARD, radius: 12, shadow: false, weight: 2.8, seed: 170 + i, depth: 4 }));
-      keep(text(this, 200, y - 17, o.label, 20, { fontStyle: 'bold' }).setDepth(5));
-      keep(text(this, 200, y + 3, `${o.note}${o.have ? `  ·  you have ${o.have}` : ''}`, 14, { color: '#7a6a58' }).setDepth(5));
-      keep(text(this, 560, y - 12, `$${o.price}`, 21, { fontStyle: 'bold' }).setDepth(5));
-      keep(inkButton(this, 720, y, 'Buy', { w: 90, h: 32, size: 18, fill: ok ? COLORS.green : COLORS.grey, depth: 6, seed: 180 + i, onTap: () => this.buy(o) }));
+      keep(text(this, 200, y - 15, o.label, 19, { fontStyle: 'bold' }).setDepth(5));
+      keep(text(this, 200, y + 2, `${o.note}${o.have ? `  ·  you have ${o.have}` : ''}`, 14, { color: '#7a6a58' }).setDepth(5));
+      keep(text(this, 560, y - 11, `$${o.price}`, 20, { fontStyle: 'bold' }).setDepth(5));
+      keep(inkButton(this, 720, y, 'Buy', { w: 90, h: 30, size: 18, fill: ok ? COLORS.green : COLORS.grey, depth: 6, seed: 180 + i, onTap: () => this.buy(o) }));
     });
   }
 

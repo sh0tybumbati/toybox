@@ -217,9 +217,9 @@ try {
     await g.ev(`${S('Nursery')}.close()`);
     await wait(400);
     // a bed in the park: plant, grow, harvest
-    await g.room("r.goToZone('0.0');");
+    await g.room("r.goToZone(r.city.findIndex(b => b && b.name === 'The Park') + '.0');");
     await wait(2200);
-    await g.room("r.hard.home = { tier: 'flat', slot: 0 }; r.addFurniture('gardenbed');");
+    await g.room("r.addFurniture('gardenbed');");
     await g.room("const c = r.characters[0], p = r.props.find(q => q.type === 'gardenbed'), f = r.frontOf(p); window.__bed = p; window.__key = r.bedKey(p); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'tend', p); r.passTime(10);");
     await wait(900);
     assert.ok(await active('Bed'), 'tending opens the bed ' + JSON.stringify(await g.room("const c = r.characters[0]; return [r.zoneKey, r.props.map(p => p.type + '@' + Math.round(p.x)).join(), c.x, c.lane, c.current && c.current.type, c.current && c.current.phase, c.queue.length, r.canDo('tend', window.__bed, c)];")));
@@ -236,10 +236,43 @@ try {
     await g.ev(`${S('Bed')}.close()`);
     await wait(300);
     // the front door goes out to the road (the map)
+    await g.room("r.addFurniture('frontdoor');");
     await g.room("const c = r.characters[0], d = r.props.find(q => q.type === 'frontdoor'), f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'out', d); r.passTime(5);");
     await wait(900);
     assert.ok(await active('Hub'), 'the front door opens the map');
     await g.ev(`${S('Hub')}.close ? ${S('Hub')}.close() : 0`);
+    await g.room('r.hard.autonomy = true;');
+  });
+
+  await step('grow gear: pots, a tent and a lamp are bought, set up from the catalogue, the tent only grows under a lamp, the lamp costs power, and taking gear down returns it', async () => {
+    await g.room("r.hard.autonomy = false; r.hard.home = { tier: 'flat', slot: 0, next: 99 }; r.hard.gear = {}; r.hard.seeds = { carrot: 2 }; r.hard.beds = {}; r.hard.power = 0; r.cash = 10000;");
+    await wait(800);
+    await g.room("r.goToZone('0.0');");
+    await wait(2500);
+    assert.equal(await g.room('return r.zoneKey;'), '0.0', 'at home');
+    await g.room("r.scene.pause(); r.scene.launch('Nursery', { room: r });");
+    await wait(500);
+    await g.ev(`(s => { s.buy({ id: 'tent', price: 4500 }); s.buy({ id: 'lamp', price: 1800 }); s.buy({ id: 'pot', price: 300 }); })(${S('Nursery')})`);
+    await g.ev(`${S('Nursery')}.close()`);
+    await wait(400);
+    assert.deepEqual(await g.room('return [r.hard.gear.tent, r.hard.gear.lamp, r.hard.gear.pot, r.cash];'), [1, 1, 1, 3400]);
+    for (const type of ['growtent', 'growlamp', 'growpot']) {
+      await g.room("r.scene.pause(); r.scene.launch('Catalog', { room: r });");
+      await wait(400);
+      await g.ev(`${S('Catalog')}.close('${type}')`);
+      await wait(300);
+    }
+    assert.deepEqual(await g.room('return [r.hard.gear.tent, r.hard.gear.lamp, r.hard.gear.pot, r.props.filter(p => p.def.gear).length];'), [0, 0, 0, 3], 'all three set up and out of stock');
+    // plant in the tent: with the lamp in the same room it is lit
+    await g.room("const t = r.props.find(p => p.type === 'growtent'), l = r.props.find(p => p.type === 'growlamp'); l.x = t.x + 120; l.y = t.y; window.__key = r.bedKey(t); r.hard.beds[window.__key] = { crop: 'carrot', grown: 0, water: 100, dry: 0, fert: false, mult: 2, out: false, lit: true }; r.refreshBeds();");
+    assert.equal(await g.room('return r.hard.beds[window.__key].lit;'), true, 'lamp in the room lights the tent');
+    await g.room("r.daily(r.clock.day + 1);");
+    assert.equal(await g.room('return [r.hard.beds[window.__key].grown, r.hard.power];').then(a => a.join()), '1,60', 'it grew a day and the lamp cost power ' + JSON.stringify(await g.room('return [r.zoneKey, r.hard.beds[window.__key], r.hard.power];')));
+    // without the lamp it goes dark
+    await g.room("const l = r.props.find(p => p.type === 'growlamp'); r.removeFurniture(l); r.refreshBeds();");
+    assert.equal(await g.room('return [r.hard.beds[window.__key].lit, r.hard.gear.lamp].join();'), 'false,1', 'no lamp: dark, and the lamp is back in stock');
+    await g.room("r.daily(r.clock.day + 2);");
+    assert.equal(await g.room('return r.hard.beds[window.__key].grown;'), 1, 'dark: no growth');
     await g.room('r.hard.autonomy = true;');
   });
 

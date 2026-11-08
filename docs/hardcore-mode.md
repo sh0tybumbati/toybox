@@ -235,3 +235,8 @@ Built:
 - Code: `data/hard/plants.js`, `systems/hard/garden.js` (pure, tested), `scenes/hard/NurseryScene.js`, `BedScene.js`.
 
 Still to build (the chain): grow tent + lamp (indoor, hidden, power bill spike) from the Garden Centre; invented plants and their seeds from the alley contact; a lab bench to mix plants with additives into named products (potency, purity, side effects); packaging and stashes (boxes, backpacks); named townsperson customers with tastes, debts and addiction (household members can be hooked too); heat → police raids; rival crews.
+
+### Grow gear (as built, step 2)
+- The Garden Centre sells **plant pots** ($300), a **grow tent** ($4,500) and a **grow lamp** ($1,800), plus fertiliser. Gear goes into the household stock (`hard.gear`); you set it up from the furniture catalogue (home tab, shown only while you own some, with a count) and taking it down returns it (a plant in it is lost).
+- **Plots** are `gardenbed` (outdoor, full crop), `growpot` (60% crop, grows anywhere there is light) and `growtent` (double crop, always needs a lamp). Outdoors there is sun and rain; indoors a **grow lamp in the same room** is required, rain does not water, and each lit indoor plot with a crop growing adds $60 a day to the next **utilities bill** (`hard.power`).
+- Plots remember whether they are lit (updated when you are in the room); moving a plot in furniture mode keeps its plant.

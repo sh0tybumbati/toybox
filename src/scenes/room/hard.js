@@ -24,7 +24,8 @@ import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
 import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
 import { SLOTS } from '../../data/buildings.js';
 import { decayHeat } from '../../systems/hard/alley.js';
-import { harvestOf, stage, tickBeds } from '../../systems/hard/garden.js';
+import { harvestOf, powerToday, stage, tickBeds } from '../../systems/hard/garden.js';
+import { PLOTS, POWER_DAY } from '../../data/hard/plants.js';
 import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
@@ -92,6 +93,7 @@ export const hardMethods = {
     }
     this.hard.heat = decayHeat(this.hard.heat, 1);                       // attention fades
     const sky = weatherAt(day, 600).kind;
+    this.hard.power = (this.hard.power || 0) + powerToday(this.hard.beds, POWER_DAY);          // grow lamps run up the power bill
     this.hard.beds = tickBeds(this.hard.beds, sky === 'rain' || sky === 'snow');          // the gardens grow (rain waters them)
     this.refreshBeds();
     this.updateNav();
@@ -101,7 +103,20 @@ export const hardMethods = {
   // Garden beds: each is identified by its lot and where it stands; the drawing follows the plant.
   bedKey(prop) { return `${this.zoneSlot()}:${Math.round(prop.x)}`; },
   refreshBeds() {
-    for (const p of this.props) if (p.type === 'gardenbed' && p.active) { const b = this.hard.beds[this.bedKey(p)]; p.setState(`${stage(b)}:${b ? b.crop : ''}`); }
+    if (!this.zone) return;
+    for (const p of this.props) {
+      if (!p.def.plot || !p.active) continue;
+      let key = this.bedKey(p);
+      if (p.bedKey && p.bedKey !== key && this.hard.beds[p.bedKey]) { this.hard.beds[key] = this.hard.beds[p.bedKey]; delete this.hard.beds[p.bedKey]; }      // it was moved: the plant goes with it
+      p.bedKey = key;
+      const b = this.hard.beds[key];
+      if (b) {                                           // sun and rain outdoors; indoors it needs a lamp in the same room
+        const sec = sectionAt(this.zone, p.x).section, outdoor = Boolean(sec && ROOMS[sec.type].outdoor), open = PLOTS[p.type].open;
+        const lamp = this.props.some(q => q.type === 'growlamp' && q.active && sectionAt(this.zone, q.x).section === sec);
+        b.out = outdoor; b.lit = (outdoor && open) || lamp;
+      }
+      p.setState(`${stage(b)}:${b ? b.crop : ''}`);
+    }
   },
 
   // The crop comes home: into the bag, then the larder, and anything that does not fit is left to rot.
@@ -397,7 +412,7 @@ export const hardMethods = {
       else if (type === 'work') { c.current.waiting = true; c.current.arrived = this.totalMinutes(); const gig = this.hard.gig; if (standing(gig, c.current.arrived) === 'late') floatText(this, c.x, c.headTopY() - 40, 'You are late: pay cut', 22); this.openGame('stack', prop, { crate: gig.crate, title: gig.title }); }
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
-      else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c }); }
+      else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c, type: prop.type }); }
       else if (type === 'buyseeds') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Nursery', { room: this }); }
       else if (type === 'use') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'computer' }); }
       else if (type === 'news') this.buyPaper(c);

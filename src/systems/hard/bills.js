@@ -12,7 +12,7 @@ export function tickBills(h, day) {
   const t = HOUSING[h.home.tier];
   let issued = 0;
   while (day >= h.home.next) {
-    for (const [kind, amount] of t.bills) { h.bills.push({ id: ++h.billId, kind, amount, issued: h.home.next, due: h.home.next + t.due, late: false, seen: false }); issued++; }
+    for (const [kind, amount] of t.bills) { const extra = kind === 'utilities' ? (h.power || 0) : 0; if (extra) h.power = 0; h.bills.push({ id: ++h.billId, kind, amount: amount + extra, issued: h.home.next, due: h.home.next + t.due, late: false, seen: false }); issued++; }
     h.home.next += t.cycle;
   }
   if (issued) events.push({ type: 'issued', count: issued });
