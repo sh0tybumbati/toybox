@@ -43,3 +43,8 @@ test('being robbed in your sleep can cost you the phone too', () => {
   const none = roughHour({ hour: 12, cash: 1000, toggles: { police: false, survival: true } }, () => 0.99);
   assert.deepEqual(none, []);
 });
+
+test('fridges and pantries keep a pool for the kid game, but only the meal line is free food in hard mode', () => {
+  for (const t of ['fridge', 'pantry']) assert.ok(!PROP_TYPES[t].hardActions.includes('queue'), t);
+  assert.ok(PROP_TYPES.servery.hardActions.includes('queue') && PROP_TYPES.servery.pool.length > 0);
+});

@@ -281,6 +281,24 @@ export const hardMethods = {
   // Where to stand to use a piece of furniture: just in front of it.
   frontOf(prop) { return { x: prop.x, lane: clamp(prop.y + prop.def.h / 2 + 6, FLOOR_TOP, FLOOR_BOTTOM) }; },
 
+  // Can `c` do `action` at `prop` right now? { ok, why }. The menu greys out what can't be done and says why.
+  canDo(action, prop, c) {
+    const hours = prop.def.hours;
+    if (!openNow(hours, this.clock.minute)) return { ok: false, why: `Closed until ${pad(nextOpen(hours, this.clock.minute))}:00` };
+    if (this.isLocked(prop, action)) return { ok: false, why: 'Not your home' };
+    if (action === 'eat' && !this.hard.larder.length && !c.bag.length) return { ok: false, why: 'Nothing to eat: buy food at the shop' };
+    if (action === 'store' && !c.bag.length) return { ok: false, why: 'Nothing in your bag' };
+    if (action === 'store' && this.hard.larder.length >= LARDER_CAP) return { ok: false, why: 'The larder is full' };
+    if (action === 'sleep' && prop.sleeper) return { ok: false, why: 'Someone is in it' };
+    if ((action === 'sit' || action === 'rough') && !freeSeat(prop.def.ride, prop.riders.map(r => r.riding))) return { ok: false, why: 'Taken' };
+    if (action === 'pay' && !this.hard.bills.length) return { ok: false, why: 'No bills to pay' };
+    if (action === 'news' && this.cash < PAPER_PRICE) return { ok: false, why: `A paper is $${PAPER_PRICE}` };
+    if (action === 'buyphone' && this.hard.phone) return { ok: false, why: 'You have a phone' };
+    if (action === 'buyphone' && this.cash < PHONE_PRICE) return { ok: false, why: `A phone is $${PHONE_PRICE}` };
+    if (action === 'rent' && this.cash < HOUSING.motel.bills.reduce((n, [, a]) => n + a, 0)) return { ok: false, why: 'You need $3,200 for the first week' };
+    return { ok: true, why: '' };
+  },
+
   // Is this furniture usable right now (opening hours)? If not, say when it opens.
   openCheck(prop, c) {
     if (openNow(prop.def.hours, this.clock.minute)) return true;
@@ -299,8 +317,8 @@ export const hardMethods = {
       c.current = { type, prop: null, phase: 'do', elapsed: 0, fed: false }; c.idleMin = 0; return;
     }
     if (!prop || !prop.active || (type === 'sleep' && prop.sleeper)) { floatText(this, c.x, c.headTopY() - 20, '…', 24); return; }
-    if (!this.openCheck(prop, c)) return;
-    if (this.isLocked(prop, type)) { floatText(this, c.x, c.headTopY() - 20, 'This is not your home', 22); this.sfx.nope(); return; }
+    const can = this.canDo(type, prop, c);
+    if (!can.ok) { floatText(this, c.x, c.headTopY() - 30, can.why, 24); this.sfx.nope(); return; }
     c.current = { type, prop, phase: 'walk', elapsed: 0, fed: false };
     c.idleMin = 0;
     if (c.sleeping) this.wakeUp(c, true);
@@ -380,13 +398,13 @@ export const hardMethods = {
   // Eat something: from the meal line (free), the fridge/pantry (the household's larder) or the bag you carry, oldest food first.
   eatFrom(c, prop) {
     let key;
-    if (prop && prop.def.pool) {                                     // the shelter's meal line
+    if (prop && prop.def.hardActions.includes('queue')) {            // the shelter's meal line (free)
       const pool = prop.def.pool.filter(k => CATALOG[k] && CATALOG[k].kind === 'food');
       key = pool[Math.floor(Math.random() * pool.length)] || 'bread';
     } else {
       const total = this.totalMinutes(), fromBag = !prop || !this.hard.larder.length;
       const list = expire(fromBag ? c.bag : this.hard.larder, total).kept, best = takeBest(list);
-      if (!best) { floatText(this, c.x, c.headTopY() - 30, 'Nothing to eat', 22); return; }
+      if (!best) { floatText(this, c.x, c.headTopY() - 30, 'Nothing to eat', 24); if (c.current) c.current.elapsed = 999; return; }
       key = best.item.k;
       if (fromBag) c.bag = best.rest; else this.hard.larder = best.rest;
     }
@@ -471,9 +489,13 @@ export const hardMethods = {
     const x = clamp(prop.x - this.cameras.main.scrollX, 100, W - 100), y = clamp(prop.y - prop.def.h / 2 - 34, 130, 520);
     const add = o => { pin(o); ui.push(o); return o; };
     add(this.add.rectangle(0, 0, W, 600, 0x000000, 0.001).setOrigin(0).setDepth(9400).setInteractive().on('pointerdown', () => this.closeActionMenu()));
+    const hint = add(this.add.text(x, y + 38, '', { fontSize: '17px', color: '#fff7e0', stroke: '#3a2a22', strokeThickness: 4 }).setOrigin(0.5).setDepth(9500));
     actions.forEach((a, i) => {
-      const def = ACTIONS[a], bx = x + (i - (actions.length - 1) / 2) * 122;
-      add(inkButton(this, bx, y, `${def.icon} ${def.label}`, { w: 112, h: 44, size: 20, fill: COLORS.green, depth: 9500, seed: 80 + i, onTap: () => { this.queueAction(c, a, prop); this.closeActionMenu(); this.sfx.pop(); } }));
+      const def = ACTIONS[a], bx = x + (i - (actions.length - 1) / 2) * 122, can = this.canDo(a, prop, c);
+      add(inkButton(this, bx, y, `${def.icon} ${def.label}`, { w: 116, h: 44, size: 19, fill: can.ok ? COLORS.green : COLORS.grey, depth: 9500, seed: 80 + i, onTap: () => {
+        if (!can.ok) { hint.setText(can.why); this.sfx.nope(); return; }          // greyed out: say why instead of doing nothing
+        this.queueAction(c, a, prop); this.closeActionMenu(); this.sfx.pop();
+      } }));
     });
     this.sfx.click();
   },
@@ -495,6 +517,7 @@ export const hardMethods = {
     inkSwatch(disc, px, 30, 25, 0xf8eed8, false, 49);
     this.phoneBtn = pin(this.add.text(px, 30, '📱', { fontSize: '30px' }).setOrigin(0.5).setDepth(TEXT_DEPTH)); this.phoneDisc = disc;
     touchable(this.phoneBtn, 14).on('pointerdown', () => this.openPhone());
+    this.progressGfx = pin(this.add.graphics().setDepth(TEXT_DEPTH + 1));
     this.queueUI = [];
     this.setSpeed(1);
     this.queueDirty = true;
@@ -531,6 +554,11 @@ export const hardMethods = {
       this.shopChip.setLabel(`${openNow(SHOP_HOURS, this.clock.minute) ? 'Open' : 'Closed'} · ${totalStock(shop)} in stock · van due ${label({ day: Math.floor(shop.due / 1440), minute: shop.due % 1440 })}${total > shop.due ? ' (late)' : ''}`);
     }
     if (this.queueDirty) this.drawQueue(c);
+    const pg = this.progressGfx.clear();                                  // how far through the current action
+    if (c.current && c.current.phase === 'do') {
+      const def = ACTIONS[c.current.type], done = def.until ? Math.min(1, Math.max(...Object.entries(def.until).map(([k, v]) => c.needs[k] / v))) : Math.min(1, c.current.elapsed / def.minutes);
+      pg.fillStyle(0xf1e6cf, 1).fillRect(28, 184, 48, 8).fillStyle(0x78c363, 1).fillRect(29, 185, 46 * done, 6);
+    } else if (c.current) pg.fillStyle(0xf5c14a, 1).fillRect(28, 184, 48, 6);               // on the way
   },
 
   // The queue: the current action first, then what's waiting. Tap one to cancel it.

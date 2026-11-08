@@ -78,6 +78,8 @@ try {
     await g.room("r.characters.forEach(c => { c.needs.hunger = 8; c.needs.energy = 90; c.needs.hygiene = 90; c.needs.mood = 90; });");
     const fed = await (async () => { for (let i = 0; i < 60; i++) { if (await g.room('return r.characters[0].needs.hunger > 30;')) return true; await wait(500); } return false; })();
     assert.ok(fed, 'free will: the hungry person went and ate');
+    assert.ok(await g.room('return r.hard.larder.length < 2;'), 'the food came out of the larder, not out of thin air');
+    assert.deepEqual(await g.room("const f = r.props.find(p => p.type === 'fridge'), c = r.characters[0]; r.hard.larder = []; c.bag = []; const a = r.canDo('eat', f, c), b = r.canDo('store', f, c); return [a.ok, b.ok, a.why.length > 0];"), [false, false, true], 'with nothing to eat or store the menu says so');
     // orders: queue a sit on the chair and see it in the queue
     await g.room("r.hard.autonomy = false; r.setSpeed(1); const c = r.characters[0]; r.cancelCurrent(c); c.queue = []; c.needs.mood = 90; const chair = r.props.find(p => p.type === 'chair' || p.type === 'armchair' || p.type === 'sofa' || p.type === 'bench'); window.__seat = chair ? chair.type : null; if (chair) r.queueAction(c, 'sit', chair);");
     if (await g.room('return Boolean(window.__seat);')) {

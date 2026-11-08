@@ -24,12 +24,12 @@ export const SCENARIOS = {
   },
   flat: {
     label: 'Cheap flat, first job', blurb: 'A small rented flat, the rent is due soon, and you need a job.',
-    cash: 60000, debt: 0, record: false, zone: '0.0', home: { tier: 'flat', slot: 0 }, phone: true,
+    cash: 60000, debt: 0, record: false, zone: '0.0', home: { tier: 'flat', slot: 0 }, phone: true, food: ['bread', 'rice', 'egg', 'milk', 'potato'],
     city: () => lots(desk(mail(shower(newBuilding('flat'), 0, 1), 0, 0), 0, 1), park('The Park'), shop('Corner Shop'), office(), shelter(), motel()),
   },
   house: {
     label: 'Inherited house, debts', blurb: 'A big run-down house you cannot afford to keep. Repair it, sell it, or lose it.',
-    cash: 10000, debt: 500000, record: false, zone: '0.0', home: { tier: 'house', slot: 0 }, phone: true,
+    cash: 10000, debt: 500000, record: false, zone: '0.0', home: { tier: 'house', slot: 0 }, phone: true, food: ['rice', 'potato', 'cheese'],
     city: () => lots(desk(mail(shower(named('cottage', 'The Old House'), 0, 2), 0, 1), 0, 0), park('The Park'), shop('Corner Shop'), office(), shelter(), motel()),
   },
   jail: {
