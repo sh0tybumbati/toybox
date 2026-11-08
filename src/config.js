@@ -21,3 +21,6 @@ export const SAVE_VERSION = 12;
 
 // Text defaults to this stack so emoji look the same everywhere (index.html loads the font).
 export const FONT = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", cursive';
+
+// The rounded face for the UI kit's buttons, chips and meters (Patrick Hand stays for titles and speech).
+export const UI_FONT = '"Fredoka", "Patrick Hand", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif';

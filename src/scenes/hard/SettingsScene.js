@@ -14,11 +14,22 @@ export default class SettingsScene extends Phaser.Scene {
 
   create() {
     const hard = Boolean(this.room.hard);
-    backdrop(this, 520, hard ? 360 : 300, 'Settings');
+    backdrop(this, 520, hard ? 430 : 370, 'Settings');
     this.sound = inkButton(this, W / 2, 200, this.label(), { w: 300, h: 50, size: 24, fill: COLORS.blue, depth: 5, onTap: () => { this.room.sfx.toggle(); this.sound.setLabel(this.label()); this.room.sfx.pop(); } });
+    this.wipe = inkButton(this, W / 2, hard ? 350 : 275, '🧹 Start over', { w: 300, h: 50, size: 24, fill: COLORS.red, depth: 5, onTap: () => this.askWipe() });
     if (hard) inkButton(this, W / 2, 275, '🧒 Back to kid mode', { w: 300, h: 50, size: 24, fill: COLORS.gold, depth: 5, onTap: () => this.leaveHard() });
-    const v = text(this, W / 2, H / 2 + (hard ? 138 : 98), VERSION, 20, { color: '#8a7a68' }).setOrigin(0.5);
+    const v = text(this, W / 2, H / 2 + (hard ? 172 : 136), VERSION, 20, { color: '#8a7a68' }).setOrigin(0.5);
     hitZone(this, W / 2, v.y, 200, 44, () => this.tapVersion(), 5);
+  }
+
+  // Two taps: the first one arms it, the second wipes the saved toybox.
+  askWipe() {
+    if (!this.armed) {
+      this.armed = true; this.wipe.setLabel('🗑 Tap again to erase everything');
+      this.time.delayedCall(2500, () => { this.armed = false; this.wipe.setLabel('🧹 Start over'); });
+      return;
+    }
+    this.room.wipeSave();
   }
 
   label() { return this.room.sfx.muted ? '🔇 Sound is off' : '🔊 Sound is on'; }

@@ -57,7 +57,7 @@ try {
   });
 
   await step('furniture mode: add a cabinet, store an item, take it out', async () => {
-    await g.click(718, 30, 500);                                   // 🛋️
+    await g.click(756, 32, 500);                                   // 🛋️
     assert.equal(await g.room('return r.editMode;'), true);
     await g.room("r.addFurniture('cabinet');");
     await wait(300);
@@ -565,7 +565,7 @@ try {
     assert.ok(await t.room('return r.city.some(b => b && b.name === "Cottage");'), 'built a cottage');
     await t.tap(916, 30, 1400);                                         // close the map
     assert.ok(await t.ev("__toybox.scene.isActive('Room') && !__toybox.scene.isActive('Hub')"), 'back in the room');
-    await t.tap(718, 30, 700);                                          // furniture mode
+    await t.tap(756, 32, 700);                                          // furniture mode
     await t.tap(480, 120, 700);                                         // Decorate
     assert.ok(await t.room('return Boolean(r.decor);'), 'decorating');
     await t.tap(118 + 6 * 108, 490, 500);                               // a wallpaper swatch

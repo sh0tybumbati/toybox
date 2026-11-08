@@ -75,7 +75,7 @@ export default class CreatorScene extends Phaser.Scene {
       chip.setScale(i === this.index ? 1.14 : 0.94);                               // the one being edited is bigger
     });
     if (room.canAddCharacter()) {
-      this.button(112 + room.characters.length * 92, 62, 104, '➕ Friend', COLORS.green, () => {
+      this.button(124 + room.characters.length * 92, 62, 104, '➕ Friend', COLORS.green, () => {
         const party = room.characters.map(x => ({ id: x.id, name: x.name }));
         room.addCharacter({ id: freshId(party), name: freshName(party), look: randomLook(Math.random, { adult: Boolean(room.hard) }) });
         this.index = room.characters.length - 1;

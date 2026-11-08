@@ -1,7 +1,7 @@
 // Room scene mixin — Hard mode, slice 1: the game clock, people's needs, their queue of actions and free will, and the
 // HUD for them (docs/hardcore-mode.md). These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
 // Nothing here runs in kid mode (`this.hard` is null).
-import { W, FLOOR_BOTTOM, FLOOR_TOP } from '../../config.js';
+import { W, FLOOR_BOTTOM, FLOOR_TOP, UI_FONT } from '../../config.js';
 import { ACTIONS, MAX_QUEUE, PAPER_PRICE, PHONE_PRICE, nutritionOf } from '../../data/hard/needs.js';
 import { ROOMS } from '../../data/rooms.js';
 import { sectionAt } from '../../systems/world.js';
@@ -31,12 +31,14 @@ import { customersDaily } from '../../systems/hard/customers.js';
 import { WITHDRAWAL, drain, habitDaily, newHabit, use as useHabit, useEffect, label as habitLabel } from '../../systems/hard/habit.js';
 import { CROPS, PLOTS, POWER_DAY } from '../../data/hard/plants.js';
 import { shelvesFor } from '../../data/rooms.js';
-import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
-import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
+import { CARD, COLORS, PAPER, TEXT, hitZone, inkButton, inkChip, inkDisc, inkMeter, inkPanel, pin } from '../../ui.js';
+import { ensureSpriteTexture, spriteImage } from '../../systems/itemTextures.js';
+import { INK } from '../../data/ink.js';
 
 const TEXT_DEPTH = 10000;
 const BAR_COLORS = { hunger: 0xe8913a, energy: 0x6aaee8, hygiene: 0x6fd0c0, warmth: 0xf08060, mood: 0xf5c14a };
-const NEED_ICONS = { hunger: '🍎', energy: '⚡', hygiene: '🚿', warmth: '🔥', mood: '🙂' };
+const NEED_ICONS = { hunger: 'need-hunger', energy: 'need-energy', hygiene: 'need-hygiene', warmth: 'need-warmth', mood: 'need-mood' };
+const QUEUE_Y = 274;
 const NEED_KEYS = ['hunger', 'energy', 'hygiene', 'warmth', 'mood'];
 const HOME_ROOMS = ['kitchen', 'living', 'bedroom', 'motel', 'garden'];            // rooms that belong to whoever lives there
 const IDLE_BEFORE_FREE_WILL = 10;                      // game minutes standing around before someone decides for themselves
@@ -678,47 +680,66 @@ export const hardMethods = {
 
   // --- the hard-mode HUD: clock + speed, needs, and the queue --------------------------------------
   createHardHud() {
-    this.clockChip = pin(inkChip(this, 110, 76, label(this.clock), { size: 21, depth: TEXT_DEPTH }));
-    this.speedButtons = SPEEDS.map((s, i) => pin(inkButton(this, 235 + i * 44, 76, ['⏸', '▶', '⏩', '⏭'][i], { w: 40, h: 36, size: 18, fill: COLORS.grey, depth: TEXT_DEPTH, seed: 90 + i, onTap: () => this.setSpeed(i) })));
-    this.needsGfx = pin(this.add.graphics().setDepth(TEXT_DEPTH));
-    this.needLabels = NEED_KEYS.map((k, i) => pin(this.add.text(392 + i * 104, 76, NEED_ICONS[k], { fontSize: '20px' }).setOrigin(0.5).setDepth(TEXT_DEPTH + 1)));
-    this.nameChip = pin(this.add.text(380, 100, '', { fontSize: '16px', color: '#fff7e0', stroke: '#3a2a22', strokeThickness: 4 }).setDepth(TEXT_DEPTH));
-    this.weatherChip = pin(inkChip(this, 110, 112, '', { size: 18, depth: TEXT_DEPTH, h: 32 }));
-    this.bagButton = pin(inkButton(this, 720, 108, '🎒 Snack', { w: 112, h: 34, size: 17, fill: COLORS.gold, depth: TEXT_DEPTH, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
-    this.shopChip = pin(inkChip(this, 790, 146, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
-    this.billChip = pin(inkChip(this, 800, 182, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
-    this.gigChip = pin(inkChip(this, 760, 218, '', { size: 15, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
-    const px = W - 34 - 6 * 52, disc = pin(this.add.graphics().setDepth(TEXT_DEPTH - 1));
-    inkSwatch(disc, px, 30, 25, 0xf8eed8, false, 49);
-    this.phoneBtn = pin(this.add.text(px, 30, '📱', { fontSize: '30px' }).setOrigin(0.5).setDepth(TEXT_DEPTH)); this.phoneDisc = disc;
-    touchable(this.phoneBtn, 14).on('pointerdown', () => this.openPhone());
-    this.progressGfx = pin(this.add.graphics().setDepth(TEXT_DEPTH + 1));
+    const X = 14, Y = 70, CW = 330, CH = 172, D = TEXT_DEPTH, add = o => pin(o);
+    this.cardRect = { x: X, y: Y, w: CW, h: CH };
+    add(inkPanel(this, X + CW / 2, Y + CH / 2, CW, CH, { fill: CARD, depth: D - 2, seed: 61, radius: 24 }));
+    // who you are: a face in a ring that follows the mood, the name, a mood pill and the cash
+    this.moodRing = add(this.add.graphics().setDepth(D - 1));
+    this.moodFace = add(spriteImage(this, 'need-mood', X + 40, Y + 40, 40).setDepth(D));
+    this.nameText = add(this.add.text(X + 78, Y + 12, '', { fontSize: '25px', color: TEXT, fontStyle: 'bold' }).setDepth(D));
+    this.moodPill = null; this.moodShown = '';
+    this.coinText = add(inkChip(this, X + CW - 70, Y + 34, '', { size: 21, depth: D, h: 38, fill: PAPER, seed: 63 }));
+    add(this.add.graphics().setDepth(D - 1)).lineStyle(2, 0xcdbfa6, 1).beginPath().moveTo(X + 16, Y + 76).lineTo(X + CW - 16, Y + 76).strokePath();
+    // the five needs: a drawn icon over a little meter
+    this.needsGfx = add(this.add.graphics().setDepth(D));
+    this.needIcons = NEED_KEYS.map((k, i) => add(spriteImage(this, NEED_ICONS[k], X + 40 + i * 62, Y + 92, 24).setDepth(D)));
+    // pockets: the bag, the larder and the heat, and a snack button
+    this.pocketText = add(this.add.text(X + 18, Y + CH - 33, '', { fontSize: '17px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    this.bagButton = add(inkButton(this, X + CW - 66, Y + CH - 26, '🍎 Snack', { w: 104, h: 32, size: 16, fill: COLORS.gold, depth: D, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
+    // the clock, the weather and the speed, top right
+    const RX = W - 14 - 302, RY = 70;
+    add(inkPanel(this, RX + 151, RY + 38, 302, 76, { fill: CARD, depth: D - 2, seed: 64, radius: 22 }));
+    this.clockText = add(this.add.text(RX + 18, RY + 10, '', { fontSize: '22px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    this.weatherText = add(this.add.text(RX + 18, RY + 42, '', { fontSize: '15px', color: '#7a6a58', fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    this.speedButtons = SPEEDS.map((s, i) => add(inkButton(this, RX + 160 + i * 38, RY + 38, ['⏸', '▶', '⏩', '⏭'][i], { w: 34, h: 34, size: 15, fill: PAPER, depth: D, seed: 90 + i, onTap: () => this.setSpeed(i) })));
+    this.alertChips = [];
+    this.shopChip = add(inkChip(this, W - 150, 178, '', { size: 15, depth: D, h: 30, fill: CARD })).setVisible(false);
+    this.billChip = add(inkChip(this, W - 150, 216, '', { size: 15, depth: D, h: 30, fill: 0xffe3d4 })).setVisible(false);
+    this.gigChip = add(inkChip(this, W - 150, 254, '', { size: 14, depth: D, h: 30, fill: 0xe3f2d0 })).setVisible(false);
+    this.phoneBtn = add(inkDisc(this, W - 36 - 5 * 56, 32, 'icon-phone', { onTap: () => this.openPhone(), seed: 49 }));
+    this.progressGfx = add(this.add.graphics().setDepth(D + 1));
     this.queueUI = [];
     this.setSpeed(1);
     this.queueDirty = true;
+    this.updateNav();
   },
 
   setSpeed(i) {
     this.speed = i;
-    this.speedButtons.forEach((b, n) => b.setAlpha(n === i ? 1 : 0.55).setScale(n === i ? 1.08 : 0.94));
+    this.speedButtons.forEach((b, n) => b.setFill(n === i ? COLORS.gold : PAPER));
     this.sfx.click();
   },
 
   refreshHardHud() {
-    this.clockChip.setLabel(label(this.clock));
-    this.phoneBtn.setVisible(this.hard.phone); this.phoneDisc.setVisible(this.hard.phone);
+    const { x: X, y: Y, w: CW } = this.cardRect, RX = W - 14 - 302;
+    this.clockText.setText(label(this.clock));
+    this.phoneBtn.setVisible(this.hard.phone);
     const w = this.weatherNow();
-    this.weatherChip.setLabel(`${weatherLabel(w)} · ${w.season} ${dayInSeason(this.clock.day)}`);
+    this.weatherText.setText(`${weatherLabel(w)} · ${w.season} ${dayInSeason(this.clock.day)}`);
     const c = this.selected || this.characters[0];
     if (!c || !c.needs) return;
-    const g = this.needsGfx.clear();
-    NEED_KEYS.forEach((k, i) => {
-      const x = 410 + i * 104, v = c.needs[k] / 100, bw = 74;
-      inkFill(g, wobblyPoly(rectPoints(x, 68, bw, 16), { amp: 1, seed: 5 + i, step: 12 }), 0xf1e6cf, { w: 2.2, seed: 5 + i, heavy: 0 });
-      if (v > 0.02) g.fillStyle(v < 0.25 ? 0xe5685c : BAR_COLORS[k], 1).fillRect(x + 2, 70, (bw - 4) * v, 12);
-    });
-    const st = status(c.needs), flags = [st.starving && 'starving', st.hungry && !st.starving && 'hungry', st.exhausted && 'exhausted', st.tired && !st.exhausted && 'tired', st.freezing && 'freezing', st.cold && !st.freezing && 'cold', st.dirty && 'dirty', habitLabel(this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0) && `🥀 ${habitLabel(this.hard.hooks[c.id].hook)}`].filter(Boolean);
-    this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}  ·  🎒${c.bag.length}/${BAG_CAP} 🧊${this.hard.larder.length}${this.hard.heat ? `  🚨${this.hard.heat}` : ''}`);
+    this.coinText.x = X + CW - 16 - this.coinText.width / 2;
+    const g = this.needsGfx.clear(), avg = NEED_KEYS.reduce((n, k) => n + c.needs[k], 0) / NEED_KEYS.length;
+    NEED_KEYS.forEach((k, i) => inkMeter(g, X + 40 + i * 62 - 25, Y + 108, 50, 14, c.needs[k] / 100, BAR_COLORS[k], 5 + i));
+    const st = status(c.needs), hook = this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0;
+    const flags = [st.starving ? 'Starving' : st.hungry && 'Hungry', st.exhausted ? 'Exhausted' : st.tired && 'Tired', st.freezing ? 'Freezing' : st.cold && 'Cold', st.dirty && 'Dirty', habitLabel(hook) && habitLabel(hook)[0].toUpperCase() + habitLabel(hook).slice(1)].filter(Boolean);
+    const mood = avg >= 78 ? ['Feeling great', 'laugh', 0x78c363, 0xd9f0c8] : avg >= 52 ? ['Feeling okay', 'need-mood', 0xf0c040, 0xfff0b8] : avg >= 30 ? ['Feeling low', 'sour', 0xf2ae44, 0xffddb0] : ['Feeling awful', 'yuck', 0xe5685c, 0xf8c8c0];
+    const shown = flags.length ? flags.slice(0, 2).join(' · ') : mood[0];
+    this.nameText.setText(c.name);
+    if (this.moodShown !== shown) { this.moodShown = shown; if (this.moodPill) this.moodPill.destroy(); this.moodPill = pin(inkChip(this, X + 78, Y + 54, shown, { size: 15, depth: TEXT_DEPTH, h: 26, seed: 62, fill: flags.length ? 0xf8c8c0 : mood[3] })); this.moodPill.x = X + 78 + this.moodPill.width / 2; }
+    this.moodFace.setTexture(ensureSpriteTexture(this, mood[1]));
+    this.moodRing.clear().fillStyle(0x4a382c, 0.92).fillCircle(X + 42, Y + 45, 29).fillStyle(mood[2], 1).fillCircle(X + 40, Y + 40, 29).lineStyle(3, INK, 1).strokeCircle(X + 40, Y + 40, 29).fillStyle(0xfff6dc, 1).fillCircle(X + 40, Y + 40, 23);
+    this.pocketText.setText(`🎒 ${c.bag.length}/${BAG_CAP}   🧊 ${this.hard.larder.length}${this.hard.heat ? `   🚨 ${this.hard.heat}` : ''}`);
     const gig = this.hard.gig, nowT = this.totalMinutes();
     this.gigChip.setVisible(Boolean(gig) && standing(gig, nowT) !== 'gone');
     if (gig) this.gigChip.setLabel(`🧱 ${gig.title} · ${gig.siteName} by ${timeLabel({ minute: gig.due % 1440 })}${standing(gig, nowT) === 'late' ? ' · LATE' : ''}`);
@@ -728,15 +749,16 @@ export const hardMethods = {
     const market = this.zone && this.zone.sections.find(s => s.type === 'market');
     this.shopChip.setVisible(Boolean(market));
     if (market) {
-      const shop = this.shopFor(Number(market.id.split('.')[0])), total = this.totalMinutes(), late = total > shop.due && total < shop.next + 1;
+      const shop = this.shopFor(Number(market.id.split('.')[0])), total = this.totalMinutes();
       this.shopChip.setLabel(`${openNow(SHOP_HOURS, this.clock.minute) ? 'Open' : 'Closed'} · ${totalStock(shop)} in stock · van due ${label({ day: Math.floor(shop.due / 1440), minute: shop.due % 1440 })}${total > shop.due ? ' (late)' : ''}`);
     }
+    for (const chip of [this.shopChip, this.billChip, this.gigChip]) chip.x = W - 14 - chip.width / 2;
     if (this.queueDirty) this.drawQueue(c);
-    const pg = this.progressGfx.clear();                                  // how far through the current action
+    const pg = this.progressGfx.clear(), QY = QUEUE_Y + 29;               // how far through the current action
     if (c.current && c.current.phase === 'do') {
       const def = ACTIONS[c.current.type], done = def.until ? Math.min(1, Math.max(...Object.entries(def.until).map(([k, v]) => c.needs[k] / v))) : Math.min(1, c.current.elapsed / def.minutes);
-      pg.fillStyle(0xf1e6cf, 1).fillRect(28, 184, 48, 8).fillStyle(0x78c363, 1).fillRect(29, 185, 46 * done, 6);
-    } else if (c.current) pg.fillStyle(0xf5c14a, 1).fillRect(28, 184, 48, 6);               // on the way
+      inkMeter(pg, 26, QY, 52, 10, done, 0x78c363, 3, 0);
+    } else if (c.current) inkMeter(pg, 26, QY, 52, 10, 1, 0xf5c14a, 3, 0);               // on the way
   },
 
   // The queue: the current action first, then what's waiting. Tap one to cancel it.
@@ -748,10 +770,10 @@ export const hardMethods = {
     const items = [...(c.current ? [{ ...c.current, now: true }] : []), ...c.queue.map(q => ({ ...q, now: false }))];
     if (c.collapsed) items.unshift({ type: 'sleep', now: true, collapsed: true });
     items.slice(0, MAX_QUEUE + 1).forEach((q, i) => {
-      const x = 52 + i * 56, def = ACTIONS[q.type];
-      add(inkPanel(this, x, 156, q.now ? 50 : 44, q.now ? 50 : 44, { fill: q.now ? 0xfff0b8 : 0xf8eed8, radius: 22, shadow: false, weight: q.now ? 3.6 : 2.8, seed: 70 + i, depth: TEXT_DEPTH }));
-      add(this.add.text(x, 156, def.icon, { fontSize: q.now ? '28px' : '24px' }).setOrigin(0.5).setDepth(TEXT_DEPTH + 1));
-      if (!q.collapsed) add(hitZone(this, x, 156, 52, 52, () => { if (q.now) this.cancelCurrent(c); else this.cancelQueued(c, i - (c.current ? 1 : 0)); this.queueDirty = true; }, TEXT_DEPTH + 2));
+      const x = 52 + i * 58, def = ACTIONS[q.type];
+      add(inkPanel(this, x, QUEUE_Y, q.now ? 52 : 46, q.now ? 52 : 46, { fill: q.now ? 0xfff0b8 : CARD, radius: 23, weight: q.now ? 3.6 : 2.8, seed: 70 + i, depth: TEXT_DEPTH, sheen: false }));
+      add(this.add.text(x, QUEUE_Y, def.icon, { fontSize: q.now ? '28px' : '24px' }).setOrigin(0.5).setDepth(TEXT_DEPTH + 1));
+      if (!q.collapsed) add(hitZone(this, x, QUEUE_Y, 52, 52, () => { if (q.now) this.cancelCurrent(c); else this.cancelQueued(c, i - (c.current ? 1 : 0)); this.queueDirty = true; }, TEXT_DEPTH + 2));
     });
   },
 };

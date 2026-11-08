@@ -84,6 +84,13 @@ export const SPRITE_ART = {
   bubble: small(p => { c(p, 32, 32, 26, 0xa9d9f0); tiny(p, () => { ln(p, 20, 22, 26, 16, 3); }); }),
   moon: small(p => poly(p, [[40, 6], [26, 14], [18, 28], [20, 44], [32, 56], [48, 58], [58, 52], [44, 46], [36, 34], [38, 18]], 0xf7e27a)),
   'icon-trash': small(p => { poly(p, [[14, 18], [50, 18], [44, 58], [20, 58]], 0xa9c6d6); r(p, 10, 12, 44, 8, 0x8fb0c4, 4); r(p, 26, 6, 12, 8, 0x8fb0c4, 3); tiny(p, () => { ln(p, 26, 24, 26, 54, 2); ln(p, 38, 24, 38, 54, 2); }); }),
+  'icon-gear': small(p => { for (const [x, y, w, h] of [[26, 4, 12, 16], [26, 44, 12, 16], [4, 26, 16, 12], [44, 26, 16, 12]]) r(p, x, y, w, h, 0xb8aa94, 3); for (const [x, y] of [[14, 14], [50, 14], [14, 50], [50, 50]]) c(p, x, y, 7, 0xb8aa94); c(p, 32, 32, 21, 0xb8aa94); c(p, 32, 32, 8, 0xf8eed8); }),
+  'icon-phone': small(p => { r(p, 16, 4, 32, 56, 0x6b7a99, 8); r(p, 20, 12, 24, 36, 0xc6e2f2, 3); c(p, 32, 54, 3.4, INKC); }),
+  'need-hunger': small(p => { c(p, 32, 38, 21, RED); poly(p, [[32, 18], [40, 6], [52, 10], [44, 22]], GREEN); tiny(p, () => ln(p, 32, 20, 32, 10, 3)); }),
+  'need-energy': small(p => poly(p, [[38, 4], [12, 36], [28, 36], [24, 60], [52, 24], [36, 24]], 0xf5c14a)),
+  'need-hygiene': small(p => poly(p, [[32, 4], [48, 30], [52, 42], [44, 56], [20, 56], [12, 42], [16, 30]], 0x5fc8d8)),
+  'need-warmth': small(p => { poly(p, [[32, 4], [46, 22], [54, 40], [46, 58], [32, 62], [18, 58], [10, 40], [20, 28], [24, 40], [28, 22]], 0xf08060); poly(p, [[32, 30], [42, 44], [38, 58], [26, 58], [22, 44]], YELLOW); }),
+  'need-mood': small(p => { c(p, 32, 32, 26, 0xf7d466); tiny(p, () => { c(p, 22, 26, 3.4, INKC); c(p, 42, 26, 3.4, INKC); ln(p, 20, 40, 26, 46, 3); ln(p, 26, 46, 38, 46, 3); ln(p, 38, 46, 44, 40, 3); }); }),
 };
 
 // Floating-reaction emoji -> the sprite that replaces them (used by floatText so old call sites keep working).
