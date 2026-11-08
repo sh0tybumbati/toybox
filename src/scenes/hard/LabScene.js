@@ -47,7 +47,22 @@ export default class LabScene extends Phaser.Scene {
     keep(text(this, 205, 426, p ? `${p.name} · ${p.units} units` : '', 22, { fontStyle: 'bold' }).setDepth(5));
     keep(text(this, 205, 452, p ? `Potency ${p.potency} · Purity ${p.purity}%${p.effects.length ? ' · calming' : ''}   ≈ $${unitValue(p).toLocaleString('en-US')} each, $${batchValue(p).toLocaleString('en-US')} the batch` : '', 15, { color: '#7a6a58' }).setDepth(5));
     const full = h.goods.length >= GOODS_CAP;
+    keep(inkButton(this, 320, 500, `Stash: ${h.goods.length} batch${h.goods.length === 1 ? '' : 'es'} · ${h.goods.reduce((n, g) => n + g.units, 0)} units`, { w: 360, h: 34, size: 16, fill: this.showStash ? COLORS.gold : COLORS.grey, depth: 6, seed: 241, onTap: () => { this.showStash = !this.showStash; this.build(); } }));
+    if (this.showStash) this.stash(keep);
     keep(inkButton(this, 700, 454, full ? 'Stash full' : `Mix (${MIX_MINUTES} min)`, { w: 150, h: 44, size: 19, fill: full ? COLORS.grey : COLORS.green, depth: 6, seed: 240, onTap: () => this.doMix() }));
+  }
+
+  // The finished product: sell it at the corner, or use a unit yourself (it has a price).
+  stash(keep) {
+    const r = this.room, h = r.hard, c = r.selected || r.characters[0];
+    keep(inkPanel(this, W / 2, 330, 640, 300, { fill: 0xfffaf0, radius: 14, shadow: false, weight: 3, seed: 250, depth: 7 }));
+    if (!h.goods.length) keep(text(this, W / 2, 330, 'Nothing mixed yet.', 20, { color: '#7a6a58' }).setOrigin(0.5).setDepth(8));
+    h.goods.slice(0, 5).forEach((g, i) => {
+      const y = 214 + i * 54;
+      keep(text(this, 190, y - 18, `${g.name} · ${g.units} units`, 19, { fontStyle: 'bold' }).setDepth(8));
+      keep(text(this, 190, y + 3, `Potency ${g.potency} · Purity ${g.purity}%${g.effects.length ? ' · calming' : ''}`, 14, { color: '#7a6a58' }).setDepth(8));
+      keep(inkButton(this, 690, y - 4, `Use 1 (${c.name.split(' ')[0]})`, { w: 170, h: 32, size: 15, fill: COLORS.orange, depth: 9, seed: 260 + i, onTap: () => { r.useProduct(c, i); r.sfx.pop(); this.build(); } }));
+    });
   }
 
   toggle(a) {

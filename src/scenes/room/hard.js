@@ -25,6 +25,8 @@ import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig
 import { SLOTS } from '../../data/buildings.js';
 import { decayHeat } from '../../systems/hard/alley.js';
 import { give, harvestOf, powerToday, stage, tickBeds } from '../../systems/hard/garden.js';
+import { customersDaily } from '../../systems/hard/customers.js';
+import { WITHDRAWAL, drain, habitDaily, newHabit, use as useHabit, useEffect, label as habitLabel } from '../../systems/hard/habit.js';
 import { CROPS, PLOTS, POWER_DAY } from '../../data/hard/plants.js';
 import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
@@ -96,8 +98,29 @@ export const hardMethods = {
     this.hard.power = (this.hard.power || 0) + powerToday(this.hard.beds, POWER_DAY);          // grow lamps run up the power bill
     this.hard.beds = tickBeds(this.hard.beds, sky === 'rain' || sky === 'snow');          // the gardens grow (rain waters them)
     this.refreshBeds();
+    this.hard.custs = customersDaily(this.hard.custs, day);              // those who go without come down
+    for (const c of this.characters) {                                   // a day without: the hook eases, but a real habit makes it miserable
+      const h = this.hard.hooks[c.id];
+      if (!h) continue;
+      const r = habitDaily(h, this.totalMinutes());
+      if (r.habit.hook > 0) this.hard.hooks[c.id] = r.habit; else delete this.hard.hooks[c.id];
+      if (r.withdrawal) { apply(c.needs, WITHDRAWAL); floatText(this, c.x, c.headTopY() - 40, '🥀 Rough day without it', 22); }
+    }
     this.updateNav();
     this.queueDirty = true;
+  },
+
+  // Using a unit of product yourself (from the stash at the bench): a lift now, a hook that grows.
+  useProduct(c, index) {
+    const p = this.hard.goods[index];
+    if (!p) return false;
+    const e = useEffect(p);
+    apply(c.needs, e.needs);
+    this.hard.hooks[c.id] = useHabit(this.hard.hooks[c.id] || newHabit(), p, this.totalMinutes());
+    this.hard.goods = p.units > 1 ? this.hard.goods.map((g, i) => (i === index ? { ...g, units: g.units - 1 } : g)) : this.hard.goods.filter((_, i) => i !== index);
+    floatText(this, c.x, c.headTopY() - 30, '✨ That hit the spot', 22);
+    this.dirty = true;
+    return true;
   },
 
   // Garden beds: each is identified by its lot and where it stands; the drawing follows the plant.
@@ -183,7 +206,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -229,6 +252,8 @@ export const hardMethods = {
       tick(c.needs, mins, { sleeping: c.sleeping ? 'bed' : c.rough ? 'bench' : c.collapsed ? 'floor' : false, env: toggles.survival ? this.envFor(c) : undefined });
       if (c.rough) this.roughRisks(c, mins);
       this.checkCollapse(c);
+      const d = drain(this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0);      // a habit wears you down
+      if (d) apply(c.needs, Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v * mins])));
       this.tickAction(c, mins);
       this.freeWill(c, mins);
     }
@@ -352,6 +377,7 @@ export const hardMethods = {
     if (action === 'eat' && !this.hard.larder.length && !c.bag.length) return { ok: false, why: 'Nothing to eat: buy food at the shop' };
     if (action === 'store' && !c.bag.length) return { ok: false, why: 'Nothing in your bag' };
     if (action === 'store' && this.hard.larder.length >= LARDER_CAP) return { ok: false, why: 'The larder is full' };
+    if (action === 'sell' && !this.hard.goods.length) return { ok: false, why: 'Nothing to sell: mix some product first' };
     if (action === 'mix' && !Object.values(this.hard.raw).some(n => n > 0)) return { ok: false, why: 'Nothing to mix: grow something first' };
     if (action === 'buyseeds' && !openNow(hours, this.clock.minute)) return { ok: false, why: 'Closed' };
     if (action === 'sleep' && prop.sleeper) return { ok: false, why: 'Someone is in it' };
@@ -420,6 +446,7 @@ export const hardMethods = {
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
       else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c, type: prop.type }); }
+      else if (type === 'sell') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Sell', { room: this, who: c }); }
       else if (type === 'mix') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Lab', { room: this }); }
       else if (type === 'buyseeds') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Nursery', { room: this }); }
       else if (type === 'use') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'computer' }); }
@@ -632,7 +659,7 @@ export const hardMethods = {
       inkFill(g, wobblyPoly(rectPoints(x, 68, bw, 16), { amp: 1, seed: 5 + i, step: 12 }), 0xf1e6cf, { w: 2.2, seed: 5 + i, heavy: 0 });
       if (v > 0.02) g.fillStyle(v < 0.25 ? 0xe5685c : BAR_COLORS[k], 1).fillRect(x + 2, 70, (bw - 4) * v, 12);
     });
-    const st = status(c.needs), flags = [st.starving && 'starving', st.hungry && !st.starving && 'hungry', st.exhausted && 'exhausted', st.tired && !st.exhausted && 'tired', st.freezing && 'freezing', st.cold && !st.freezing && 'cold', st.dirty && 'dirty'].filter(Boolean);
+    const st = status(c.needs), flags = [st.starving && 'starving', st.hungry && !st.starving && 'hungry', st.exhausted && 'exhausted', st.tired && !st.exhausted && 'tired', st.freezing && 'freezing', st.cold && !st.freezing && 'cold', st.dirty && 'dirty', habitLabel(this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0) && `🥀 ${habitLabel(this.hard.hooks[c.id].hook)}`].filter(Boolean);
     this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}  ·  🎒${c.bag.length}/${BAG_CAP} 🧊${this.hard.larder.length}${this.hard.heat ? `  🚨${this.hard.heat}` : ''}`);
     const gig = this.hard.gig, nowT = this.totalMinutes();
     this.gigChip.setVisible(Boolean(gig) && standing(gig, nowT) !== 'gone');

@@ -313,6 +313,41 @@ try {
     await g.room('r.hard.autonomy = true;');
   });
 
+  await step('customers: named townspeople turn up at the corner, pay by taste, build trust and get hooked; texts arrive on the phone; using it yourself drains your needs', async () => {
+    await g.room("r.hard.autonomy = false; r.hard.phone = true; r.cash = 1000; r.hard.heat = 0; r.clock.day = 40; r.clock.minute = 22 * 60; r.hard.hooks = {};");
+    await g.room("r.hard.custs = Object.fromEntries(['marta', 'dex', 'pip', 'odalys', 'rufus', 'jo'].map(id => [id, { trust: 3, hook: 0, owes: 0, bought: { day: -1, units: 0 }, last: -99 }]));");
+    await g.room("r.hard.goods = [{ crop: 'nightbloom', name: 'Amberdust', potency: 9, purity: 80, units: 6, effects: [], adds: ['amber'] }];");
+    const slot = await g.room("return r.city.findIndex(b => b && b.name === 'Back Alley');");
+    await g.room(`r.goToZone('${slot}.0');`);
+    await wait(2500);
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'corner'), f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'sell', d); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Sell'), 'the corner opens after dark');
+    const present = await g.ev(`(async () => { const m = await import('/src/systems/hard/customers.js'); return m.atCorner(${S('Room')}.hard.custs, ${S('Room')}.clock.day, true); })()`);
+    assert.ok(present.length >= 1, 'someone is waiting: ' + present);
+    const who = present[0];
+    await g.ev(`${S('Sell')}.sell('${who}', false)`);
+    assert.deepEqual(await g.room(`const s = r.hard.custs['${who}']; return [s.trust, s.hook > 0, r.cash > 1000, r.hard.heat > 0, r.hard.goods[0].units < 6];`), [4, true, true, true, true], 'a sale: paid, trust up, hooked a little, heat up, stock down');
+    await g.ev(`${S('Sell')}.close()`);
+    await wait(300);
+    // texts on the phone
+    await g.room("r.hard.custs.dex = { ...r.hard.custs.dex, trust: 5, bought: { day: -1, units: 0 } };");
+    await g.room("r.scene.pause(); r.scene.launch('Device', { room: r, kind: 'phone' });");
+    await wait(500);
+    await g.ev(`(s => { s.tab = 'orders'; s.build(); })(${S('Device')})`);
+    await g.ev(`${S('Device')}.close()`);
+    await wait(300);
+    // using it yourself
+    await g.room("window.__mood = r.characters[0].needs.mood; r.characters[0].needs.mood = 40; r.characters[0].needs.energy = 60; r.hard.goods = [{ crop: 'nightbloom', name: 'Amberdust', potency: 9, purity: 80, units: 2, effects: [], adds: [] }];");
+    await g.room("r.useProduct(r.characters[0], 0);");
+    assert.ok(await g.room('return r.characters[0].needs.mood > 50 && r.hard.hooks[r.characters[0].id].hook > 10;'), 'a lift, and a hook');
+    await g.room("r.hard.hooks[r.characters[0].id].hook = 80; const n = r.characters[0].needs; n.mood = 80; n.energy = 80; r.passTime(120);");
+    assert.ok(await g.room('const n = r.characters[0].needs; return n.mood < 80 && n.energy < 80;'), 'a habit wears down mood and energy');
+    await g.room("const id = r.characters[0].id; r.hard.hooks[id] = { hook: 50, last: 0 }; r.characters[0].needs.mood = 70; r.daily(r.clock.day + 1);");
+    assert.ok(await g.room('const n = r.characters[0].needs; return n.mood < 70 && r.hard.hooks[r.characters[0].id].hook < 50;'), 'a day without: withdrawal, and the hook eases a little');
+    await g.room('r.hard.hooks = {}; r.hard.autonomy = true;');
+  });
+
   await step('night follows the clock and the kid tips are off', async () => {
     await g.room('r.clock.minute = 21 * 60;');
     await wait(1200);

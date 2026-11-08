@@ -5,10 +5,12 @@ import { CARD, COLORS, TEXT, inkButton, inkPanel } from '../../ui.js';
 import { listings } from '../../systems/hard/jobs.js';
 import { label, timeLabel } from '../../systems/hard/clock.js';
 import { dayInSeason, weatherLabel } from '../../systems/hard/weather.js';
+import { texters, stillWants } from '../../systems/hard/customers.js';
+import { CUSTOMERS } from '../../data/hard/customers.js';
 import { backdrop, leave, text } from './overlay.js';
 import { renderBills } from './BillsScene.js';
 
-const TABS = { phone: [['bills', '💵 Bills'], ['jobs', '📰 Jobs'], ['bank', '🏦 Bank'], ['clock', '⏰ Time']], computer: [['bills', '💵 Bills'], ['jobs', '📰 Jobs']], paper: [['jobs', '📰 Jobs']] };
+const TABS = { phone: [['bills', '💵 Bills'], ['jobs', '📰 Jobs'], ['bank', '🏦 Bank'], ['orders', '📩 Texts'], ['clock', '⏰ Time']], computer: [['bills', '💵 Bills'], ['jobs', '📰 Jobs']], paper: [['jobs', '📰 Jobs']] };
 const TITLES = { phone: 'Phone', computer: 'Computer', paper: "Today's paper" };
 
 export default class DeviceScene extends Phaser.Scene {
@@ -43,6 +45,15 @@ export default class DeviceScene extends Phaser.Scene {
         keep(text(this, 170, y + 2, `${j.where} · ${j.hours} · ${j.shift}`, 16).setDepth(5));
         keep(text(this, 630, y - 22, `$${j.pay.toLocaleString('en-US')}`, 24, { fontStyle: 'bold', color: '#3f7f3f' }).setDepth(5));
         keep(text(this, 520, y + 2, j.needs, 14, { color: '#7a6a58', wordWrap: { width: 230 } }).setDepth(5));
+      });
+    } else if (this.tab === 'orders') {
+      const who = texters(r.hard.custs, c.day);
+      keep(text(this, W / 2, 188, who.length ? 'People who want something tonight — meet at the corner after dark' : 'No texts today. People text once they know you.', 18, { color: '#7a6a58' }).setOrigin(0.5));
+      who.forEach((id, i) => {
+        const cu = CUSTOMERS[id], st = r.hard.custs[id], y = 240 + i * 62;
+        keep(inkPanel(this, W / 2, y, 660, 54, { fill: CARD, radius: 12, shadow: false, weight: 2.8, seed: 240 + i, depth: 4 }));
+        keep(text(this, 170, y - 21, `${cu.name}  ·  wants ${stillWants(id, st, c.day)}`, 20, { fontStyle: 'bold' }).setDepth(5));
+        keep(text(this, 170, y + 2, `Likes ${cu.likes === 'cheap' ? 'it cheap' : cu.likes}${cu.minPurity ? `, ${cu.minPurity}%+ pure` : ''}${st.owes ? ` · owes $${st.owes}` : ''}`, 15, { color: '#7a6a58' }).setDepth(5));
       });
     } else if (this.tab === 'bank') {
       const h = r.hard;

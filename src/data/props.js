@@ -571,6 +571,16 @@ export const PROP_TYPES = {
       g.fillStyle(0x2c2733, 1).fillRoundedRect(-24, 48, 18, 34, 6).fillRoundedRect(6, 48, 18, 34, 6);
     },
   },
+  corner: {
+    name: 'The Corner', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['sell'], hours: [[18, 24], [0, 5]], w: 110, h: 190, blurb: 'Buyers wait here after dark',
+    draw(g) {
+      g.fillStyle(0x4a4f58, 1).fillRect(-5, -80, 10, 150).fillRoundedRect(-24, -90, 48, 14, 6);                    // a street lamp
+      g.fillStyle(0xffe27a, 0.25).fillTriangle(-34, -76, 34, -76, 0, 70);
+      g.fillStyle(0x2c2733, 1).fillRoundedRect(26, -14, 26, 70, 12).fillCircle(39, -24, 12);                         // someone waiting
+      g.fillStyle(0x233a5a, 1).fillRoundedRect(-56, 4, 22, 54, 10).fillCircle(-45, -6, 11);                          // and another
+      g.fillStyle(0x15121a, 0.35).fillEllipse(0, 70, 120, 14);
+    },
+  },
   mailbox: {
     name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', hardActions: ['mail'], w: 84, h: 136,
     draw(g, flag) {

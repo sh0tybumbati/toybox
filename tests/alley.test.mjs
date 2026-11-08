@@ -30,7 +30,7 @@ test('buying draws heat, which fades day by day and stays within 0..100', () => 
 test('the alley is a place: an outdoor room with a contact (after dark only), a fire to warm up at and a bin; in every hard-mode city', () => {
   assert.ok(ROOMS.alley.outdoor && typeof ROOMS.alley.draw === 'function');
   assert.ok(BLUEPRINTS.alley);
-  assert.deepEqual(ROOMS.alley.props.map(p => p.type).sort(), ['dealer', 'dumpster', 'firebarrel']);
+  assert.deepEqual(ROOMS.alley.props.map(p => p.type).sort(), ['corner', 'dealer', 'dumpster', 'firebarrel']);
   const dealer = PROP_TYPES.dealer;
   assert.ok(openNow(dealer.hours, 22 * 60) && openNow(dealer.hours, 2 * 60) && !openNow(dealer.hours, 12 * 60));
   assert.ok(PROP_TYPES.firebarrel.hardActions.includes('warm'));

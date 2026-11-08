@@ -257,7 +257,7 @@ export const ROOMS = {
     label: '🧱 Back alley',
     outdoor: true,
     shelves: [],
-    props: [{ type: 'dumpster', x: 130, y: 540 }, { type: 'firebarrel', x: 360, y: 540 }, { type: 'dealer', x: 640, y: 540 }],
+    props: [{ type: 'dumpster', x: 130, y: 540 }, { type: 'firebarrel', x: 360, y: 540 }, { type: 'dealer', x: 640, y: 540 }, { type: 'corner', x: 860, y: 520 }],
     draw(g) { paintAlley(g); },
   },
   pond: {
