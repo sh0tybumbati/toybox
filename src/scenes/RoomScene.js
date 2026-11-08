@@ -1,6 +1,7 @@
 // The room: scene lifecycle (create / update / physics step). Everything else lives in
 // the mixins under ./room/, which are copied onto the prototype below:
 //   hud, economy, world, saving, furniture, party, objects, dragdrop, tips.
+import { chargeCard, creditLeft } from '../systems/hard/credit.js';
 import { W, H } from '../config.js';
 import { clamp } from '../util.js';
 import { starterCity, START_ZONE } from '../data/buildings.js';
@@ -50,6 +51,12 @@ export default class RoomScene extends Phaser.Scene {
 
   // Coins. In hard mode there are no coins, only cash: the old coin prices are paid in cash at 1 coin = 100 cash
   // (a stand-in until the hard economy has its own prices), so every shop and game keeps working in both modes.
+  // Cash is what you can spend: the money on you, plus what the card you pay with can still cover. Spending takes from the card first
+  // (when you pay by card), then from your pocket; income always goes in your pocket (`wallet`).
+  get cash() { return this.wallet + (this.hard && this.hard.credit ? creditLeft(this.hard.credit) : 0); }
+  set cash(v) { const d = v - this.cash; if (d >= 0) this.wallet += d; else this.spend(-d); }
+  spend(n) { const rest = this.hard && this.hard.credit ? chargeCard(this.hard.credit, n) : n; this.wallet = Math.max(0, this.wallet - rest); }
+
   get coins() { return this.hard ? toCoins(this.cash) : this._coins; }
   set coins(v) { if (this.hard) this.cash = Math.max(0, this.cash + (v - toCoins(this.cash)) * COIN_TO_CASH); else this._coins = v; }
 
@@ -67,7 +74,7 @@ export default class RoomScene extends Phaser.Scene {
     const initial = this.initialSave;
     this.hard = initial && initial.hard ? { ...initial.hard } : null;      // hard mode: its own world and money (systems/mode.js)
     this.mode = this.hard ? 'hard' : 'kid';
-    this.cash = this.hard ? this.hard.cash : 0;
+    this.wallet = this.hard ? this.hard.cash : 0;
     this.store = storeFor(this.mode);
     this.roomGfx = [];               // art belonging to the current zone
     this.city = initial ? initial.city : starterCity();       // a building (or null) per lot

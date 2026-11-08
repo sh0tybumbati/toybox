@@ -37,7 +37,7 @@ export const hudMethods = {
   updateNav() {
     this.roomLabel.setLabel(this.zoneLabel());
     if (this.editDisc) this.editDisc.setVisible(this.editRights() !== '');             // adult mode: only your own places can be changed
-    if (this.coinText) this.coinText.setLabel(this.hard ? `$ ${this.cash.toLocaleString('en-US')}` : `🪙 ${this.coins}`);
+    if (this.coinText) this.coinText.setLabel(this.hard ? (this.hard.credit && this.hard.credit.pay === 'card' ? `Card $${this.cash.toLocaleString('en-US')}` : `$ ${this.wallet.toLocaleString('en-US')}`) : `🪙 ${this.coins}`);
     this.refreshPrices();
   },
 

@@ -557,14 +557,14 @@ try {
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 7, 'the kid world has its 7 coins');
     const cash0 = await g.room('return r.cash;');
     window_cash = cash0;
-    await g.ev(`${S('Bank')}.swap('toCash', 5)`);
+    await g.ev(`${S('Bank')}.exchange('toCash', 5)`);
     await wait(500);
     assert.equal(await g.room('return r.cash;'), cash0 + 500);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 2);
-    await g.ev(`${S('Bank')}.swap('toCash', 5)`);                                        // can't: only 2 left
+    await g.ev(`${S('Bank')}.exchange('toCash', 5)`);                                        // can't: only 2 left
     await wait(300);
     assert.equal(await g.room('return r.cash;'), cash0 + 500);
-    await g.ev(`${S('Bank')}.swap('toCoins', 1)`);
+    await g.ev(`${S('Bank')}.exchange('toCoins', 1)`);
     await wait(500);
     assert.equal(await g.room('return r.cash;'), cash0 + 400);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 3);
@@ -594,7 +594,7 @@ try {
     await g.room('r.openCityMap();'); await wait(1000);
     const listed = await g.room("return r.city.map((b, i) => b && b.forSale ? i : -1).filter(i => i >= 0);");
     assert.ok(listed.length >= 3, 'houses are for sale');
-    await g.ev(`(h => h.buy(${listed[0]}))(${S('Hub')})`);
+    await g.ev(`(h => h.buyListed(${listed[0]}, 'cash'))(${S('Hub')})`);
     const bought = await g.room(`const b = r.city[${listed[0]}]; return { owned: b.owned, sale: b.forSale, cash: r.cash };`);
     assert.equal(bought.owned, true); assert.equal(bought.sale, undefined); assert.ok(bought.cash < 1000000 && bought.cash > 0);
     await g.ev(`(h => h.openBuildingMenu(${listed[0]}))(${S('Hub')})`);
@@ -613,6 +613,40 @@ try {
     await g.room('r.enterEdit();');
     assert.equal(await g.room('return Boolean(r.editMode);'), false, 'furniture mode refuses in a public place');
     await g.room(`r.cash = ${keep.cash}; r.hard.home = ${JSON.stringify(keep.home)}; r.city.forEach(b => { if (b && b.owned && b.name !== 'Flat') delete b.owned; }); r.updateNav();`);
+  });
+
+  await step('credit: a score, a card that pays at checkout, a mortgage with a down payment, monthly statements, and the bank taking the house after three missed payments', async () => {
+    const keep = await g.room("return { wallet: r.wallet, home: r.hard.home, debt: r.hard.debt, cr: r.hard.credit, bills: r.hard.bills, day: r.clock.day };");
+    await g.room("r.hard.home = null; r.hard.bills = []; r.hard.debt = 0; r.wallet = 2000000; r.hard.credit.score = 640; r.hard.credit.cards = []; r.hard.credit.pay = 'cash';");
+    await g.room('r.togglePay();');
+    assert.equal(await g.room("return r.hard.credit.pay;"), 'cash', 'no card, no card payments');
+    await g.room("r.scene.pause(); r.scene.launch('Bank', { room: r, page: 'credit' });"); await wait(900);
+    await g.ev(`${S('Bank')}.apply('starter', '')`);
+    await g.ev(`${S('Bank')}.apply('platinum', 'needs a score of 740')`);                       // refused: the reason is passed in, nothing changes
+    assert.equal(await g.room('return r.hard.credit.cards.length;'), 1, 'one card, the platinum was refused');
+    await g.ev(`(c => { c.scene.resume('Room'); c.scene.stop(); })(${S('Bank')})`);
+    await g.room('r.togglePay();');
+    const before = await g.room('return { wallet: r.wallet, power: r.cash };');
+    assert.equal(before.power, before.wallet + 3000, 'the card adds its limit to what you can spend');
+    await g.room('r.cash -= 500;');
+    assert.deepEqual(await g.room('return [r.wallet, r.hard.credit.cards[0].balance];'), [before.wallet, 500], 'a purchase goes on the card first');
+    await g.room("r.hard.credit.pay = 'cash';");
+    const listed = await g.room("return r.city.map((b, i) => b && b.forSale ? i : -1).filter(i => i >= 0);");
+    await g.room('r.openCityMap();'); await wait(900);
+    const w0 = await g.room('return r.wallet;');
+    assert.equal(await g.ev(`${S('Hub')}.buyListed(${listed[0]}, 'mortgage')`), true, 'a mortgage on a house');
+    const m = await g.room(`return { loans: r.hard.loans.length, owned: r.city[${listed[0]}].owned, spent: ${w0} - r.wallet, loan: r.hard.loans[0] };`);
+    assert.equal(m.loans, 1); assert.equal(m.owned, true);
+    assert.ok(m.spent > 0 && m.spent < m.loan.balance, 'a down payment, not the whole price');
+    await g.ev(`(h => h.close())(${S('Hub')})`); await wait(700);
+    await g.room("const d = r.hard.credit.next; r.daily(d);");
+    assert.ok(await g.room("return r.hard.bills.some(b => b.kind === 'mortgage') && r.hard.bills.some(b => b.kind === 'card');"), 'statements: a mortgage payment and the card minimum');
+    const s0 = await g.room('return r.hard.credit.score;');
+    await g.room("for (let i = 0; i < 3; i++) { const d = r.hard.credit.next + i * 28 - 28; r.daily(d + 11); if (i < 2) r.daily(r.hard.credit.next); }");
+    const fc = await g.room(`return { loans: r.hard.loans.length, owned: Boolean(r.city[${listed[0]}].owned), sale: r.city[${listed[0]}].forSale > 0, score: r.hard.credit.score };`);
+    assert.equal(fc.loans, 0, 'the loan is gone'); assert.equal(fc.owned, false, 'the bank took the house'); assert.equal(fc.sale, true, 'and it is for sale again');
+    assert.ok(fc.score < s0 - 100, 'and your score paid for it');
+    await g.room(`r.wallet = ${keep.wallet}; r.hard.home = ${JSON.stringify(keep.home)}; r.hard.debt = ${keep.debt}; r.hard.credit = ${JSON.stringify(keep.cr)}; r.hard.bills = ${JSON.stringify(keep.bills)}; r.hard.loans = []; r.city.forEach(b => { if (b && b.owned && b.name !== 'Flat') delete b.owned; }); r.updateNav();`);
   });
 
   await step('back to kid mode needs the PIN; the kid world is just as it was, and the adult game is kept', async () => {

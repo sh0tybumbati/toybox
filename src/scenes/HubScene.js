@@ -5,7 +5,8 @@ import { W, H } from '../config.js';
 import { CARD, COLORS, TEXT, iconButton, inkButton, inkChip, inkPanel, richText } from '../ui.js';
 import { spriteImage } from '../systems/itemTextures.js';
 import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, isHouse, newBuilding } from '../data/buildings.js';
-import { buildOnLot, buyHouse, editRights, lotPrice, shortMoney, whyNotBuyHouse, whyNotBuyLot } from '../systems/hard/property.js';
+import { acquireHouse, acquireLot, editRights, lotPrice, shortMoney, whyNotBuyLot } from '../systems/hard/property.js';
+import { mortgageOffer, takeMortgage } from '../systems/hard/credit.js';
 import { paintBuildingMini } from '../data/exterior.js';
 import { INK, blob, inkFill, inkStroke, smoothPath } from '../data/ink.js';
 import { MAP_COLORS, paintPlot, paintScenery, paintSign, paintTerrain } from '../data/mapart.js';
@@ -132,8 +133,7 @@ export default class HubScene extends Phaser.Scene {
     const rights = hard ? editRights(b, this.room.hard.home, slot) : (house ? 'full' : '');
     const acts = [{ text: '🚪 Visit', fill: COLORS.green, tap: () => this.visit(slot) }];
     if (hard && b.forSale) {
-      const why = whyNotBuyHouse(this.room.city, slot, this.room.cash);
-      acts.push({ text: `🏷 Buy for ${shortMoney(b.forSale)}`, fill: why ? COLORS.grey : COLORS.gold, tap: () => (why ? this.nope(why) : this.buy(slot)) });
+      acts.push({ text: `🏷 Buy for ${shortMoney(b.forSale)}`, fill: COLORS.gold, tap: () => this.openFinance(slot, b.forSale, this.houseMaker(slot)) });
     }
     if (hard && b.owned && house && !(this.room.hard.home && this.room.hard.home.slot === slot)) acts.push({ text: '🔑 Move in', fill: COLORS.blue, tap: () => { this.room.moveIn(slot); this.closePopup(); floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, 'Home!', 28); } });
     if (rights === 'full') acts.push({ text: '🔨 Build & decorate', fill: COLORS.orange, tap: () => { this.closePopup(); this.openBuilder(slot); } });
@@ -170,8 +170,8 @@ export default class HubScene extends Phaser.Scene {
       add(this.add.text(x, y - 108, bp.name, { fontSize: '24px', fontStyle: 'bold', color: TEXT }).setOrigin(0.5).setDepth(500));
       const rooms = bp.floors.reduce((n, f) => n + f.rooms.length, 0);
       add(this.add.text(x, y + 38, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}, ${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '17px', color: TEXT }).setOrigin(0.5).setDepth(500));
-      const why = hard ? whyNotBuyLot(this.room.city, slot, key, this.room.cash) : whyNotBuild(this.room.city, slot, key, this.room.coins);
-      const buy = this.button(add, x, y + 88, hard ? shortMoney(lotPrice(key)) : 'Free', why ? COLORS.grey : COLORS.green, () => this.build(slot, key), 150);
+      const why = hard ? whyNotBuyLot(this.room.city, slot, key, Infinity) : whyNotBuild(this.room.city, slot, key, this.room.coins);
+      const buy = this.button(add, x, y + 88, hard ? shortMoney(lotPrice(key)) : 'Free', why ? COLORS.grey : COLORS.green, () => (hard ? this.openFinance(slot, lotPrice(key), () => acquireLot(this.room.city, slot, key)) : this.build(slot, key)), 150);
       buy.y = y + 92;
       if (why) buy.setAlpha(0.7);
     });
@@ -190,34 +190,52 @@ export default class HubScene extends Phaser.Scene {
   }
 
   build(slot, key) {
-    const hard = Boolean(this.room.hard);
-    if (hard) {
-      const r = buildOnLot(this.room.city, slot, key, this.room.cash), why = r ? '' : whyNotBuyLot(this.room.city, slot, key, this.room.cash);
-      if (!r) { this.nope(why === 'lot is taken' ? why : `Need ${why}`); return; }
-      this.room.cash = r.cash;
-    } else {
-      const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
-      if (why) { this.nope(why === 'lot is taken' ? why : `Need ${why}`); return; }
-      this.room.coins -= BLUEPRINTS[key].cost;
-      this.room.city[slot] = newBuilding(key);
-    }
+    const why = whyNotBuild(this.room.city, slot, key, this.room.coins);
+    if (why) { this.nope(why === 'lot is taken' ? why : `Need ${why}`); return; }
+    this.room.coins -= BLUEPRINTS[key].cost;
+    this.room.city[slot] = newBuilding(key);
+    this.finishBuild(slot, '🏗️ Built!');
+  }
+
+  finishBuild(slot, words) {
     this.room.tipEvent('build');
     this.room.sfx.fanfare();
     this.room.dirty = true;
     this.refreshCoins();
     this.closePopup();
     this.drawLots();
-    floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, '🏗️ Built!', 30);
+    floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, words, 30);
   }
 
-  // Buy a house that is for sale (adult mode).
-  buy(slot) {
-    const r = buyHouse(this.room.city, slot, this.room.cash);
-    if (!r) { this.nope('Not enough cash'); return; }
-    this.room.cash = r.cash;
-    this.room.sfx.fanfare(); this.room.dirty = true;
-    this.refreshCoins(); this.closePopup(); this.drawLots();
-    floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, '🔑 Yours!', 30);
+  // How will you pay? Outright from your pocket, or a mortgage: a down payment now and a payment every month.
+  openFinance(slot, price, make) {
+    const r = this.room, h = r.hard, offer = mortgageOffer(h, price), cash = r.wallet;
+    const add = this.openPopup(`Pay ${shortMoney(price)}`, 560, 360);
+    add(this.add.text(W / 2, H / 2 - 110, `Cash on you: ${shortMoney(cash)}`, { fontSize: '16px', color: '#7a6a58' }).setOrigin(0.5).setDepth(500));
+    this.button(add, W / 2, H / 2 - 62, `Pay in full · ${shortMoney(price)}`, cash >= price ? COLORS.green : COLORS.grey, () => this.purchase(slot, price, make, 'cash'), 440);
+    add(this.add.text(W / 2, H / 2 + 10, offer.why ? `No mortgage: ${offer.why}.` : `Credit ${h.credit.score} (${offer.tier.label}): ${shortMoney(offer.down)} down, then ${shortMoney(offer.payment)} a month for ${offer.term} months at ${(offer.rate * 100).toFixed(2)}%`, { fontSize: '17px', color: TEXT, align: 'center', wordWrap: { width: 500 } }).setOrigin(0.5).setDepth(500));
+    this.button(add, W / 2, H / 2 + 76, offer.why ? 'Mortgage unavailable' : `Mortgage · ${shortMoney(offer.down)} down`, !offer.why && cash >= offer.down ? COLORS.gold : COLORS.grey, () => this.purchase(slot, price, make, 'mortgage'), 440);
+    this.button(add, W / 2, H / 2 + 138, 'Back', COLORS.grey, () => this.closePopup(), 200);
+  }
+
+  houseMaker(slot) { return () => acquireHouse(this.room.city, slot); }
+
+  // Buy the house for sale at `slot`, 'cash' or 'mortgage' (what the buttons do).
+  buyListed(slot, how) { return this.purchase(slot, this.room.city[slot].forSale, this.houseMaker(slot), how); }
+
+  // Pay for a property ('cash' in full, or a 'mortgage'); `make` hands it over. Returns whether it went through.
+  purchase(slot, price, make, how) {
+    const r = this.room, h = r.hard, cash = r.wallet;
+    if (how === 'cash') {
+      if (cash < price) { this.nope(`${shortMoney(price - cash)} more cash`); return false; }
+      r.wallet -= price; make(); this.finishBuild(slot, '🔑 Yours!');
+      return true;
+    }
+    const offer = mortgageOffer(h, price);
+    if (offer.why) { this.nope(offer.why); return false; }
+    if (cash < offer.down) { this.nope(`${shortMoney(offer.down - cash)} more for the down payment`); return false; }
+    r.wallet -= offer.down; make(); takeMortgage(h, slot, price, offer); this.finishBuild(slot, '🔑 Mortgaged!');
+    return true;
   }
 
   // --- leaving ----------------------------------------------------------------------------

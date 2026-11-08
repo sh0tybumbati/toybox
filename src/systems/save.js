@@ -45,6 +45,7 @@ import { cleanHabits } from './hard/habit.js';
 import { cleanShop } from './hard/stock.js';
 import { LARDER_CAP, PACK_MAX } from '../data/hard/food.js';
 import { cleanPacks } from './hard/pack.js';
+import { cleanCredit, cleanLoans } from './hard/credit.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
 import { cleanParcels } from './mail.js';
 import { furnType } from './ikea.js';
@@ -169,6 +170,8 @@ export function sanitizeHard(raw) {
     lockedOut: Number.isInteger(raw.lockedOut) && raw.lockedOut >= 0 && raw.lockedOut < 12 ? raw.lockedOut : null,       // the lot you were evicted from
     larder: cleanFood(raw.larder, LARDER_CAP),                // the household's fridge and pantry
     bags: Object.fromEntries(Object.entries(raw.bags && typeof raw.bags === 'object' ? raw.bags : {}).slice(0, MAX_PARTY).map(([id, b]) => [String(id).slice(0, 20), cleanFood(b, PACK_MAX)])),
+    credit: cleanCredit(raw.credit, cleanClock(raw.clock).day),     // score, cards and how you pay
+    loans: cleanLoans(raw.loans),                             // mortgages
     packs: cleanPacks(raw.packs),                             // each person's bag (none = pockets)
     shops: Object.fromEntries(Object.entries(raw.shops && typeof raw.shops === 'object' ? raw.shops : {}).filter(([k]) => /^\d{1,2}$/.test(k)).slice(0, 12).map(([k, v]) => [k, cleanShop(v, SHOP_ITEMS)])),
   };

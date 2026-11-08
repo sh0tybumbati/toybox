@@ -4,8 +4,22 @@ import { W, H } from '../../config.js';
 import { CARD, COLORS, TEXT, inkButton, inkPanel } from '../../ui.js';
 import { billLabel } from '../../data/hard/housing.js';
 import { overdue, pay, totalDue } from '../../systems/hard/bills.js';
+import { settle } from '../../systems/hard/credit.js';
 import { dayName } from '../../systems/hard/clock.js';
 import { backdrop, leave, text } from './overlay.js';
+
+const CREDIT_KINDS = ['card', 'mortgage', 'debt'];
+// Pay all (or the given) bills: rent and the like with whatever you pay with (cash or card), the bank's own bills with cash only. Returns whether anything was paid.
+export function payBillsFrom(room, ids) {
+  const h = room.hard, day = room.clock.day, isBank = b => CREDIT_KINDS.includes(b.kind);
+  const a = pay(h.bills.filter(isBank), room.wallet, ids), rest = pay(h.bills.filter(b => !isBank(b)), room.cash, ids);
+  if (!a.paid && !rest.paid) return false;
+  room.wallet = a.cash; room.cash = rest.cash;
+  h.bills = [...a.bills, ...rest.bills];
+  settle(h, [...a.gone, ...rest.gone], day);
+  room.updateNav(); room.dirty = true;
+  return true;
+}
 
 // The bill rows, drawn into any scene (the mail, the post office counter, the computer, the phone). `ctx` = { room, canPay, keep, rebuild }.
 export function renderBills(scene, { room, canPay, keep, rebuild, top = 214, totalY = 484 }) {
@@ -13,10 +27,8 @@ export function renderBills(scene, { room, canPay, keep, rebuild, top = 214, tot
   const bills = [...h.bills].sort((a, b) => a.due - b.due);
   keep(text(scene, W / 2, top - 46, h.home ? `Cash on you: $${room.cash.toLocaleString('en-US')}` : 'You have nowhere to live, so nothing comes in the post.', 20, { color: '#7a6a58' }).setOrigin(0.5));
   const payBills = ids => {
-    const r = pay(room.hard.bills, room.cash, ids);
-    if (!r.paid) { room.sfx.nope(); return; }
-    room.hard.bills = r.bills; room.cash = r.cash;
-    room.updateNav(); room.dirty = true; room.sfx.coin();
+    if (!payBillsFrom(room, ids)) { room.sfx.nope(); return; }
+    room.sfx.coin();
     rebuild();
   };
   bills.slice(0, 6).forEach((b, i) => {
@@ -25,7 +37,7 @@ export function renderBills(scene, { room, canPay, keep, rebuild, top = 214, tot
     keep(text(scene, 192, y - 12, `${billLabel(b.kind, tier)}`, 22, { fontStyle: 'bold' }).setDepth(5));
     keep(text(scene, 440, y - 11, `due ${dayName({ day: b.due })}${late ? ' · LATE' : ''}`, 19, { color: late ? '#b0584e' : '#7a6a58' }).setDepth(5));
     keep(text(scene, 560, y - 12, `$${b.amount.toLocaleString('en-US')}`, 22, { fontStyle: 'bold' }).setDepth(5));
-    if (canPay) keep(inkButton(scene, 770, y, 'Pay', { w: 80, h: 34, size: 19, fill: room.cash >= b.amount ? COLORS.green : COLORS.grey, depth: 6, seed: 100 + i, onTap: () => payBills([b.id]) }));
+    if (canPay) keep(inkButton(scene, 770, y, 'Pay', { w: 80, h: 34, size: 19, fill: (CREDIT_KINDS.includes(b.kind) ? room.wallet : room.cash) >= b.amount ? COLORS.green : COLORS.grey, depth: 6, seed: 100 + i, onTap: () => payBills([b.id]) }));
   });
   if (!bills.length) keep(text(scene, W / 2, top + 76, h.home ? 'No bills. Nothing owed.' : '', 24).setOrigin(0.5));
   const total = totalDue(bills), late = overdue(bills, day).length;
@@ -48,18 +60,16 @@ export default class BillsScene extends Phaser.Scene {
 
   close() { this.room.billsClosed(); leave(this); }
 
+  // Pay all (or the given) bills.
+  payBills(ids) {
+    if (!payBillsFrom(this.room, ids)) { this.room.sfx.nope(); return; }
+    this.room.sfx.coin();
+    this.build();
+  }
+
   build() {
     this.dyn.forEach(o => o.destroy());
     this.dyn = [];
     renderBills(this, { room: this.room, canPay: this.canPay, keep: o => { this.dyn.push(o); return o; }, rebuild: () => this.build() });
-  }
-
-  // Pay all (or the given) bills with the cash on you.
-  payBills(ids) {
-    const r = pay(this.room.hard.bills, this.room.cash, ids);
-    if (!r.paid) { this.room.sfx.nope(); return; }
-    this.room.hard.bills = r.bills; this.room.cash = r.cash;
-    this.room.updateNav(); this.room.dirty = true; this.room.sfx.coin();
-    this.build();
   }
 }

@@ -20,6 +20,8 @@ import { deliverIfDue, inStock, newShop, totalStock } from '../../systems/hard/s
 import { SHOP_ITEMS } from '../../systems/save.js';
 import { SHELF_STEP } from '../../config.js';
 import { HOUSING } from '../../data/hard/housing.js';
+import { creditDaily, foreclose, onLate, activeCard } from '../../systems/hard/credit.js';
+import { SALE_RATE, SCORE_EVENTS } from '../../data/hard/credit.js';
 import { newHome, overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
 import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
 import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
@@ -63,7 +65,7 @@ export const hardMethods = {
 
   // What goes into the save.
   hardSave() {
-    return { ...this.hard, cash: this.cash, clock: { day: this.clock.day, minute: this.clock.minute }, needs: Object.fromEntries(this.characters.map(c => [c.id, { ...c.needs }])), bags: Object.fromEntries(this.characters.map(c => [c.id, c.bag])) };
+    return { ...this.hard, cash: this.wallet, clock: { day: this.clock.day, minute: this.clock.minute }, needs: Object.fromEntries(this.characters.map(c => [c.id, { ...c.needs }])), bags: Object.fromEntries(this.characters.map(c => [c.id, c.bag])) };
   },
 
   // --- every frame -----------------------------------------------------------------------------
@@ -98,9 +100,13 @@ export const hardMethods = {
   daily(day) {
     for (const e of tickBills(this.hard, day)) {
       if (e.type === 'issued') this.notice('📬 Bills have come in the mail');
-      if (e.type === 'late') this.notice('⚠️ A bill is late: 10% added');
-      if (e.type === 'evicted') { this.notice('🔒 Evicted! The locks have been changed'); this.sfx.nope(); }
+      if (e.type === 'late') {
+        this.notice('⚠️ A bill is late: 10% added');
+        for (const f of onLate(this.hard, e.bill)) if (f.type === 'foreclose') this.repossess(f.loan);
+      }
+      if (e.type === 'evicted') { this.hard.credit.score = Math.max(300, this.hard.credit.score + SCORE_EVENTS.evicted); this.notice('🔒 Evicted! The locks have been changed'); this.sfx.nope(); }
     }
+    for (const e of creditDaily(this.hard, day)) if (e.type === 'statement') this.notice('🏦 The bank has sent statements');
     this.hard.heat = decayHeat(this.hard.heat, 1);                       // attention fades
     const sky = weatherAt(day, 600).kind;
     this.hard.power = (this.hard.power || 0) + powerToday(this.hard.beds, POWER_DAY);          // grow lamps run up the power bill
@@ -157,6 +163,7 @@ export const hardMethods = {
   serveSentence(days, fine) {
     const h = this.hard;
     this.serving = true;
+    if (!h.record) h.credit.score = Math.max(300, h.credit.score + SCORE_EVENTS.arrested);
     h.record = true; h.gig = null;
     this.cash -= Math.min(this.cash, fine); h.debt += Math.max(0, fine - this.cash);
     for (let i = 0; i < days; i++) { this.clock.day += 1; this.lastDay = this.clock.day; this.daily(this.clock.day); }
@@ -283,6 +290,23 @@ export const hardMethods = {
     this.queueDirty = true;
   },
 
+  // The bank takes a house after missed payments: it goes back on the market, what it sold for pays the loan, the rest is debt or yours.
+  repossess(loan) {
+    const h = this.hard, r = foreclose(h, loan), b = this.city[r.slot];
+    if (b) { delete b.owned; b.forSale = Math.round(loan.value / SALE_RATE); }
+    this.wallet += r.surplus; h.debt += r.shortfall;
+    if (h.home && h.home.slot === r.slot) { h.home = null; h.lockedOut = r.slot; h.bills = h.bills.filter(x => !['rent', 'utilities'].includes(x.kind)); }
+    this.sfx.nope(); this.notice('🏦 The bank has taken a house'); this.dirty = true;
+  },
+
+  // Tap your money: pay with cash or with your card.
+  togglePay() {
+    const cr = this.hard.credit;
+    if (!cr.cards.length) { this.notice('You need a card: ask at the bank'); this.sfx.nope(); return; }
+    cr.pay = cr.pay === 'card' ? 'cash' : 'card';
+    this.updateNav(); this.sfx.click(); this.dirty = true;
+  },
+
   // Move into a house you own: no rent, only the power and water. The old place is given up (what was owed on it becomes debt).
   moveIn(slot) {
     const h = this.hard;
@@ -367,9 +391,9 @@ export const hardMethods = {
     c.roughAcc = (c.roughAcc || 0) + mins;
     while (c.roughAcc >= 60 && c.rough) {
       c.roughAcc -= 60;
-      for (const e of roughHour({ hour: hourOf(this.clock), cash: this.cash, publicPlace: this.isOutdoors(c), toggles: this.hard.setup.toggles })) {
+      for (const e of roughHour({ hour: hourOf(this.clock), cash: this.wallet, publicPlace: this.isOutdoors(c), toggles: this.hard.setup.toggles })) {
         if (e.type === 'moveOn') { this.stopRough(c); apply(c.needs, { mood: -8 }); floatText(this, c.x, c.headTopY() - 30, '👮 "Move along."', 24); this.cancelCurrent(c); }
-        if (e.type === 'theft') { this.cash = Math.max(0, this.cash - e.amount); const lost = e.phone && this.hard.phone; if (lost) this.hard.phone = false; this.updateNav(); floatText(this, c.x, c.headTopY() - 30, `Robbed! −$${e.amount}${lost ? ' and your phone' : ''}`, 24); apply(c.needs, { mood: -10 }); }
+        if (e.type === 'theft') { this.wallet = Math.max(0, this.wallet - e.amount); const lost = e.phone && this.hard.phone; if (lost) this.hard.phone = false; this.updateNav(); floatText(this, c.x, c.headTopY() - 30, `Robbed! −$${e.amount}${lost ? ' and your phone' : ''}`, 24); apply(c.needs, { mood: -10 }); }
       }
     }
   },
@@ -711,6 +735,7 @@ export const hardMethods = {
     this.nameText = add(this.add.text(X + 78, Y + 12, '', { fontSize: '25px', color: TEXT, fontStyle: 'bold' }).setDepth(D));
     this.moodPill = null; this.moodShown = '';
     this.coinText = add(inkChip(this, X + CW - 70, Y + 34, '', { size: 21, depth: D, h: 38, fill: PAPER, seed: 63 }));
+    this.coinText.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.togglePay());
     add(this.add.graphics().setDepth(D - 1)).lineStyle(2, 0xcdbfa6, 1).beginPath().moveTo(X + 16, Y + 76).lineTo(X + CW - 16, Y + 76).strokePath();
     // the five needs: a drawn icon over a little meter
     this.needsGfx = add(this.add.graphics().setDepth(D));

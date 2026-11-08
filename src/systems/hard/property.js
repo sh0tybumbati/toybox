@@ -27,11 +27,17 @@ export function whyNotBuyHouse(city, slot, cash) {
   return cash < b.forSale ? `${money(b.forSale - cash)} more` : '';
 }
 
-// Buy a house that is for sale. Returns { cash, price } or null.
-export function buyHouse(city, slot, cash) {
-  if (whyNotBuyHouse(city, slot, cash)) return null;
+// The house at `slot` becomes yours (the caller takes the payment or the mortgage). Returns its price.
+export function acquireHouse(city, slot) {
   const b = city[slot], price = b.forSale;
   delete b.forSale; b.owned = true; b.house = true;
+  return price;
+}
+
+// Buy a house that is for sale, paying outright. Returns { cash, price } or null.
+export function buyHouse(city, slot, cash) {
+  if (whyNotBuyHouse(city, slot, cash)) return null;
+  const price = acquireHouse(city, slot);
   return { cash: cash - price, price };
 }
 
@@ -42,12 +48,17 @@ export function whyNotBuyLot(city, slot, key, cash) {
   return cash < lotPrice(key) ? `${money(lotPrice(key) - cash)} more` : '';
 }
 
-// Buy an empty lot and have a house built on it. Returns { cash, price } or null.
-export function buildOnLot(city, slot, key, cash) {
-  if (whyNotBuyLot(city, slot, key, cash)) return null;
+// A lot bought and built on (the caller takes the payment or the mortgage). Returns its price.
+export function acquireLot(city, slot, key) {
   city[slot] = readyHouse({ ...newBuilding(key), owned: true, house: true });
   delete city[slot].cost; delete city[slot].unique;
-  return { cash: cash - lotPrice(key), price: lotPrice(key) };
+  return lotPrice(key);
+}
+
+// Buy an empty lot and have a house built on it, paying outright. Returns { cash, price } or null.
+export function buildOnLot(city, slot, key, cash) {
+  if (whyNotBuyLot(city, slot, key, cash)) return null;
+  return { cash: cash - acquireLot(city, slot, key), price: lotPrice(key) };
 }
 
 // What you may do to a building in hard mode: 'full' (rebuild, repaint and arrange), 'furniture' (arrange your own things in the home you rent) or '' (nothing).
