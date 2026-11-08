@@ -464,6 +464,26 @@ export const PROP_TYPES = {
       g.fillStyle(0x6b7482, 1).fillCircle(-46, 46, 6).fillCircle(46, 46, 6);
     },
   },
+  firebarrel: {
+    name: 'Fire Barrel', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['warm'], w: 80, h: 110, blurb: 'Warm your hands',
+    draw(g) {
+      g.fillStyle(0x6b5648, 1).fillRoundedRect(-28, -6, 56, 60, 8);                           // the barrel
+      g.fillStyle(0x4a3a30, 1).fillRect(-28, 8, 56, 5).fillRect(-28, 30, 56, 5);
+      g.fillStyle(0xf0902f, 1).fillTriangle(-20, -6, 0, -50, 20, -6);                          // flames
+      g.fillStyle(0xf7d24a, 1).fillTriangle(-10, -6, 4, -32, 12, -6);
+      g.fillStyle(0xffe27a, 0.3).fillCircle(0, -20, 50);
+    },
+  },
+  dealer: {
+    name: 'The Contact', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['deal'], hours: [[18, 24], [0, 5]], w: 90, h: 170, blurb: 'Only after dark',
+    draw(g) {
+      g.fillStyle(0x3a3440, 1).fillRoundedRect(-30, -50, 60, 100, 22);                         // a hooded coat
+      g.fillStyle(0x2c2733, 1).fillPoints([{ x: -26, y: -42 }, { x: 0, y: -84 }, { x: 26, y: -42 }, { x: 14, y: -26 }, { x: -14, y: -26 }], true);   // the hood
+      g.fillStyle(0x15121a, 1).fillEllipse(0, -46, 30, 24);                                    // a face in shadow
+      g.fillStyle(0xf5c14a, 1).fillCircle(-6, -48, 2.5).fillCircle(6, -48, 2.5);               // two eyes
+      g.fillStyle(0x2c2733, 1).fillRoundedRect(-24, 48, 18, 34, 6).fillRoundedRect(6, 48, 18, 34, 6);
+    },
+  },
   mailbox: {
     name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', hardActions: ['mail'], w: 84, h: 136,
     draw(g, flag) {

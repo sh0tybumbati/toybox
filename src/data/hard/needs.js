@@ -38,6 +38,8 @@ export const ACTIONS = {
   mail:  { label: 'Check mail', icon: '📬', minutes: 3 },
   pay:   { label: 'Pay bills', icon: '💵', minutes: 5 },
   rent:  { label: 'Rent a room', icon: '🔑', minutes: 5 },
+  deal:  { label: 'Talk to the contact', icon: '🕶️', minutes: 5 },
+  warm:  { label: 'Warm up', icon: '🔥', minutes: 30, perMin: { warmth: 1.6, mood: 0.1 } },
   use:   { label: 'Use computer', icon: '💻', minutes: 10 },
   news:  { label: 'Buy a paper ($80)', icon: '📰', minutes: 5 },
   buyphone: { label: 'Buy a phone ($3500)', icon: '📱', minutes: 5 },

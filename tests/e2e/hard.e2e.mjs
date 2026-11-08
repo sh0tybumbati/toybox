@@ -174,6 +174,35 @@ try {
     await g.room('r.hard.autonomy = true;');
   });
 
+  await step('the back alley: the contact sells only after dark (a burner phone, hot food) and it draws heat; a fire barrel warms you', async () => {
+    await g.room("r.hard.autonomy = false; r.setSpeed(1); r.characters.forEach(c => { r.cancelCurrent(c); c.queue = []; }); r.hard.phone = false; r.hard.heat = 0; r.hard.deals = null; r.cash = 5000; r.clock.day = 20; r.clock.minute = 12 * 60;");
+    const slot = await g.room("return r.city.findIndex(b => b && b.name === 'Back Alley');");
+    assert.ok(slot >= 0, 'there is a back alley on the map');
+    await g.room(`r.goToZone('${slot}.0');`);
+    await wait(2200);
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'dealer'), f = r.frontOf(d); window.__dealer = d; c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'deal', d); r.passTime(10);");
+    assert.ok(!(await active('Deal')), 'the contact is not there at noon');
+    await g.room("r.clock.minute = 22 * 60; r.queueAction(r.characters[0], 'deal', window.__dealer); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Deal'), 'but at 22:00 he is');
+    // buy the burner phone and the first hot food through the scene
+    await g.room("window.__heat0 = r.hard.heat;");
+    await g.ev(`(s => { s.buy({ id: 'burner', price: 1800, heat: 2 }); })(${S('Deal')})`);
+    assert.equal(await g.room('return r.hard.phone;'), true, 'a burner phone');
+    assert.equal(await g.room('return r.cash;'), 3200);
+    await g.ev(`(s => { s.buy({ id: 'bread', food: 'bread', price: 30, heat: 4, stock: 3 }); })(${S('Deal')})`);
+    assert.deepEqual(await g.room('return [r.characters[0].bag.map(f => f.k).join(), r.cash, r.hard.heat];'), ['bread', 3170, 6], 'hot bread in the bag and the heat is up');
+    await g.ev(`${S('Deal')}.close()`);
+    await wait(400);
+    // the fire barrel
+    await g.room("const c = r.characters[0], b = r.props.find(p => p.type === 'firebarrel'), f = r.frontOf(b); c.x = f.x; c.lane = f.lane; c.goal = null; c.needs.warmth = 10; r.clock.day = 100; r.queueAction(c, 'warm', b); r.passTime(40);");
+    assert.ok(await g.room('return r.characters[0].needs.warmth > 40;'), 'warm by the fire even on a winter night');
+    // and the heat fades by itself
+    await g.room('r.hard.heat = 20; r.clock.day = 120; r.passTime(5);');
+    assert.ok(await g.room('return r.hard.heat < 20;'), 'attention fades with the days');
+    await g.room('r.hard.autonomy = true;');
+  });
+
   await step('night follows the clock and the kid tips are off', async () => {
     await g.room('r.clock.minute = 21 * 60;');
     await wait(1200);

@@ -119,6 +119,9 @@ export function sanitizeHard(raw) {
     clock: cleanClock(raw.clock),
     needs: Object.fromEntries(Object.entries(raw.needs && typeof raw.needs === 'object' ? raw.needs : {}).slice(0, MAX_PARTY).map(([id, n]) => [String(id).slice(0, 20), cleanNeeds(n)])),
     autonomy: raw.autonomy !== false,                         // people act on their own needs when idle
+    deals: raw.deals && Number.isFinite(raw.deals.day) && raw.deals.counts && typeof raw.deals.counts === 'object'
+      ? { day: Math.floor(raw.deals.day), counts: Object.fromEntries(Object.entries(raw.deals.counts).slice(0, 10).filter(([, n]) => Number.isFinite(n)).map(([k, n]) => [String(k).slice(0, 12), clamp(Math.floor(n), 0, 99)])) } : null,       // what the contact has sold today
+    heat: ok(raw.heat) ? clamp(Math.floor(raw.heat), 0, 100) : 0,       // attention you have drawn (fades daily)
     gig: cleanGig(raw.gig),                                   // the day-labour job you have been given (null = none)
     phone: Boolean(raw.phone),                                // you have a phone (it can be stolen)
     home: cleanHome(raw.home),                                // where you live (null = nowhere)

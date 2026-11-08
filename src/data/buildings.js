@@ -33,6 +33,11 @@ export const BLUEPRINTS = {
     exterior: { wall: 'butter', trim: 'berry', roofStyle: 'flat', roofColor: 'terracotta' },
     floors: [{ id: 0, rooms: [room(0, 'motel')] }],
   },
+  alley: {                                    // hard mode only: where things are bought without questions
+    name: 'Back Alley', cost: null, unique: true,
+    exterior: { wall: 'grey', trim: 'black', roofStyle: 'none', roofColor: 'slate' },
+    floors: [{ id: 0, rooms: [room(0, 'alley')] }],
+  },
   shelter: {                                  // hard mode only: a night shelter
     name: 'Shelter', cost: null, unique: true,
     exterior: { wall: 'blush', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },

@@ -153,6 +153,30 @@ export function paintOutdoor(g, kind) {
   }
 }
 
+// A back alley: tall dark brick walls, a fire escape, a drain pipe, wet asphalt and a flickering lamp.
+export function paintAlley(g) {
+  g.fillStyle(0x5d5057, 1).fillRect(0, 0, W, WALL_H);
+  for (let row = 0; row * 26 < WALL_H; row++) {                                          // bricks: courses of wobbly lines
+    const y = row * 26;
+    inkLine(g, { x: 0, y }, { x: W, y }, { w: 1.6, seed: 200 + row, amp: 1, heavy: 0, color: 0x453a40 });
+    for (let x = (row % 2) * 30; x < W; x += 60) inkLine(g, { x, y }, { x: x + 1, y: y + 26 }, { w: 1.4, seed: 300 + row * 20 + x, amp: 0.8, heavy: 0, color: 0x453a40 });
+  }
+  const pen = new InkPen(g, 91);
+  pen.fillStyle(0x3b3b44, 1).fillRect(110, -4, 18, WALL_H + 4);                          // a drain pipe
+  for (const y of [60, 200, 330]) pen.fillStyle(0x2f2f38, 1).fillRect(104, y, 30, 8);
+  pen.fillStyle(0x2f2f38, 1).fillRect(690, 90, 190, 10).fillRect(690, 190, 190, 10);       // the fire escape: landings and stairs
+  inkLine(g, { x: 700, y: 100 }, { x: 860, y: 190 }, { w: 6, seed: 92, amp: 1.5, heavy: 0, color: 0x2f2f38 });
+  inkLine(g, { x: 700, y: 200 }, { x: 860, y: 290 }, { w: 6, seed: 93, amp: 1.5, heavy: 0, color: 0x2f2f38 });
+  for (const x of [700, 760, 820, 880]) inkLine(g, { x, y: 100 }, { x, y: 60 }, { w: 3, seed: x, amp: 1, heavy: 0, color: 0x2f2f38 });
+  inkStroke(g, [{ x: 420, y: 150 }, { x: 470, y: 110 }, { x: 520, y: 170 }, { x: 560, y: 120 }, { x: 600, y: 180 }], { w: 6, heavy: 0, color: 0xe5685c });      // a scrawled tag
+  g.fillStyle(0x4b4a56, 1).fillRect(0, WALL_H, W, H - WALL_H);                           // wet asphalt
+  inkLine(g, { x: 0, y: WALL_H }, { x: W, y: WALL_H }, { w: 4.5, seed: 8, amp: 3, heavy: 1 });
+  for (const [x, y, rx] of [[240, 520, 70], [560, 560, 90], [820, 505, 56]]) g.fillStyle(0x6a7a96, 1).fillPoints(blob(x, y, rx, rx * 0.2, { n: 18, amp: 0.06, seed: x }), true);       // puddles
+  inkStroke(g, [{ x: 360, y: 470 }, { x: 392, y: 500 }, { x: 380, y: 540 }], { w: 2, heavy: 0, color: 0x35343e });                                                 // a crack
+  pen.fillStyle(0x2f2f38, 1).fillRect(40, 110, 8, 300).fillRoundedRect(20, 100, 52, 22, 6);            // a lamp post by the corner
+  g.fillStyle(0xffe27a, 0.35).fillCircle(46, 122, 54);
+}
+
 // The look a room starts with, as plain data (saves store only what differs from it).
 export const defaultLook = (type, w = W) => ({
   wall: type.style ? type.style.wall : null,

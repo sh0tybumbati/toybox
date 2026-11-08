@@ -192,7 +192,8 @@ export const worldMethods = {
         this.roomGfx.push(beam);
         this.beams.push(beam);
       }
-      if (sec.index > 0) {                                              // the doorway between neighbouring rooms
+      const before = zone.sections[sec.index - 1];
+      if (sec.index > 0 && !(type.outdoor && ROOMS[before.type].outdoor)) {          // the doorway between neighbouring rooms (none in the open air)
         const door = this.add.graphics().setDepth(0.6);
         paintDivider(door, sec.offset);
         this.roomGfx.push(door);

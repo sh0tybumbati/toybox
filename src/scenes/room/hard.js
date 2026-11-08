@@ -23,6 +23,7 @@ import { overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/b
 import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
 import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
 import { SLOTS } from '../../data/buildings.js';
+import { decayHeat } from '../../systems/hard/alley.js';
 import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
@@ -88,6 +89,7 @@ export const hardMethods = {
       if (e.type === 'late') this.notice('⚠️ A bill is late: 10% added');
       if (e.type === 'evicted') { this.notice('🔒 Evicted! The locks have been changed'); this.sfx.nope(); }
     }
+    this.hard.heat = decayHeat(this.hard.heat, 1);                       // attention fades
     this.updateNav();
     this.queueDirty = true;
   },
@@ -134,7 +136,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -366,6 +368,7 @@ export const hardMethods = {
       else if (type === 'mail' || type === 'pay') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bills', { room: this, canPay: type === 'pay' }); }
       else if (type === 'rent') this.rentRoom(c, prop);
       else if (type === 'work') { c.current.waiting = true; c.current.arrived = this.totalMinutes(); const gig = this.hard.gig; if (standing(gig, c.current.arrived) === 'late') floatText(this, c.x, c.headTopY() - 40, 'You are late: pay cut', 22); this.openGame('stack', prop, { crate: gig.crate, title: gig.title }); }
+      else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'use') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'computer' }); }
       else if (type === 'news') this.buyPaper(c);
       else if (type === 'buyphone') this.buyPhone(c);
@@ -577,7 +580,7 @@ export const hardMethods = {
       if (v > 0.02) g.fillStyle(v < 0.25 ? 0xe5685c : BAR_COLORS[k], 1).fillRect(x + 2, 70, (bw - 4) * v, 12);
     });
     const st = status(c.needs), flags = [st.starving && 'starving', st.hungry && !st.starving && 'hungry', st.exhausted && 'exhausted', st.tired && !st.exhausted && 'tired', st.freezing && 'freezing', st.cold && !st.freezing && 'cold', st.dirty && 'dirty'].filter(Boolean);
-    this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}  ·  🎒${c.bag.length}/${BAG_CAP} 🧊${this.hard.larder.length}`);
+    this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}  ·  🎒${c.bag.length}/${BAG_CAP} 🧊${this.hard.larder.length}${this.hard.heat ? `  🚨${this.hard.heat}` : ''}`);
     const gig = this.hard.gig, nowT = this.totalMinutes();
     this.gigChip.setVisible(Boolean(gig) && standing(gig, nowT) !== 'gone');
     if (gig) this.gigChip.setLabel(`🧱 ${gig.title} · ${gig.siteName} by ${timeLabel({ minute: gig.due % 1440 })}${standing(gig, nowT) === 'late' ? ' · LATE' : ''}`);

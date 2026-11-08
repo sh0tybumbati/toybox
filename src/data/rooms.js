@@ -9,7 +9,7 @@
 //   fixed `decor(g)` art, so players can repaint them. Outdoor rooms (`outdoor: true`) paint
 //   themselves with `draw(g)`. To add a room type: add an entry here.
 import { W, H } from '../config.js';
-import { paintOutdoor } from './decor.js';
+import { paintAlley, paintOutdoor } from './decor.js';
 
 export const ROOMS = {
   kitchen: {
@@ -236,6 +236,13 @@ export const ROOMS = {
       { type: 'lightswitch', x: 890, y: 168 },
     ],
     windows: [{ x: 640, y: 60, w: 150, h: 110 }],
+  },
+  alley: {
+    label: '🧱 Back alley',
+    outdoor: true,
+    shelves: [],
+    props: [{ type: 'dumpster', x: 130, y: 540 }, { type: 'firebarrel', x: 360, y: 540 }, { type: 'dealer', x: 640, y: 540 }],
+    draw(g) { paintAlley(g); },
   },
   pond: {
     label: '🎣 Fishing pond',
