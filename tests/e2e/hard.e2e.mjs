@@ -649,6 +649,33 @@ try {
     await g.room(`r.wallet = ${keep.wallet}; r.hard.home = ${JSON.stringify(keep.home)}; r.hard.debt = ${keep.debt}; r.hard.credit = ${JSON.stringify(keep.cr)}; r.hard.bills = ${JSON.stringify(keep.bills)}; r.hard.loans = []; r.city.forEach(b => { if (b && b.owned && b.name !== 'Flat') delete b.owned; }); r.updateNav();`);
   });
 
+  await step('landlord: rent out a house you own; applicants apply, you accept one, rent comes in on rent day, a repair is asked for and paid, and notice ends the tenancy', async () => {
+    const keep = await g.room("return { wallet: r.wallet, home: r.hard.home };");
+    await g.room("r.hard.home = { slot: 0, tier: 'flat', next: 999 }; r.wallet = 100000; const b = r.city.find((x, i) => i > 6 && x && x.forSale); b.owned = true; delete b.forSale; window.__lot = r.city.indexOf(b); r.landRng = () => 0; r.goToZone('0.0');"); await wait(1200);
+    const slot = await g.room('return window.__lot;');
+    await g.room('r.openCityMap();'); await wait(900);
+    await g.ev(`(h => h.openLandlord(${slot}))(${S('Hub')})`); await wait(700);
+    assert.ok(await active('Landlord'), 'the landlord screen opens for a house you own and do not live in');
+    await g.room(`const l = r.city[${slot}].let; l.listed = true; l.deposit = 1; const d = r.clock.day; r.landlordDaily(d + 1);`);
+    assert.ok((await g.room(`return r.city[${slot}].let.applicants.length;`)) >= 1, 'someone applied');
+    const w0 = await g.room('return r.wallet;');
+    await g.ev(`(s => s.accept(0))(${S('Landlord')})`);
+    const let1 = await g.room(`const l = r.city[${slot}].let; return { tenant: Boolean(l.tenant), deposit: l.tenant && l.tenant.deposit, wallet: r.wallet, next: l.tenant && l.tenant.next };`);
+    assert.equal(let1.tenant, true); assert.equal(let1.wallet, w0 + let1.deposit, 'the deposit is yours');
+    await g.room(`r.landlordDaily(${let1.next});`);
+    assert.ok((await g.room('return r.wallet;')) > let1.wallet, 'rent day: the rent came in');
+    assert.ok((await g.room(`return r.city[${slot}].let.repairs.length;`)) >= 1, 'a repair was asked for');
+    const cash = await g.room('return r.wallet;');
+    await g.ev(`(s => s.fix(s.l.repairs[0].id))(${S('Landlord')})`);
+    assert.ok((await g.room('return r.wallet;')) < cash, 'you paid for it');
+    await g.room(`const l = r.city[${slot}].let; l.repairs = []; r.landRng = () => 0.99;`);
+    await g.room(`const l = r.city[${slot}].let; l.tenant.notice = r.clock.day + 1; r.landlordDaily(r.clock.day + 1);`);
+    assert.equal(await g.room(`return r.city[${slot}].let.tenant;`), null, 'the tenant is gone when notice runs out');
+    await g.ev(`(c => { c.close(); })(${S('Landlord')})`); await wait(400);
+    await g.ev(`(h => h.close())(${S('Hub')})`); await wait(700);
+    await g.room(`r.landRng = null; r.wallet = ${keep.wallet}; r.hard.home = ${JSON.stringify(keep.home)}; r.city.forEach(b => { if (b && b.owned && b.name !== 'Flat') { delete b.owned; delete b.let; } }); r.updateNav();`);
+  });
+
   await step('back to kid mode needs the PIN; the kid world is just as it was, and the adult game is kept', async () => {
     await g.room('r.openSettings();');
     await wait(500);

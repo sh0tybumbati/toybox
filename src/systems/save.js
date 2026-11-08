@@ -46,6 +46,7 @@ import { cleanShop } from './hard/stock.js';
 import { LARDER_CAP, PACK_MAX } from '../data/hard/food.js';
 import { cleanPacks } from './hard/pack.js';
 import { cleanCredit, cleanLoans } from './hard/credit.js';
+import { cleanLet } from './hard/landlord.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
 import { cleanParcels } from './mail.js';
 import { furnType } from './ikea.js';
@@ -293,7 +294,7 @@ export function sanitizeBuilding(b) {
       roofStyle: has(ROOF_STYLES, e.roofStyle) ? e.roofStyle : d.roofStyle, roofColor: has(ROOF_COLORS, e.roofColor) ? e.roofColor : d.roofColor,
     },
     floors,
-    ...(b.house ? { house: true } : {}), ...(b.owned ? { owned: true } : {}), ...(ok(b.forSale) && b.forSale > 0 ? { forSale: Math.min(1e8, Math.floor(b.forSale)) } : {}),
+    ...(b.house ? { house: true } : {}), ...(b.owned ? { owned: true } : {}), ...(b.owned && b.let && cleanLet(b.let) ? { let: cleanLet(b.let) } : {}), ...(ok(b.forSale) && b.forSale > 0 ? { forSale: Math.min(1e8, Math.floor(b.forSale)) } : {}),
   };
 }
 

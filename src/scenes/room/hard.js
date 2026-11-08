@@ -21,6 +21,7 @@ import { SHOP_ITEMS } from '../../systems/save.js';
 import { SHELF_STEP } from '../../config.js';
 import { HOUSING } from '../../data/hard/housing.js';
 import { creditDaily, foreclose, onLate, activeCard } from '../../systems/hard/credit.js';
+import { letDaily } from '../../systems/hard/landlord.js';
 import { SALE_RATE, SCORE_EVENTS } from '../../data/hard/credit.js';
 import { newHome, overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
 import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
@@ -107,6 +108,7 @@ export const hardMethods = {
       if (e.type === 'evicted') { this.hard.credit.score = Math.max(300, this.hard.credit.score + SCORE_EVENTS.evicted); this.notice('🔒 Evicted! The locks have been changed'); this.sfx.nope(); }
     }
     for (const e of creditDaily(this.hard, day)) if (e.type === 'statement') this.notice('🏦 The bank has sent statements');
+    this.landlordDaily(day);
     this.hard.heat = decayHeat(this.hard.heat, 1);                       // attention fades
     const sky = weatherAt(day, 600).kind;
     this.hard.power = (this.hard.power || 0) + powerToday(this.hard.beds, POWER_DAY);          // grow lamps run up the power bill
@@ -290,10 +292,31 @@ export const hardMethods = {
     this.queueDirty = true;
   },
 
+  // Your rentals: applicants turn up, rent comes in (or does not), repairs are asked for, tenants leave. One summary notice a day.
+  landlordDaily(day) {
+    const rng = this.landRng || Math.random;
+    let rent = 0, late = 0, news = [];
+    this.city.forEach((b, slot) => {
+      if (!b || !b.owned || !b.let) return;
+      for (const e of letDaily(b.let, day, rng)) {
+        if (e.type === 'rent') rent += e.amount;
+        else if (e.type === 'late') late++;
+        else if (e.type === 'applicant') news.push(`${e.name} applied for ${b.name}`);
+        else if (e.type === 'repair') news.push(`${b.name}: ${e.what.toLowerCase()}`);
+        else if (e.type === 'left') { if (e.refund) this.wallet = Math.max(0, this.wallet - e.refund); news.push(`${e.name} left ${b.name}${e.runner ? ' without a word' : ''}`); }
+        else if (e.type === 'notice') news.push(`${e.name} gave notice at ${b.name}`);
+      }
+    });
+    if (rent) { this.wallet += rent; this.sfx.coin(); this.notice(`🏘 Rent in: $${rent.toLocaleString('en-US')}`); }
+    if (late) this.notice(`🏘 ${late} tenant${late > 1 ? 's' : ''} missed the rent`);
+    if (news.length) this.notice(`🏘 ${news.slice(0, 2).join(' · ')}${news.length > 2 ? ` · +${news.length - 2} more` : ''}`);
+    if (rent || late || news.length) { this.dirty = true; this.updateNav(); }
+  },
+
   // The bank takes a house after missed payments: it goes back on the market, what it sold for pays the loan, the rest is debt or yours.
   repossess(loan) {
     const h = this.hard, r = foreclose(h, loan), b = this.city[r.slot];
-    if (b) { delete b.owned; b.forSale = Math.round(loan.value / SALE_RATE); }
+    if (b) { delete b.owned; delete b.let; b.forSale = Math.round(loan.value / SALE_RATE); }
     this.wallet += r.surplus; h.debt += r.shortfall;
     if (h.home && h.home.slot === r.slot) { h.home = null; h.lockedOut = r.slot; h.bills = h.bills.filter(x => !['rent', 'utilities'].includes(x.kind)); }
     this.sfx.nope(); this.notice('🏦 The bank has taken a house'); this.dirty = true;

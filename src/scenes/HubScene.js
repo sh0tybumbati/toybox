@@ -5,6 +5,7 @@ import { W, H } from '../config.js';
 import { CARD, COLORS, TEXT, iconButton, inkButton, inkChip, inkPanel, richText } from '../ui.js';
 import { spriteImage } from '../systems/itemTextures.js';
 import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, isHouse, newBuilding } from '../data/buildings.js';
+import { isLet, marketRent, newLet, whyNotLet } from '../systems/hard/landlord.js';
 import { acquireHouse, acquireLot, editRights, lotPrice, shortMoney, whyNotBuyLot } from '../systems/hard/property.js';
 import { mortgageOffer, takeMortgage } from '../systems/hard/credit.js';
 import { paintBuildingMini } from '../data/exterior.js';
@@ -61,6 +62,10 @@ export default class HubScene extends Phaser.Scene {
       }
       paintBuildingMini(g, b, pos.x, pos.y + 42, LOT.w - 14, LOT.h - 8, i * 13 + 5);
       this.lots.add(inkChip(this, pos.x, pos.y + 58, b.name, { size: 16, h: 26, fill: b.owned ? 0xcfeec0 : 0xf3e3b8, depth: 5, seed: i + 30 }));
+      if (b.let && b.let.listed && !b.let.tenant) {
+        const board = paintSign(g, pos.x + 44, pos.y + 22, 58, 26, i + 9);
+        this.lots.add(this.add.text(board.x, board.y, 'TO\nLET', { ...label, fontSize: '11px', align: 'center', lineSpacing: -3 }).setOrigin(0.5));
+      }
       if (b.forSale) {
         const board = paintSign(g, pos.x + 44, pos.y + 22, 58, 26, i + 7);
         this.lots.add(this.add.text(board.x, board.y, 'FOR\nSALE', { ...label, fontSize: '11px', align: 'center', lineSpacing: -3 }).setOrigin(0.5));
@@ -135,7 +140,8 @@ export default class HubScene extends Phaser.Scene {
     if (hard && b.forSale) {
       acts.push({ text: `🏷 Buy for ${shortMoney(b.forSale)}`, fill: COLORS.gold, tap: () => this.openFinance(slot, b.forSale, this.houseMaker(slot)) });
     }
-    if (hard && b.owned && house && !(this.room.hard.home && this.room.hard.home.slot === slot)) acts.push({ text: '🔑 Move in', fill: COLORS.blue, tap: () => { this.room.moveIn(slot); this.closePopup(); floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, 'Home!', 28); } });
+    if (hard && b.owned && house && !isLet(b) && !(this.room.hard.home && this.room.hard.home.slot === slot)) acts.push({ text: '🔑 Move in', fill: COLORS.blue, tap: () => { this.room.moveIn(slot); this.closePopup(); floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, 'Home!', 28); } });
+    if (hard && !whyNotLet(b, this.room.hard.home, slot)) acts.push({ text: isLet(b) ? '🏘 Your tenant' : '🏘 Rent it out', fill: COLORS.purple, tap: () => { this.closePopup(); this.openLandlord(slot); } });
     if (rights === 'full') acts.push({ text: '🔨 Build & decorate', fill: COLORS.orange, tap: () => { this.closePopup(); this.openBuilder(slot); } });
     if (!hard && house) acts.push(this.demolishAction(slot));
     const h = 130 + acts.length * 66 + 60, add = this.openPopup(b.name, 400, h), top = H / 2 - h / 2 + 100;
@@ -242,6 +248,13 @@ export default class HubScene extends Phaser.Scene {
   visit(slot) {
     this.scene.stop();
     this.room.exitCityMap(entryZone(this.room.city, slot), true);
+  }
+
+  openLandlord(slot) {
+    const b = this.room.city[slot];
+    if (!b.let) b.let = newLet(marketRent(b, null));
+    this.scene.pause();
+    this.scene.launch('Landlord', { room: this.room, slot, hub: this });
   }
 
   openBuilder(slot) {
