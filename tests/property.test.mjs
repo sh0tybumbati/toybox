@@ -42,7 +42,7 @@ test('buying an empty lot builds a house on it, owned', () => {
   assert.equal(lotPrice('cottage'), LOT_PRICE + BUILD_PRICE.cottage);
   assert.match(whyNotBuyLot(city, 5, 'cottage', 10), /more/);
   assert.equal(whyNotBuyLot(city, 1, 'cottage', 1e9), 'lot is taken');
-  assert.equal(whyNotBuyLot(city, 5, 'arcade', 1e9), 'not a house');
+  assert.equal(whyNotBuyLot(city, 5, 'arcade', 1e9), 'not for sale');
   const r = buildOnLot(city, 5, 'cottage', 1e6);
   assert.equal(r.cash, 1e6 - lotPrice('cottage'));
   assert.equal(city[5].owned, true); assert.equal(city[5].name, 'Cottage'); assert.equal(city[5].cost, undefined);

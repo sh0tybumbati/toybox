@@ -502,6 +502,15 @@ export const PROP_TYPES = {
       g.fillStyle(0x4a3426, 1).fillRect(-24, -60, 48, 3);
     },
   },
+  bizdesk: {
+    name: 'Business Desk', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['bizdesk'], hours: [[0, 24]], w: 150, h: 110, blurb: 'Run your business',
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-75, -4, 150, 54, 6);                         // the desk
+      g.fillStyle(0x2f3b52, 1).fillRoundedRect(-30, -52, 60, 40, 5);                         // a screen
+      g.fillStyle(0x9fd8f0, 1).fillRoundedRect(-25, -47, 50, 30, 3);
+      g.fillStyle(0xf0c868, 1).fillRoundedRect(38, -20, 28, 16, 3);                          // a till
+    },
+  },
   packrack: {
     name: 'Bag Rack', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['buypack'], hours: [[7, 22]], w: 120, h: 130, blurb: 'Bags and backpacks',
     draw(g) {

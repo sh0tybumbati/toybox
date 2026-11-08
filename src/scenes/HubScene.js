@@ -5,6 +5,7 @@ import { W, H } from '../config.js';
 import { CARD, COLORS, TEXT, iconButton, inkButton, inkChip, inkPanel, richText } from '../ui.js';
 import { spriteImage } from '../systems/itemTextures.js';
 import { BLUEPRINTS, BUILDABLE, PATHS, SLOTS, isHouse, newBuilding } from '../data/buildings.js';
+import { BIZ, BIZ_TYPES } from '../data/hard/business.js';
 import { isLet, marketRent, newLet, whyNotLet } from '../systems/hard/landlord.js';
 import { acquireHouse, acquireLot, editRights, lotPrice, shortMoney, whyNotBuyLot } from '../systems/hard/property.js';
 import { mortgageOffer, takeMortgage } from '../systems/hard/credit.js';
@@ -142,6 +143,7 @@ export default class HubScene extends Phaser.Scene {
     }
     if (hard && b.owned && house && !isLet(b) && !(this.room.hard.home && this.room.hard.home.slot === slot)) acts.push({ text: '🔑 Move in', fill: COLORS.blue, tap: () => { this.room.moveIn(slot); this.closePopup(); floatText(this, SLOTS[slot].x, SLOTS[slot].y - 30, 'Home!', 28); } });
     if (hard && !whyNotLet(b, this.room.hard.home, slot)) acts.push({ text: isLet(b) ? '🏘 Your tenant' : '🏘 Rent it out', fill: COLORS.purple, tap: () => { this.closePopup(); this.openLandlord(slot); } });
+    if (hard && b.owned && b.biz) acts.push({ text: `${BIZ[b.biz.type].icon} Run the business`, fill: COLORS.purple, tap: () => { this.closePopup(); this.openBusiness(slot); } });
     if (rights === 'full') acts.push({ text: '🔨 Build & decorate', fill: COLORS.orange, tap: () => { this.closePopup(); this.openBuilder(slot); } });
     if (!hard && house) acts.push(this.demolishAction(slot));
     const h = 130 + acts.length * 66 + 60, add = this.openPopup(b.name, 400, h), top = H / 2 - h / 2 + 100;
@@ -166,19 +168,25 @@ export default class HubScene extends Phaser.Scene {
     };
   }
 
-  openBuildPicker(slot) {
-    const hard = Boolean(this.room.hard), add = this.openPopup(hard ? 'A lot for sale: buy it and build' : 'What shall we build?', 920, 440);
-    BUILDABLE.forEach((key, i) => {
-      const bp = BLUEPRINTS[key], x = W / 2 - 280 + i * 280, y = H / 2 + 20;
-      add(inkPanel(this, x, y, 250, 260, { fill: CARD, depth: 500, seed: 20 + i, radius: 14, shadow: false, weight: 3.2 }));
+  openBuildPicker(slot, tab = 'house') {
+    const hard = Boolean(this.room.hard), biz = hard && tab === 'biz';
+    const add = this.openPopup(hard ? 'A lot for sale: buy it and build' : 'What shall we build?', 920, 470);
+    if (hard) {
+      this.button(add, W / 2 - 110, H / 2 - 150, '🏠 Houses', tab === 'house' ? COLORS.gold : COLORS.grey, () => this.openBuildPicker(slot, 'house'), 190);
+      this.button(add, W / 2 + 110, H / 2 - 150, '💼 Businesses', tab === 'biz' ? COLORS.gold : COLORS.grey, () => this.openBuildPicker(slot, 'biz'), 190);
+    }
+    const keys = biz ? BIZ_TYPES.map(t => BIZ[t].blueprint) : BUILDABLE;
+    keys.forEach((key, i) => {
+      const bp = BLUEPRINTS[key], x = W / 2 - 280 + i * 280, y = H / 2 + 40;
+      add(inkPanel(this, x, y, 250, 250, { fill: CARD, depth: 500, seed: 20 + i, radius: 14, shadow: false, weight: 3.2 }));
       const g = add(this.add.graphics().setDepth(500));
-      paintBuildingMini(g, bp, x, y + 8, 130, 96);
+      paintBuildingMini(g, bp, x, y + 2, 130, 90);
       add(this.add.text(x, y - 108, bp.name, { fontSize: '24px', fontStyle: 'bold', color: TEXT }).setOrigin(0.5).setDepth(500));
       const rooms = bp.floors.reduce((n, f) => n + f.rooms.length, 0);
-      add(this.add.text(x, y + 38, `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}, ${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '17px', color: TEXT }).setOrigin(0.5).setDepth(500));
+      add(this.add.text(x, y + 34, biz ? BIZ[bp.biz].blurb : `${bp.floors.length} floor${bp.floors.length > 1 ? 's' : ''}, ${rooms} room${rooms > 1 ? 's' : ''}`, { fontSize: '14px', color: TEXT, align: 'center', wordWrap: { width: 220 } }).setOrigin(0.5, 0).setDepth(500));
       const why = hard ? whyNotBuyLot(this.room.city, slot, key, Infinity) : whyNotBuild(this.room.city, slot, key, this.room.coins);
-      const buy = this.button(add, x, y + 88, hard ? shortMoney(lotPrice(key)) : 'Free', why ? COLORS.grey : COLORS.green, () => (hard ? this.openFinance(slot, lotPrice(key), () => acquireLot(this.room.city, slot, key)) : this.build(slot, key)), 150);
-      buy.y = y + 92;
+      const make = () => acquireLot(this.room.city, slot, key, this.room.clock.day);
+      const buy = this.button(add, x, y + 98, hard ? shortMoney(lotPrice(key)) : 'Free', why ? COLORS.grey : COLORS.green, () => (hard ? this.openFinance(slot, lotPrice(key), make) : this.build(slot, key)), 150);
       if (why) buy.setAlpha(0.7);
     });
   }
@@ -224,6 +232,9 @@ export default class HubScene extends Phaser.Scene {
     this.button(add, W / 2, H / 2 + 138, 'Back', COLORS.grey, () => this.closePopup(), 200);
   }
 
+  // Buy the empty lot at `slot` and build `key` on it (a house or a business), 'cash' or 'mortgage'.
+  buyLot(slot, key, how) { return this.purchase(slot, lotPrice(key), () => acquireLot(this.room.city, slot, key, this.room.clock.day), how); }
+
   houseMaker(slot) { return () => acquireHouse(this.room.city, slot); }
 
   // Buy the house for sale at `slot`, 'cash' or 'mortgage' (what the buttons do).
@@ -248,6 +259,11 @@ export default class HubScene extends Phaser.Scene {
   visit(slot) {
     this.scene.stop();
     this.room.exitCityMap(entryZone(this.room.city, slot), true);
+  }
+
+  openBusiness(slot) {
+    this.scene.pause();
+    this.scene.launch('Business', { room: this.room, slot, hub: this });
   }
 
   openLandlord(slot) {

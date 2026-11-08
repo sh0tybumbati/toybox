@@ -89,6 +89,7 @@ export function leave(l, rng, runner = false) {
 export function whyNotLet(building, home, slot) {
   if (!building) return 'nothing there';
   if (!building.owned) return 'you do not own it';
+  if (building.biz) return 'it is a business';
   if (home && home.slot === slot) return 'you live there';
   return '';
 }

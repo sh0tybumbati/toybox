@@ -676,6 +676,41 @@ try {
     await g.room(`r.landRng = null; r.wallet = ${keep.wallet}; r.hard.home = ${JSON.stringify(keep.home)}; r.city.forEach(b => { if (b && b.owned && b.name !== 'Flat') { delete b.owned; delete b.let; } }); r.updateNav();`);
   });
 
+  await step('business: build a shop on a lot, hire staff, trade, collect the till, work a shift, and the rates bill arrives', async () => {
+    const keep = await g.room("return { wallet: r.wallet, home: r.hard.home, bills: r.hard.bills };");
+    await g.room("r.hard.home = { slot: 0, tier: 'flat', next: 999 }; r.hard.bills = []; r.wallet = 2000000; r.landRng = () => 0; r.goToZone('0.0');"); await wait(1200);
+    await g.room('r.openCityMap();'); await wait(900);
+    const slot = await g.room('return r.city.findIndex(b => !b);');
+    await g.ev(`(h => h.openBuildPicker(${slot}, 'biz'))(${S('Hub')})`); await wait(400);
+    assert.equal(await g.ev(`${S('Hub')}.buyLot(${slot}, 'bizshop', 'cash')`), true, 'a shop built on a lot');
+    const b = await g.room(`const b = r.city[${slot}]; return { owned: b.owned, type: b.biz && b.biz.type, desk: b.floors[0].rooms[0].extra.some(p => p.type === 'bizdesk'), wallet: r.wallet };`);
+    assert.equal(b.owned, true); assert.equal(b.type, 'shop'); assert.equal(b.desk, true); assert.ok(b.wallet < 2000000 - 300000);
+    await g.ev(`(h => h.openBusiness(${slot}))(${S('Hub')})`); await wait(600);
+    assert.ok(await active('Business'), 'the business screen opens from the map');
+    await g.room(`r.city[${slot}].biz.vacancy = true; r.businessDaily(r.clock.day + 1);`);
+    assert.equal(await g.room(`return r.city[${slot}].biz.candidates.length;`), 1, 'an applicant turned up');
+    await g.ev(`(s => s.hire(0))(${S('Business')})`);
+    assert.equal(await g.room(`return r.city[${slot}].biz.staff.length;`), 1, 'hired');
+    await g.room(`r.landRng = () => 0.99; r.businessDaily(r.clock.day + 2);`);
+    const till = await g.room(`return r.city[${slot}].biz.till;`);
+    assert.ok(till > 0, 'a day of trading puts money in the till');
+    const w0 = await g.room('return r.wallet;');
+    await g.ev(`(s => s.collect())(${S('Business')})`);
+    assert.equal(await g.room('return r.wallet;'), w0 + till, 'the takings are yours');
+    await g.room(`r.city[${slot}].biz.nextRates = r.clock.day; r.businessDaily(r.clock.day + 1);`);
+    assert.ok(await g.room("return r.hard.bills.some(b => b.kind === 'upkeep');"), 'the rates bill came');
+    await g.ev(`(c => c.close())(${S('Business')})`); await wait(400);
+    await g.ev(`(h => h.close())(${S('Hub')})`); await wait(700);
+    await g.room(`r.goToZone('${slot}.0');`); await wait(1500);
+    assert.ok(await g.room("return r.props.some(p => p.type === 'bizdesk');"), 'the premises have a desk');
+    assert.equal(await g.room(`return r.editRights();`), 'full', 'it is yours to change');
+    const day0 = await g.room('return r.clock.day;');
+    assert.equal(await g.room(`return r.workShift(${slot});`), true, 'a shift worked');
+    assert.equal(await g.room(`return r.city[${slot}].biz.shift;`), day0);
+    await g.room(`r.landRng = null; r.wallet = ${keep.wallet}; r.hard.home = ${JSON.stringify(keep.home)}; r.hard.bills = ${JSON.stringify(keep.bills)}; r.city[${slot}] = null; r.goToZone('0.0'); r.updateNav();`);
+    await wait(1500);
+  });
+
   await step('back to kid mode needs the PIN; the kid world is just as it was, and the adult game is kept', async () => {
     await g.room('r.openSettings();');
     await wait(500);

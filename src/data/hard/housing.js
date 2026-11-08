@@ -10,7 +10,7 @@ export const HOUSING = {
 HOUSING.owned = { label: 'Your own place', cycle: 28, due: 10, grace: 7, owner: true, bills: [['utilities', 5200]] };
 export const TIERS = ['motel', 'flat', 'house'];                 // the places you can rent
 export const LATE_FEE = 0.1;
-export const BILL_LABELS = { rent: 'Rent', utilities: 'Power and water', card: 'Card statement', mortgage: 'Mortgage payment', debt: 'Debt payment' };
+export const BILL_LABELS = { rent: 'Rent', utilities: 'Power and water', card: 'Card statement', mortgage: 'Mortgage payment', debt: 'Debt payment', upkeep: 'Business rates' };
 export const billLabel = (kind, tier) => (kind === 'rent' && tier === 'house' ? 'Mortgage and tax' : BILL_LABELS[kind] || kind);
 
 // Buildings you can live in (hard mode): a place you rent has rooms only the tenant may use.

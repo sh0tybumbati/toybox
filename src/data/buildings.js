@@ -117,6 +117,21 @@ export const BLUEPRINTS = {
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
     floors: [{ id: 0, rooms: [room(0, 'campsite')] }],
   },
+  bizshop: {                                  // hard mode only: premises you build for a business of your own
+    name: 'My Shop', cost: null, biz: 'shop',
+    exterior: { wall: 'blush', trim: 'white', roofStyle: 'flat', roofColor: 'berry' },
+    floors: [{ id: 0, rooms: [room(0, 'shop')] }],
+  },
+  bizworkshop: {
+    name: 'My Workshop', cost: null, biz: 'workshop',
+    exterior: { wall: 'mint', trim: 'brown', roofStyle: 'gable', roofColor: 'sunny' },
+    floors: [{ id: 0, rooms: [room(0, 'workshop')] }],
+  },
+  bizfarm: {
+    name: 'My Farm', cost: null, biz: 'farm',
+    exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
+    floors: [{ id: 0, rooms: [room(0, 'garden')] }],
+  },
   blank: {
     name: 'New build', house: true, cost: 0,
     exterior: { wall: 'cream', trim: 'white', roofStyle: 'gable', roofColor: 'terracotta' },

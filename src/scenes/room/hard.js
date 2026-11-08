@@ -22,6 +22,8 @@ import { SHELF_STEP } from '../../config.js';
 import { HOUSING } from '../../data/hard/housing.js';
 import { creditDaily, foreclose, onLate, activeCard } from '../../systems/hard/credit.js';
 import { letDaily } from '../../systems/hard/landlord.js';
+import { bizDaily, shiftedOn, walkOut } from '../../systems/hard/business.js';
+import { BIZ } from '../../data/hard/business.js';
 import { SALE_RATE, SCORE_EVENTS } from '../../data/hard/credit.js';
 import { newHome, overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
 import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
@@ -109,6 +111,7 @@ export const hardMethods = {
     }
     for (const e of creditDaily(this.hard, day)) if (e.type === 'statement') this.notice('🏦 The bank has sent statements');
     this.landlordDaily(day);
+    this.businessDaily(day);
     this.hard.heat = decayHeat(this.hard.heat, 1);                       // attention fades
     const sky = weatherAt(day, 600).kind;
     this.hard.power = (this.hard.power || 0) + powerToday(this.hard.beds, POWER_DAY);          // grow lamps run up the power bill
@@ -278,7 +281,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell', 'bank', 'buypack'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell', 'bank', 'buypack', 'bizdesk'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -313,10 +316,44 @@ export const hardMethods = {
     if (rent || late || news.length) { this.dirty = true; this.updateNav(); }
   },
 
+  // Your businesses: the day that just ended is worked out (staff turn up or not, takings, wages), and the rates bill comes every 28 days.
+  businessDaily(day) {
+    const rng = this.landRng || Math.random, h = this.hard;
+    let made = 0, news = [];
+    this.city.forEach((b, slot) => {
+      if (!b || !b.owned || !b.biz) return;
+      const biz = b.biz, r = bizDaily(biz, day - 1, rng, { shifted: shiftedOn(biz, day - 1) });
+      made += r.profit;
+      if (r.owed > 0) {                                                  // the till could not pay the wages: the owner does, or the staff walk
+        if (this.wallet >= r.owed) this.wallet -= r.owed; else { for (const e of walkOut(biz, r.unpaid)) news.push(`${e.name} quit ${b.name}: unpaid`); }
+      }
+      for (const e of r.events) {
+        if (e.type === 'candidate') news.push(`${e.name} wants a job at ${b.name}`);
+        else if (e.type === 'quit') news.push(`${e.name} quit ${b.name}`);
+      }
+      while (day >= biz.nextRates) { h.bills.push({ id: ++h.billId, kind: 'upkeep', amount: BIZ[biz.type].upkeep, issued: biz.nextRates, due: biz.nextRates + 10, late: false, seen: false, ref: slot }); biz.nextRates += 28; news.push(`Rates are due on ${b.name}`); }
+    });
+    if (made) this.notice(`💼 Business ${made > 0 ? 'profit' : 'loss'}: $${Math.abs(made).toLocaleString('en-US')}`);
+    if (news.length) this.notice(`💼 ${news.slice(0, 2).join(' · ')}${news.length > 2 ? ` · +${news.length - 2} more` : ''}`);
+    if (made || news.length) { this.dirty = true; this.updateNav(); }
+  },
+
+  // Work a shift at your own business: eight hours at the desk, which counts as the day's work when the day ends.
+  workShift(slot) {
+    const b = this.city[slot], c = this.selected || this.characters[0];
+    if (!b || !b.biz || !c) return false;
+    if (b.biz.shift === this.clock.day) { this.notice('You already worked today'); return false; }
+    b.biz.shift = this.clock.day;
+    apply(c.needs, Object.fromEntries(Object.entries(SHIFT_DRAIN).map(([k, v]) => [k, v * 8 * 60 * 0.7])));          // a long day on your feet
+    this.passTime(8 * 60);
+    this.dirty = true; this.sfx.coin(); this.notice('💼 Shift done');
+    return true;
+  },
+
   // The bank takes a house after missed payments: it goes back on the market, what it sold for pays the loan, the rest is debt or yours.
   repossess(loan) {
     const h = this.hard, r = foreclose(h, loan), b = this.city[r.slot];
-    if (b) { delete b.owned; delete b.let; b.forSale = Math.round(loan.value / SALE_RATE); }
+    if (b) { delete b.owned; delete b.let; delete b.biz; b.forSale = Math.round(loan.value / SALE_RATE); }
     this.wallet += r.surplus; h.debt += r.shortfall;
     if (h.home && h.home.slot === r.slot) { h.home = null; h.lockedOut = r.slot; h.bills = h.bills.filter(x => !['rent', 'utilities'].includes(x.kind)); }
     this.sfx.nope(); this.notice('🏦 The bank has taken a house'); this.dirty = true;
@@ -565,6 +602,7 @@ export const hardMethods = {
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
       else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c, type: prop.type }); }
+      else if (type === 'bizdesk') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Business', { room: this, slot: this.zoneSlot(), desk: true }); }
       else if (type === 'buypack') { c.current.waiting = true; this.openBag(c, true); }
       else if (type === 'bank') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bank', { room: this }); }
       else if (type === 'sell') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Sell', { room: this, who: c }); }

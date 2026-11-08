@@ -45,6 +45,7 @@ export const ACTIONS = {
   buyseeds: { label: 'Browse', icon: '🪴', minutes: 5 },
   mix:   { label: 'Mix', icon: '⚗️', minutes: 5 },
   sell:  { label: 'Meet buyers', icon: '🤝', minutes: 5 },
+  bizdesk: { label: 'Run the business', icon: '💼', minutes: 5 },
   buypack: { label: 'Look at bags', icon: '🎒', minutes: 5 },
   bank:  { label: 'Use the bank', icon: '🏦', minutes: 5 },
   use:   { label: 'Use computer', icon: '💻', minutes: 10 },
