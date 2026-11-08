@@ -24,3 +24,6 @@ export const FONT = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", "Apple
 
 // The rounded face for the UI kit's buttons, chips and meters (Patrick Hand stays for titles and speech).
 export const UI_FONT = '"Fredoka", "Patrick Hand", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+
+// The HUD (top bar, player card, clock) is drawn at this fraction of its design size, anchored to its corner.
+export const HUD_SCALE = 0.6;

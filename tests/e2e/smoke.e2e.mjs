@@ -57,7 +57,7 @@ try {
   });
 
   await step('furniture mode: add a cabinet, store an item, take it out', async () => {
-    await g.click(756, 32, 500);                                   // 🛋️
+    await g.click(838, 19, 500);                                   // 🛋️
     assert.equal(await g.room('return r.editMode;'), true);
     await g.room("r.addFurniture('cabinet');");
     await wait(300);
@@ -275,7 +275,7 @@ try {
   });
 
   await step('city map: build on an empty lot, edit the building, visit it', async () => {
-    await g.click(70, 30, 900);                                              // 🗺️ Map
+    await g.click(46, 19, 900);                                              // 🗺️ Map
     assert.ok(await g.ev("__toybox.scene.isActive('Hub')"), 'map is open');
     assert.equal(await g.room('return r.props.length;'), 0, 'the floor is put away while the map is open');
     await g.room('r.coins = 60;');
@@ -549,7 +549,7 @@ try {
   });
 
   await step('HUD buttons are tappable: map opens and closes', async () => {
-    await t.tap(70, 30, 700);
+    await t.tap(46, 19, 700);
     assert.ok(await t.ev("__toybox.scene.isActive('Hub')"), 'map is open');
     await t.tap(910, 40, 700);                                     // ✖
     assert.ok(await t.ev("__toybox.scene.isActive('Room')"), 'back in the room');
@@ -557,7 +557,7 @@ try {
 
   await step('a tour of the new features by finger alone: build, decorate, play', async () => {
     await t.room("r.tipsSeen = new Set(['grab','dress','walk','map','eat','cook','book','furniture','shop','build','play','decorate']); r.refreshTip(); r.coins = 120; r.updateNav();");
-    await t.tap(70, 30, 900);                                           // Map
+    await t.tap(46, 19, 900);                                           // Map
     assert.ok(await t.ev("__toybox.scene.isActive('Hub')"), 'the map opened');
     await t.tap(610, 380, 700);                                         // an empty lot
     assert.ok(await t.ev("__toybox.scene.getScene('Hub').popup.length > 0"), 'the build picker opened');
@@ -565,7 +565,7 @@ try {
     assert.ok(await t.room('return r.city.some(b => b && b.name === "Cottage");'), 'built a cottage');
     await t.tap(916, 30, 1400);                                         // close the map
     assert.ok(await t.ev("__toybox.scene.isActive('Room') && !__toybox.scene.isActive('Hub')"), 'back in the room');
-    await t.tap(756, 32, 700);                                          // furniture mode
+    await t.tap(838, 19, 700);                                          // furniture mode
     await t.tap(480, 120, 700);                                         // Decorate
     assert.ok(await t.room('return Boolean(r.decor);'), 'decorating');
     await t.tap(118 + 6 * 108, 490, 500);                               // a wallpaper swatch

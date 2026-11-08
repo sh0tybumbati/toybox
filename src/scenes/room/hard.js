@@ -39,6 +39,7 @@ const TEXT_DEPTH = 10000;
 const BAR_COLORS = { hunger: 0xe8913a, energy: 0x6aaee8, hygiene: 0x6fd0c0, warmth: 0xf08060, mood: 0xf5c14a };
 const NEED_ICONS = { hunger: 'need-hunger', energy: 'need-energy', hygiene: 'need-hygiene', warmth: 'need-warmth', mood: 'need-mood' };
 const QUEUE_Y = 274;
+const pinTo = (layer, o) => { layer.add(o); return o; };
 const NEED_KEYS = ['hunger', 'energy', 'hygiene', 'warmth', 'mood'];
 const HOME_ROOMS = ['kitchen', 'living', 'bedroom', 'motel', 'garden'];            // rooms that belong to whoever lives there
 const IDLE_BEFORE_FREE_WILL = 10;                      // game minutes standing around before someone decides for themselves
@@ -680,7 +681,7 @@ export const hardMethods = {
 
   // --- the hard-mode HUD: clock + speed, needs, and the queue --------------------------------------
   createHardHud() {
-    const X = 14, Y = 70, CW = 330, CH = 172, D = TEXT_DEPTH, add = o => pin(o);
+    const X = 14, Y = 70, CW = 330, CH = 172, D = TEXT_DEPTH, add = o => { this.hudL.add(o); return o; }, R = o => { this.hudR.add(o); return o; };
     this.cardRect = { x: X, y: Y, w: CW, h: CH };
     add(inkPanel(this, X + CW / 2, Y + CH / 2, CW, CH, { fill: CARD, depth: D - 2, seed: 61, radius: 24 }));
     // who you are: a face in a ring that follows the mood, the name, a mood pill and the cash
@@ -698,15 +699,15 @@ export const hardMethods = {
     this.bagButton = add(inkButton(this, X + CW - 66, Y + CH - 26, '🍎 Snack', { w: 104, h: 32, size: 16, fill: COLORS.gold, depth: D, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
     // the clock, the weather and the speed, top right
     const RX = W - 14 - 302, RY = 70;
-    add(inkPanel(this, RX + 151, RY + 38, 302, 76, { fill: CARD, depth: D - 2, seed: 64, radius: 22 }));
-    this.clockText = add(this.add.text(RX + 18, RY + 10, '', { fontSize: '22px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
-    this.weatherText = add(this.add.text(RX + 18, RY + 42, '', { fontSize: '15px', color: '#7a6a58', fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
-    this.speedButtons = SPEEDS.map((s, i) => add(inkButton(this, RX + 160 + i * 38, RY + 38, ['⏸', '▶', '⏩', '⏭'][i], { w: 34, h: 34, size: 15, fill: PAPER, depth: D, seed: 90 + i, onTap: () => this.setSpeed(i) })));
+    R(inkPanel(this, RX + 151, RY + 38, 302, 76, { fill: CARD, depth: D - 2, seed: 64, radius: 22 }));
+    this.clockText = R(this.add.text(RX + 18, RY + 10, '', { fontSize: '22px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    this.weatherText = R(this.add.text(RX + 18, RY + 42, '', { fontSize: '15px', color: '#7a6a58', fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    this.speedButtons = SPEEDS.map((s, i) => R(inkButton(this, RX + 160 + i * 38, RY + 38, ['⏸', '▶', '⏩', '⏭'][i], { w: 34, h: 34, size: 15, fill: PAPER, depth: D, seed: 90 + i, onTap: () => this.setSpeed(i) })));
     this.alertChips = [];
-    this.shopChip = add(inkChip(this, W - 150, 178, '', { size: 15, depth: D, h: 30, fill: CARD })).setVisible(false);
-    this.billChip = add(inkChip(this, W - 150, 216, '', { size: 15, depth: D, h: 30, fill: 0xffe3d4 })).setVisible(false);
-    this.gigChip = add(inkChip(this, W - 150, 254, '', { size: 14, depth: D, h: 30, fill: 0xe3f2d0 })).setVisible(false);
-    this.phoneBtn = add(inkDisc(this, W - 36 - 5 * 56, 32, 'icon-phone', { onTap: () => this.openPhone(), seed: 49 }));
+    this.shopChip = R(inkChip(this, W - 150, 178, '', { size: 15, depth: D, h: 30, fill: CARD })).setVisible(false);
+    this.billChip = R(inkChip(this, W - 150, 216, '', { size: 15, depth: D, h: 30, fill: 0xffe3d4 })).setVisible(false);
+    this.gigChip = R(inkChip(this, W - 150, 254, '', { size: 14, depth: D, h: 30, fill: 0xe3f2d0 })).setVisible(false);
+    this.phoneBtn = R(inkDisc(this, W - 36 - 5 * 56, 32, 'icon-phone', { onTap: () => this.openPhone(), seed: 49 }));
     this.progressGfx = add(this.add.graphics().setDepth(D + 1));
     this.queueUI = [];
     this.setSpeed(1);
@@ -736,7 +737,7 @@ export const hardMethods = {
     const mood = avg >= 78 ? ['Feeling great', 'laugh', 0x78c363, 0xd9f0c8] : avg >= 52 ? ['Feeling okay', 'need-mood', 0xf0c040, 0xfff0b8] : avg >= 30 ? ['Feeling low', 'sour', 0xf2ae44, 0xffddb0] : ['Feeling awful', 'yuck', 0xe5685c, 0xf8c8c0];
     const shown = flags.length ? flags.slice(0, 2).join(' · ') : mood[0];
     this.nameText.setText(c.name);
-    if (this.moodShown !== shown) { this.moodShown = shown; if (this.moodPill) this.moodPill.destroy(); this.moodPill = pin(inkChip(this, X + 78, Y + 54, shown, { size: 15, depth: TEXT_DEPTH, h: 26, seed: 62, fill: flags.length ? 0xf8c8c0 : mood[3] })); this.moodPill.x = X + 78 + this.moodPill.width / 2; }
+    if (this.moodShown !== shown) { this.moodShown = shown; if (this.moodPill) this.moodPill.destroy(); this.moodPill = pinTo(this.hudL, inkChip(this, X + 78, Y + 54, shown, { size: 15, depth: TEXT_DEPTH, h: 26, seed: 62, fill: flags.length ? 0xf8c8c0 : mood[3] })); this.moodPill.x = X + 78 + this.moodPill.width / 2; }
     this.moodFace.setTexture(ensureSpriteTexture(this, mood[1]));
     this.moodRing.clear().fillStyle(0x4a382c, 0.92).fillCircle(X + 42, Y + 45, 29).fillStyle(mood[2], 1).fillCircle(X + 40, Y + 40, 29).lineStyle(3, INK, 1).strokeCircle(X + 40, Y + 40, 29).fillStyle(0xfff6dc, 1).fillCircle(X + 40, Y + 40, 23);
     this.pocketText.setText(`🎒 ${c.bag.length}/${BAG_CAP}   🧊 ${this.hard.larder.length}${this.hard.heat ? `   🚨 ${this.hard.heat}` : ''}`);
@@ -766,7 +767,7 @@ export const hardMethods = {
     this.queueDirty = false;
     this.queueUI.forEach(o => o.destroy());
     this.queueUI = [];
-    const add = o => { pin(o); this.queueUI.push(o); return o; };
+    const add = o => { this.hudL.add(o); this.queueUI.push(o); return o; };
     const items = [...(c.current ? [{ ...c.current, now: true }] : []), ...c.queue.map(q => ({ ...q, now: false }))];
     if (c.collapsed) items.unshift({ type: 'sleep', now: true, collapsed: true });
     items.slice(0, MAX_QUEUE + 1).forEach((q, i) => {

@@ -1,13 +1,16 @@
 // Room scene mixin — HUD: top-bar buttons, coin counter, opening the map and recipe book.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { W } from '../../config.js';
+import { W, HUD_SCALE } from '../../config.js';
 import { metaStore } from '../../systems/save.js';
 import { CARD, COLORS, inkButton, inkChip, inkDisc, inkPlate, pin } from '../../ui.js';
 
 export const hudMethods = {
   createHud(hasSave) {
-    const fixed = pin;                                                 // the HUD stays put while the camera scrolls
-    this.roomLabel = fixed(inkPlate(this, W / 2 - 20, 32, '', { maxW: 400 }));
+    // The HUD lives in three layers, scaled about the left, centre and right edges so it stays tucked in its corners.
+    const layer = x => pin(this.add.container(x, 0).setScale(HUD_SCALE).setDepth(10000));
+    this.hudL = layer(0); this.hudC = layer(W / 2 * (1 - HUD_SCALE)); this.hudR = layer(W * (1 - HUD_SCALE));
+    const left = o => { this.hudL.add(o); return o; }, centre = o => { this.hudC.add(o); return o; }, right = o => { this.hudR.add(o); return o; }, fixed = left;
+    this.roomLabel = centre(inkPlate(this, W / 2 - 20, 32, '', { maxW: 400 }));
     fixed(inkButton(this, 76, 32, '🗺️ Map', { w: 116, h: 48, fill: COLORS.gold, size: 22, onTap: () => this.openMap(), depth: 10000 }));
     if (!this.hard) this.coinText = fixed(inkChip(this, 100, 82, '', { size: 21, depth: 10000, h: 38, fill: CARD }));   // adult mode keeps its cash on the player card
     this.updateNav();
@@ -15,7 +18,7 @@ export const hudMethods = {
     this.refreshTip();
 
     // Round buttons along the top right, 56px apart so finger-sized hit areas don't overlap.
-    const disc = (n, key, onTap, onHold) => fixed(inkDisc(this, W - 36 - n * 56, 32, key, { onTap, onHold, seed: 40 + n }));
+    const disc = (n, key, onTap, onHold) => right(inkDisc(this, W - 36 - n * 56, 32, key, { onTap, onHold, seed: 40 + n }));
     disc(0, 'icon-gear', () => this.openSettings());
     disc(1, 'icon-palette', () => this.openCreator());
     disc(2, 'icon-book', () => this.openBook());
