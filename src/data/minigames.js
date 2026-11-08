@@ -6,6 +6,7 @@ export const MINIGAMES = {
   arcade:  { name: 'TV and Games',      scene: 'Console',  blurb: 'Pick a cartridge and play!' },
   shirt:   { name: 'Shirt Factory',    scene: 'ShirtShop', blurb: 'Design a brand-new shirt and wear it.' },
   sculpt:  { name: 'Toy Workshop',     scene: 'Sculpt',   blurb: 'Sculpt a new toy out of clay.' },
+  stack:   { name: 'Day labour',       scene: 'Stack',    blurb: 'Stack the crates neatly.' },
   beg:     { name: 'Begging',         scene: 'Beg',      blurb: 'Ask people when they look at you.' },
   cashier: { name: 'Checkout',        scene: 'Cashier',  blurb: 'Scan the shopping and give the right change.' },
   ikea:    { name: 'Flat-pack Furniture', scene: 'Ikea', blurb: 'Build it from the numbered parts, then send it home.' },

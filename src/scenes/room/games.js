@@ -8,7 +8,7 @@ import { furnKey } from '../../systems/ikea.js';
 
 export const gameMethods = {
   // Tap on a station: pause the room and run the game as an overlay.
-  openGame(id, prop) {
+  openGame(id, prop, extra = {}) {
     const def = MINIGAMES[id];
     if (!def || this.switching || this.decor) return;
     this.tipEvent('play');
@@ -17,13 +17,13 @@ export const gameMethods = {
     this.sfx.pop();
     if (prop) prop.setState(true);
     this.scene.pause();
-    this.scene.launch(def.scene, { room: this, prop, game: id });
+    this.scene.launch(def.scene, { room: this, prop, game: id, ...extra });
   },
 
   // A game finished (result = null if the player just closed it). Hand out what was won.
   onGameResult(id, result, prop) {
     if (prop && prop.active) prop.setState(false);
-    if (this.hard && id === 'beg') { this.hardGameResult(id, result); this.refreshTip(); return; }
+    if (this.hard && (id === 'beg' || id === 'stack')) { this.hardGameResult(id, result); this.refreshTip(); return; }
     this.lastActive = this.time.now;
     this.refreshTip();
     if (!result) return;

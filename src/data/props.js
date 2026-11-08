@@ -454,6 +454,16 @@ export const PROP_TYPES = {
       g.fillStyle(0xf5c14a, 1).fillRoundedRect(-30, -2, 60, 14, 4);                          // a price tag
     },
   },
+  worksite: {
+    name: 'Work Site', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['work'], w: 130, h: 96, blurb: 'Where the work is done',
+    draw(g) {
+      g.fillStyle(0xc99466, 1).fillRoundedRect(-58, -6, 50, 40, 4).fillRoundedRect(2, -6, 50, 40, 4);        // crates
+      g.fillStyle(0xb5835a, 1).fillRoundedRect(-44, -42, 50, 38, 4);
+      g.fillStyle(0xf5c14a, 1).fillRect(-58, 34, 112, 8);                                                    // a hazard stripe
+      g.fillStyle(0x4a3426, 1).fillRect(-50, 34, 10, 8).fillRect(-26, 34, 10, 8).fillRect(-2, 34, 10, 8).fillRect(22, 34, 10, 8);
+      g.fillStyle(0x6b7482, 1).fillCircle(-46, 46, 6).fillCircle(46, 46, 6);
+    },
+  },
   mailbox: {
     name: 'Mailbox', cat: 'town', mount: 'floor', behaviour: 'mail', hardActions: ['mail'], w: 84, h: 136,
     draw(g, flag) {

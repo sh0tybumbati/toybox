@@ -7,11 +7,11 @@ const named = (key, name) => ({ ...newBuilding(key), name });
 // A building with extra furniture in one of its rooms (hard-mode homes get a shower, the park a water fountain).
 const withExtra = (b, floor, room, ...props) => { const r = b.floors[floor].rooms[room]; r.extra = [...(r.extra || []), ...props]; return b; };
 const park = name => withExtra(named('park', name), 0, 0,
-  { type: 'fountain', x: 780, y: 540 }, { type: 'dumpster', x: 80, y: 540 }, { type: 'begspot', x: 200, y: 545 }, { type: 'labourboard', x: 520, y: 540 });
-const shop = name => withExtra(named('market', name), 0, 0, { type: 'dumpster', x: 100, y: 540 }, { type: 'newsstand', x: 830, y: 540 }, { type: 'phonekiosk', x: 240, y: 540 });
-const shelter = () => newBuilding('shelter');
+  { type: 'fountain', x: 780, y: 540 }, { type: 'dumpster', x: 80, y: 540 }, { type: 'begspot', x: 200, y: 545 }, { type: 'labourboard', x: 520, y: 540 }, { type: 'worksite', x: 330, y: 545 });
+const shop = name => withExtra(named('market', name), 0, 0, { type: 'dumpster', x: 100, y: 540 }, { type: 'newsstand', x: 830, y: 540 }, { type: 'phonekiosk', x: 240, y: 540 }, { type: 'worksite', x: 600, y: 545 });
+const shelter = () => withExtra(newBuilding('shelter'), 0, 0, { type: 'worksite', x: 850, y: 545 });
 const motel = () => withExtra(newBuilding('motel'), 0, 0, { type: 'shower', x: 860, y: 540 }, { type: 'mailbox', x: 330, y: 540 });
-const office = () => withExtra(named('postoffice', 'Post Office'), 0, 0, { type: 'paydesk', x: 480, y: 520 }, { type: 'computer', x: 780, y: 540 });
+const office = () => withExtra(named('postoffice', 'Post Office'), 0, 0, { type: 'paydesk', x: 480, y: 520 }, { type: 'computer', x: 780, y: 540 }, { type: 'worksite', x: 200, y: 545 });
 const mail = (b, floor, room) => withExtra(b, floor, room, { type: 'mailbox', x: 110, y: 540 });
 const desk = (b, floor, room) => withExtra(b, floor, room, { type: 'computer', x: 640, y: 540 });
 const shower = (b, floor, room) => withExtra(b, floor, room, { type: 'shower', x: 860, y: 540 });

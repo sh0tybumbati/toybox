@@ -34,6 +34,7 @@ import { cleanClock } from './hard/clock.js';
 import { cleanNeeds } from './hard/needs.js';
 import { cleanFood } from './hard/pantry.js';
 import { cleanBills, cleanHome } from './hard/bills.js';
+import { cleanGig } from './hard/gig.js';
 import { cleanShop } from './hard/stock.js';
 import { BAG_CAP, LARDER_CAP } from '../data/hard/food.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
@@ -118,6 +119,7 @@ export function sanitizeHard(raw) {
     clock: cleanClock(raw.clock),
     needs: Object.fromEntries(Object.entries(raw.needs && typeof raw.needs === 'object' ? raw.needs : {}).slice(0, MAX_PARTY).map(([id, n]) => [String(id).slice(0, 20), cleanNeeds(n)])),
     autonomy: raw.autonomy !== false,                         // people act on their own needs when idle
+    gig: cleanGig(raw.gig),                                   // the day-labour job you have been given (null = none)
     phone: Boolean(raw.phone),                                // you have a phone (it can be stolen)
     home: cleanHome(raw.home),                                // where you live (null = nowhere)
     bills: cleanBills(raw.bills),

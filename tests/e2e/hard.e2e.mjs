@@ -238,17 +238,37 @@ try {
     await wait(1800);
     await g.room('r.characters.forEach(c => { c.needs.warmth = 20; }); r.passTime(120);');
     assert.ok(await g.room('return r.characters[0].needs.warmth > 35;'), 'and indoors it comes back');
-    // day labour: the board is only open 6 to 9
+    // day labour: the board (open 6 to 9) gives you a gig at a place in town; you walk there and do the work
     await g.room("r.goToZone('1.0');");
     await wait(1800);
-    await g.room("const c = r.characters[0], b = r.props.find(p => p.type === 'labourboard'); window.__board = b; const f = r.frontOf(b); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.day = 10; r.clock.minute = 12 * 60;");
-    const cash0 = await g.room('return r.cash;');
+    await g.room("const c = r.characters[0], b = r.props.find(p => p.type === 'labourboard'); window.__board = b; const f = r.frontOf(b); c.x = f.x; c.lane = f.lane; c.goal = null; r.clock.day = 10; r.clock.minute = 12 * 60; r.hard.gig = null;");
     await g.room("r.queueAction(r.characters[0], 'labour', window.__board); r.passTime(10);");
-    assert.equal(await g.room('return r.characters[0].current ? 1 : 0;'), 0, 'no work at midday');
-    await g.room("r.clock.minute = 7 * 60 + 30; r.queueAction(r.characters[0], 'labour', window.__board); r.passTime(30);");
-    assert.equal(await g.room("return r.characters[0].current ? r.characters[0].current.type : null;"), 'labour', 'work at 07:30');
-    await g.room('r.passTime(250);');
-    assert.equal(await g.room('return r.cash;'), cash0 + 1200, 'paid for the day');
+    assert.equal(await g.room('return r.hard.gig;'), null, 'no work at midday');
+    await g.room("r.clock.minute = 7 * 60; r.queueAction(r.characters[0], 'labour', window.__board); r.passTime(30);");
+    const gig = await g.room('return r.hard.gig;');
+    assert.ok(gig && gig.siteName && gig.due > gig.taken, `the board gave a gig: ${gig && gig.title} at ${gig && gig.siteName}`);
+    assert.equal(await g.room('return r.gigChip.visible;'), true, 'and it is on the HUD');
+    await g.room("r.refreshHardHud();");
+    // working before you get there does nothing; get there and work
+    await g.room("const slot = r.city.findIndex(b => b && b.name === r.hard.gig.siteName); window.__site = slot; r.goToZone(slot + '.0');");
+    await wait(2200);
+    await g.room("const c = r.characters[0], w = r.props.find(p => p.type === 'worksite'), f = r.frontOf(w); window.__work = w; c.x = f.x; c.lane = f.lane; c.goal = null; window.__cash = r.cash; window.__t = r.totalMinutes(); r.queueAction(c, 'work', w); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Stack'), 'the crate game opened at the work site');
+    await g.ev(`(s => { s.g.score = 9; s.g.perfect = 3; s.end(); })(${S('Stack')})`);
+    await wait(900);
+    await g.ev(`(s => s.finish({ performance: 10, minutes: 180, game: 'stack' }))(${S('Stack')})`);
+    await wait(700);
+    const done = await g.room('return { cash: r.cash - window.__cash, gig: r.hard.gig, mins: r.totalMinutes() - window.__t };');
+    assert.ok(done.cash >= 600 && done.cash <= 1700, `paid for the shift (+$${done.cash})`);
+    assert.equal(done.gig, null, 'the gig is done');
+    assert.ok(done.mins >= 180, 'and the shift took three hours');
+    // a gig you cannot reach in time is gone
+    await g.room("r.goToZone('1.0'); ");
+    await wait(1800);
+    await g.room("const c = r.characters[0]; r.hard.gig = { ...r.hard.gig, id: 'unload', title: 'Unload a delivery', site: 'market', siteName: 'Corner Shop', crate: 'crates', pay: 1300, taken: r.totalMinutes() - 500, due: r.totalMinutes() - 300 };");
+    assert.equal(await g.room("const w = r.props.find(p => p.type === 'worksite'); return r.canDo('work', w, r.characters[0]).why;"), 'They found someone else');
+    await g.room('r.hard.gig = null;');
     // a bin
     await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'dumpster'); const f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'scavenge', d); r.passTime(30);");
     assert.equal(await g.room('return r.characters[0].current || r.characters[0].queue.length ? 1 : 0;'), 0, 'the search is over');

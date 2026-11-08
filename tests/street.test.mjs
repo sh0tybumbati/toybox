@@ -97,5 +97,5 @@ test('a clean, cheerful beggar does better than a filthy, miserable one', () => 
 
 test('the new actions exist: rough sleeping, scavenging, begging, day labour and the meal line', () => {
   for (const a of ['rough', 'scavenge', 'beg', 'labour', 'queue']) assert.ok(ACTIONS[a], a);
-  assert.equal(ACTIONS.beg.minigame, 'beg'); assert.ok(ACTIONS.labour.pay > 0);
+  assert.equal(ACTIONS.beg.minigame, 'beg'); assert.equal(ACTIONS.work.minigame, 'stack');
 });

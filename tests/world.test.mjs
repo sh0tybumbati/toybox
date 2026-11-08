@@ -105,7 +105,7 @@ test('every station launches a registered mini-game, and every mini-game has a s
   assert.ok(stations.length >= 5);
   for (const [id, d] of stations) assert.ok(MINIGAMES[d.game], `${id} -> ${d.game}`);
   const used = new Set(stations.map(([, d]) => d.game));
-  for (const g of Object.keys(MINIGAMES)) assert.ok(used.has(g) || g === 'arcade' || g === 'beg', `${g} has a station`);          // (begging starts from a hard-mode action on the cardboard sign)
+  for (const g of Object.keys(MINIGAMES)) assert.ok(used.has(g) || g === 'arcade' || g === 'beg' || g === 'stack', `${g} has a station`);          // (begging and day labour start from hard-mode actions)
 });
 
 test('the function buildings are buildable and every room they use exists with its furniture', () => {

@@ -8,7 +8,7 @@ import { sectionAt } from '../../systems/world.js';
 import { roughHour, scavengeFind } from '../../systems/hard/street.js';
 import { SEASON_DAYS, dayInSeason, weatherAt, weatherLabel } from '../../systems/hard/weather.js';
 import { CATALOG } from '../../data/items.js';
-import { advance, cleanClock, gameMinutes, hourOf, isNight, label, nextOpen, openNow, pad, SPEEDS } from '../../systems/hard/clock.js';
+import { advance, cleanClock, gameMinutes, hourOf, isNight, label, nextOpen, openNow, pad, SPEEDS, timeLabel } from '../../systems/hard/clock.js';
 import { apply, cleanNeeds, newNeeds, status, tick, wantsToDo } from '../../systems/hard/needs.js';
 import { floatText, puff, eat } from '../../systems/interactions.js';
 import { freeSeat } from '../../systems/play.js';
@@ -20,6 +20,9 @@ import { SHOP_ITEMS } from '../../systems/save.js';
 import { SHELF_STEP } from '../../config.js';
 import { HOUSING } from '../../data/hard/housing.js';
 import { overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
+import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
+import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
+import { SLOTS } from '../../data/buildings.js';
 import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
@@ -95,6 +98,17 @@ export const hardMethods = {
     if (type === 'rent') return false;
     const s = this.zone && sectionAt(this.zone, prop.x).section;
     return Boolean(s && HOME_ROOMS.includes(s.type) && !(this.hard.home && this.hard.home.slot === this.zoneSlot()));
+  },
+
+  // The labour board gives you today's gig: somewhere in town, to reach by a deadline.
+  takeGig(c) {
+    const total = this.totalMinutes();
+    if (this.hard.gig && standing(this.hard.gig, total) !== 'gone') return;
+    const gig = pickGig(this.clock.day, total);
+    this.hard.gig = gig;
+    this.sfx.ding();
+    floatText(this, c.x, c.headTopY() - 40, `${gig.title} at ${gig.siteName}`, 24);
+    this.queueDirty = true;
   },
 
   // A newspaper from the stand ($80): the classified ads.
@@ -291,6 +305,14 @@ export const hardMethods = {
     if (action === 'store' && this.hard.larder.length >= LARDER_CAP) return { ok: false, why: 'The larder is full' };
     if (action === 'sleep' && prop.sleeper) return { ok: false, why: 'Someone is in it' };
     if ((action === 'sit' || action === 'rough') && !freeSeat(prop.def.ride, prop.riders.map(r => r.riding))) return { ok: false, why: 'Taken' };
+    if (action === 'labour' && this.hard.gig && standing(this.hard.gig, this.totalMinutes()) !== 'gone') return { ok: false, why: `You already have a gig at ${this.hard.gig.siteName}` };
+    if (action === 'work') {
+      const gig = this.hard.gig;
+      if (!gig) return { ok: false, why: 'No work: ask at the labour board (06:00-09:00)' };
+      if (standing(gig, this.totalMinutes()) === 'gone') return { ok: false, why: 'They found someone else' };
+      const here = this.zone && this.zone.sections.some(s => s.type === gig.site);
+      if (!here) return { ok: false, why: `Your gig is at ${gig.siteName}` };
+    }
     if (action === 'pay' && !this.hard.bills.length) return { ok: false, why: 'No bills to pay' };
     if (action === 'news' && this.cash < PAPER_PRICE) return { ok: false, why: `A paper is $${PAPER_PRICE}` };
     if (action === 'buyphone' && this.hard.phone) return { ok: false, why: 'You have a phone' };
@@ -343,6 +365,7 @@ export const hardMethods = {
       else if (type === 'beg') { c.current.waiting = true; this.openGame('beg', prop); }
       else if (type === 'mail' || type === 'pay') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bills', { room: this, canPay: type === 'pay' }); }
       else if (type === 'rent') this.rentRoom(c, prop);
+      else if (type === 'work') { c.current.waiting = true; c.current.arrived = this.totalMinutes(); const gig = this.hard.gig; if (standing(gig, c.current.arrived) === 'late') floatText(this, c.x, c.headTopY() - 40, 'You are late: pay cut', 22); this.openGame('stack', prop, { crate: gig.crate, title: gig.title }); }
       else if (type === 'use') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'computer' }); }
       else if (type === 'news') this.buyPaper(c);
       else if (type === 'buyphone') this.buyPhone(c);
@@ -362,7 +385,7 @@ export const hardMethods = {
     if (def.perMin) apply(c.needs, Object.fromEntries(Object.entries(def.perMin).map(([k, v]) => [k, v * mins])));
     if ((cur.type === 'eat' || cur.type === 'queue') && !cur.fed) { cur.fed = true; this.eatFrom(c, cur.prop); }
     if (cur.type === 'store' && !cur.fed) { cur.fed = true; this.putAway(c, cur.prop); }
-    if (cur.type === 'labour' && !openNow(cur.prop.def.hours, this.clock.minute) && cur.elapsed < 10) { this.cancelCurrent(c); return; }
+    if (cur.type === 'labour' && !cur.fed) { cur.fed = true; this.takeGig(c); }
     const rested = def.until && Object.entries(def.until).every(([k, v]) => c.needs[k] >= v);
     if (rested || cur.elapsed >= def.minutes) this.finishAction(c);
   },
@@ -389,8 +412,18 @@ export const hardMethods = {
   // The begging mini-game ended: what you collected, and an hour passed.
   hardGameResult(id, result) {
     const c = this.characters.find(x => x.current && x.current.waiting) || this.selected || this.characters[0];
+    const arrived = c && c.current && c.current.arrived;
     if (c && c.current && c.current.waiting) { c.current = null; this.queueDirty = true; }
     if (!result) return;
+    if (id === 'stack' && this.hard.gig) {                                // the shift is done: paid by how well and how punctually
+      const pay = payFor(this.hard.gig, arrived ?? this.totalMinutes(), result.performance);
+      this.hard.gig = null;
+      this.cash += pay; this.updateNav();
+      if (c) { apply(c.needs, Object.fromEntries(Object.entries(SHIFT_DRAIN).map(([k, v]) => [k, v * SHIFT_MINUTES]))); floatText(this, c.x, c.headTopY() - 30, `+$${pay}`, 28); }
+      this.sfx.coin();
+      this.passTime(SHIFT_MINUTES);
+      return;
+    }
     if (result.cash) { this.cash += result.cash; this.updateNav(); if (c) floatText(this, c.x, c.headTopY() - 30, `+$${result.cash}`, 26); }
     if (result.minutes) this.passTime(result.minutes);
   },
@@ -513,6 +546,7 @@ export const hardMethods = {
     this.bagButton = pin(inkButton(this, 720, 108, '🎒 Snack', { w: 112, h: 34, size: 17, fill: COLORS.gold, depth: TEXT_DEPTH, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
     this.shopChip = pin(inkChip(this, 790, 146, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
     this.billChip = pin(inkChip(this, 800, 182, '', { size: 16, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
+    this.gigChip = pin(inkChip(this, 760, 218, '', { size: 15, depth: TEXT_DEPTH, h: 30 })).setVisible(false);
     const px = W - 34 - 6 * 52, disc = pin(this.add.graphics().setDepth(TEXT_DEPTH - 1));
     inkSwatch(disc, px, 30, 25, 0xf8eed8, false, 49);
     this.phoneBtn = pin(this.add.text(px, 30, '📱', { fontSize: '30px' }).setOrigin(0.5).setDepth(TEXT_DEPTH)); this.phoneDisc = disc;
@@ -544,6 +578,9 @@ export const hardMethods = {
     });
     const st = status(c.needs), flags = [st.starving && 'starving', st.hungry && !st.starving && 'hungry', st.exhausted && 'exhausted', st.tired && !st.exhausted && 'tired', st.freezing && 'freezing', st.cold && !st.freezing && 'cold', st.dirty && 'dirty'].filter(Boolean);
     this.nameChip.setText(`${c.name}${flags.length ? ' · ' + flags.join(', ') : ''}  ·  🎒${c.bag.length}/${BAG_CAP} 🧊${this.hard.larder.length}`);
+    const gig = this.hard.gig, nowT = this.totalMinutes();
+    this.gigChip.setVisible(Boolean(gig) && standing(gig, nowT) !== 'gone');
+    if (gig) this.gigChip.setLabel(`🧱 ${gig.title} · ${gig.siteName} by ${timeLabel({ minute: gig.due % 1440 })}${standing(gig, nowT) === 'late' ? ' · LATE' : ''}`);
     const due = this.hard.bills, late = overdue(due, this.clock.day).length;
     this.billChip.setVisible(due.length > 0 && due.every(b => b.seen)).setLabel(`📬 ${due.length} bill${due.length > 1 ? 's' : ''} · $${totalDue(due).toLocaleString('en-US')}${late ? ' · LATE' : ''}`);
     this.props.filter(p => p.def.behaviour === 'mail').forEach(p => p.setState(unseen(due).length > 0));         // the flag goes up when there is post

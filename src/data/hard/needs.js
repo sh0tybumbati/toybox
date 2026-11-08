@@ -31,7 +31,8 @@ export const ACTIONS = {
   rough: { label: 'Sleep rough', icon: '🛏️', minutes: 480, until: { energy: 85 } },       // on a bench
   scavenge: { label: 'Search', icon: '🗑️', minutes: 15, perMin: { hygiene: -0.35, mood: -0.1 } },
   beg:   { label: 'Beg',   icon: '🪙', minutes: 60, minigame: 'beg' },
-  labour: { label: 'Day labour', icon: '🧱', minutes: 240, perMin: { energy: -0.12, hunger: -0.03, hygiene: -0.05 }, pay: 1200 },
+  labour: { label: 'Ask for work', icon: '🧱', minutes: 5 },                         // the board hands you a gig at a place in town
+  work:  { label: 'Work', icon: '🔨', minutes: 180, minigame: 'stack' },             // do it when you get there
   queue: { label: 'Meal line', icon: '🍲', minutes: 20 },
   store: { label: 'Put away', icon: '🧊', minutes: 5 },
   mail:  { label: 'Check mail', icon: '📬', minutes: 3 },

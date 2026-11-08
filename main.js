@@ -26,6 +26,7 @@ import BankScene from './src/scenes/hard/BankScene.js';
 import BegScene from './src/scenes/minigames/BegScene.js';
 import BillsScene from './src/scenes/hard/BillsScene.js';
 import DeviceScene from './src/scenes/hard/DeviceScene.js';
+import StackScene from './src/scenes/minigames/StackScene.js';
 import HopperScene from './src/scenes/minigames/HopperScene.js';
 
 // Every `add.text` without its own font gets the emoji-friendly stack.
@@ -42,6 +43,6 @@ window.__toybox = new Phaser.Game({   // handy for poking at the game from the c
   parent: 'game',
   backgroundColor: '#2b2233',
   input: { touch: true, activePointers: 1 },        // one finger at a time — a toy, not a two-handed game
-  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene, CampScene, ConsoleScene, BubbleScene, MemoryScene, HopperScene, CashierScene, IkeaScene, SettingsScene, AdultGateScene, PinScene, HardSetupScene, BankScene, BegScene, BillsScene, DeviceScene],
+  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene, CampScene, ConsoleScene, BubbleScene, MemoryScene, HopperScene, CashierScene, IkeaScene, SettingsScene, AdultGateScene, PinScene, HardSetupScene, BankScene, BegScene, BillsScene, DeviceScene, StackScene],
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
 });

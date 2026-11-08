@@ -11,6 +11,8 @@ import { sectionAt, zoneInfo, entryZone } from '../../systems/world.js';
 import { SHELF_STEP, SHELF_W } from '../../config.js';
 import { clamp } from '../../util.js';
 import { priceOf } from '../../systems/market.js';
+import { SLOTS } from '../../data/buildings.js';
+import { travelMinutes } from '../../systems/hard/gig.js';
 import { hardPriceOf } from '../../data/hard/food.js';
 import { inStock } from '../../systems/hard/stock.js';
 import { TEX_SIZE, ensureSpriteTexture, spriteImage } from '../../systems/itemTextures.js';
@@ -51,10 +53,12 @@ export const worldMethods = {
       this.characters.forEach(c => { if (c.sleeping) this.wakeUp(c, true); c.goal = null; c.onArrive = null; });
       this.pets.forEach(p => { p.goal = null; });
       flushProps(this);                         // ovens hand back dishes / ingredients
+      const fromSlot = Number(this.zoneKey.split('.')[0]);
       this.leaveZone();
       this.zoneKey = key;
       this.buildZone();
       this.arrive(arrive, connector);
+      if (this.hard && fromSlot !== this.zoneSlot()) { const m = travelMinutes(SLOTS[fromSlot], SLOTS[this.zoneSlot()]); this.passTime(m); this.notice(`🚶 ${m} min`); }       // hard mode: the walk takes time
       this.updateNav();
       this.deliverParcels();
       if (this.zone.sections.some(s => s.type === 'shop')) this.tipEvent('shop'); else this.refreshTip();
