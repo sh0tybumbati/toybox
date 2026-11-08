@@ -280,3 +280,7 @@ Decided with the user (2026-11-08): public places are never bought or built — 
 - **Bank:** the coin ↔ cash exchange moved from the top-bar button to the **Bank** building (a counter, open 09:00–16:00, the `bank` action). Loans, credit cards and a credit rating will live here.
 - **Saves:** schema v13. Kid worlds get the new town (home, park and shop keep their rooms; a house you built stays if its lot is free). Adult games keep their city and gain the bank and the listings. A house you were living in is yours.
 - **Not built yet:** mortgages and credit tiers; landlord (tenants, rent, repairs, evictions); businesses; selling property; the arcade → casino and tighter coin economy; kid-mode coin prices.
+
+## Bags (as built, step 6b)
+
+Everyone starts with pockets (4 slots). The supermarket's **bag rack** sells a backpack (10 slots, $1,500) and a big hiking pack (16 slots, $6,000), per person, upgrade-only. A slot holds one food item or one batch of product you carry (`goods[].by` says who carries it; the lab's Carried toggle refuses when your bag is full). Tap the pockets line on the player card to see the slot grid. Adult saves from before the rack existed get it (and the alley's corner) automatically (`STAPLES` in data/hard/food.js, applied in `sectionProps`). Food that does not fit goes to the household larder.

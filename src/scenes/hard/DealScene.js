@@ -2,7 +2,6 @@
 import { W } from '../../config.js';
 import { CARD, COLORS, TEXT, inkButton, inkPanel } from '../../ui.js';
 import { addHeat, offers, supplies } from '../../systems/hard/alley.js';
-import { BAG_CAP } from '../../data/hard/food.js';
 import { give } from '../../systems/hard/garden.js';
 import { addFood } from '../../systems/hard/pantry.js';
 import { backdrop, leave, text } from './overlay.js';
@@ -49,7 +48,7 @@ export default class DealScene extends Phaser.Scene {
     else if (o.additive) h.adds = give(h.adds, o.additive);
     else if (o.gear) h.gear = give(h.gear, o.gear);
     else if (o.food) {
-      const bag = addFood(c.bag, o.food, r.totalMinutes(), BAG_CAP);
+      const bag = addFood(c.bag, o.food, r.totalMinutes(), r.bagCap(c));
       if (!bag) { r.sfx.nope(); this.note('Your bag is full.'); return; }
       c.bag = bag;
     } else h.phone = true;

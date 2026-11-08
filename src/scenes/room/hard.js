@@ -13,7 +13,8 @@ import { apply, cleanNeeds, newNeeds, status, tick, wantsToDo } from '../../syst
 import { floatText, puff, eat } from '../../systems/interactions.js';
 import { freeSeat } from '../../systems/play.js';
 import { clamp } from '../../util.js';
-import { BAG_CAP, LARDER_CAP, SHOP_HOURS, hardPriceOf } from '../../data/hard/food.js';
+import { LARDER_CAP, PACK_MAX, PACKS, SHOP_HOURS, hardPriceOf } from '../../data/hard/food.js';
+import { carriedBy, foodCap, slotsOf, tierOf } from '../../systems/hard/pack.js';
 import { addFood, expire, store, takeBest, cleanFood } from '../../systems/hard/pantry.js';
 import { deliverIfDue, inStock, newShop, totalStock } from '../../systems/hard/stock.js';
 import { SHOP_ITEMS } from '../../systems/save.js';
@@ -57,7 +58,7 @@ export const hardMethods = {
   initPerson(c) {
     c.needs = this.hard.needs[c.id] ? cleanNeeds(this.hard.needs[c.id]) : newNeeds();
     c.queue = []; c.current = null; c.idleMin = 0; c.collapsed = false;
-    c.bag = cleanFood(this.hard.bags && this.hard.bags[c.id], BAG_CAP);          // food you carry
+    c.bag = cleanFood(this.hard.bags && this.hard.bags[c.id], PACK_MAX);          // food you carry
   },
 
   // What goes into the save.
@@ -216,7 +217,7 @@ export const hardMethods = {
     }
     let kept = 0;
     for (let i = 0; i < count; i++) {
-      const inBag = addFood(c.bag, item, now, BAG_CAP);
+      const inBag = addFood(c.bag, item, now, this.bagCap(c));
       if (inBag) { c.bag = inBag; kept++; continue; }
       const inLarder = addFood(this.hard.larder, item, now, LARDER_CAP);
       if (inLarder) { this.hard.larder = inLarder; kept++; }
@@ -268,7 +269,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell', 'bank'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell', 'bank', 'buypack'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -517,6 +518,7 @@ export const hardMethods = {
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
       else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c, type: prop.type }); }
+      else if (type === 'buypack') { c.current.waiting = true; this.openBag(c, true); }
       else if (type === 'bank') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bank', { room: this }); }
       else if (type === 'sell') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Sell', { room: this, who: c }); }
       else if (type === 'mix') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Lab', { room: this }); }
@@ -610,13 +612,21 @@ export const hardMethods = {
     prop.boing(0.5); this.queueDirty = true;
   },
 
+  // Room in this person's bag for food: the size of the bag they own, less the product batches they carry.
+  bagCap(c) { return foodCap(this.hard.packs, this.hard.goods, c.id); },
+
+  openBag(c, shop = false) {
+    if (this.switching) return;
+    this.scene.pause(); this.scene.launch('Pack', { room: this, who: c || this.selected || this.characters[0], shop });
+  },
+
   // A food item dropped on a person goes in their bag. Returns true if it was taken.
   addToBag(c, item) {
-    const next = addFood(c.bag, item.key, this.totalMinutes(), BAG_CAP);
+    const next = addFood(c.bag, item.key, this.totalMinutes(), this.bagCap(c));
     if (!next) { floatText(this, c.x, c.headTopY() - 30, 'The bag is full', 22); this.sfx.nope(); return false; }
     c.bag = next;
     this.discard(item, { x: c.x, y: c.y, scale: 0.2, duration: 200 });
-    this.sfx.pop(); floatText(this, c.x, c.headTopY() - 30, `🎒 ${c.bag.length}/${BAG_CAP}`, 22);
+    this.sfx.pop(); floatText(this, c.x, c.headTopY() - 30, `🎒 ${c.bag.length + carriedBy(this.hard.goods, c.id)}/${slotsOf(this.hard.packs, c.id)}`, 22);
     this.queueDirty = true;
     return true;
   },
@@ -707,6 +717,7 @@ export const hardMethods = {
     this.needIcons = NEED_KEYS.map((k, i) => add(spriteImage(this, NEED_ICONS[k], X + 40 + i * 62, Y + 92, 24).setDepth(D)));
     // pockets: the bag, the larder and the heat, and a snack button
     this.pocketText = add(this.add.text(X + 18, Y + CH - 33, '', { fontSize: '17px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    add(hitZone(this, X + 110, Y + CH - 24, 210, 34, () => this.openBag(), D + 1));                            // tap your pockets to see the bag
     this.bagButton = add(inkButton(this, X + CW - 66, Y + CH - 26, '🍎 Snack', { w: 104, h: 32, size: 16, fill: COLORS.gold, depth: D, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
     // the clock, the weather and the speed, top right
     const RX = W - 14 - 302, RY = 70;
@@ -751,7 +762,7 @@ export const hardMethods = {
     if (this.moodShown !== shown) { this.moodShown = shown; if (this.moodPill) this.moodPill.destroy(); this.moodPill = pinTo(this.hudL, inkChip(this, X + 78, Y + 54, shown, { size: 15, depth: TEXT_DEPTH, h: 26, seed: 62, fill: flags.length ? 0xf8c8c0 : mood[3] })); this.moodPill.x = X + 78 + this.moodPill.width / 2; }
     this.moodFace.setTexture(ensureSpriteTexture(this, mood[1]));
     this.moodRing.clear().fillStyle(0x4a382c, 0.92).fillCircle(X + 42, Y + 45, 29).fillStyle(mood[2], 1).fillCircle(X + 40, Y + 40, 29).lineStyle(3, INK, 1).strokeCircle(X + 40, Y + 40, 29).fillStyle(0xfff6dc, 1).fillCircle(X + 40, Y + 40, 23);
-    this.pocketText.setText(`🎒 ${c.bag.length}/${BAG_CAP}   🧊 ${this.hard.larder.length}${this.hard.heat ? `   🚨 ${this.hard.heat}` : ''}`);
+    this.pocketText.setText(`🎒 ${c.bag.length + carriedBy(this.hard.goods, c.id)}/${slotsOf(this.hard.packs, c.id)}   🧊 ${this.hard.larder.length}${this.hard.heat ? `   🚨 ${this.hard.heat}` : ''}`);
     const gig = this.hard.gig, nowT = this.totalMinutes();
     this.gigChip.setVisible(Boolean(gig) && standing(gig, nowT) !== 'gone');
     if (gig) this.gigChip.setLabel(`🧱 ${gig.title} · ${gig.siteName} by ${timeLabel({ minute: gig.due % 1440 })}${standing(gig, nowT) === 'late' ? ' · LATE' : ''}`);

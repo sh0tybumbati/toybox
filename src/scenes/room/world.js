@@ -13,7 +13,7 @@ import { clamp } from '../../util.js';
 import { priceOf } from '../../systems/market.js';
 import { SLOTS } from '../../data/buildings.js';
 import { travelMinutes } from '../../systems/hard/gig.js';
-import { hardPriceOf } from '../../data/hard/food.js';
+import { STAPLES, hardPriceOf } from '../../data/hard/food.js';
 import { inStock } from '../../systems/hard/stock.js';
 import { TEX_SIZE, ensureSpriteTexture, spriteImage } from '../../systems/itemTextures.js';
 
@@ -26,7 +26,10 @@ export const worldMethods = {
     const base = defaultLook(ROOMS[sec.type], sec.w), own = this.looks[sec.id];
     return own ? { wall: own.wall || base.wall, floor: own.floor || base.floor, windows: own.windows || base.windows } : base;
   },
-  sectionProps(sec) { return this.propState[sec.id] || defaultFurniture(sec.type, sec.w, sec.extra); },
+  sectionProps(sec) {
+    const list = this.propState[sec.id] || defaultFurniture(sec.type, sec.w, sec.extra), staples = this.hard && STAPLES[sec.type];
+    return staples ? [...list, ...staples.filter(s => !list.some(p => p.type === s.type))] : list;          // (older adult saves get the newer fixtures)
+  },
   floorList(id) { return this.floorState[id] || (this.floorState[id] = []); },
 
   // Put an item into the right room's resting list (used when leaving a zone and by ovens).

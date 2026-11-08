@@ -233,7 +233,7 @@ try {
     await g.room("const c = r.characters[0]; r.queueAction(c, 'tend', window.__bed); r.passTime(10);");
     await wait(900);
     await g.ev(`${S('Bed')}.harvest()`);
-    assert.equal(await g.room("return r.characters[0].bag.filter(f => f.k === 'carrot').length;"), 6, 'five carrots and one extra from the fertiliser');
+    assert.equal(await g.room("return r.characters[0].bag.concat(r.hard.larder).filter(f => f.k === 'carrot').length;"), 6, 'five carrots and one extra from the fertiliser (the bag fills first, the rest go in the larder)');
     await g.ev(`${S('Bed')}.close()`);
     await wait(300);
     // the front door goes out to the road (the map)
@@ -569,6 +569,22 @@ try {
     assert.equal(await g.room('return r.cash;'), cash0 + 400);
     assert.equal(await g.ev(`${S('Bank')}.kid.coins`), 3);
     await g.ev(`(c => { c.scene.resume('Room'); c.scene.stop(); })(${S('Bank')})`);
+  });
+
+  await step('bags: you start with four pockets; the supermarket sells a backpack with ten slots, and the grid shows what you carry', async () => {
+    const keep = await g.room("return { cash: r.cash, packs: r.hard.packs };");
+    assert.equal(await g.room('return r.bagCap(r.characters[0]);'), 4, 'pockets');
+    await g.room("r.cash = 5000; r.clock.minute = 600; r.goToZone('2.0');"); await wait(1500);
+    assert.ok(await g.room("return r.props.some(p => p.type === 'packrack');"), 'the supermarket has a bag rack');
+    await g.room("const c = r.characters[0]; c.x = 480; c.lane = 520; r.queueAction(c, 'buypack', r.props.find(p => p.type === 'packrack'));");
+    for (let i = 0; i < 40 && !(await active('Pack')); i++) await wait(500);
+    assert.ok(await active('Pack'), 'the rack opens the bag shop');
+    await wait(400);
+    await g.ev(`(s => s.buy('backpack', ''))(${S('Pack')})`);
+    assert.equal(await g.room('return r.bagCap(r.characters[0]);'), 10, 'a backpack holds ten');
+    assert.equal(await g.room('return r.cash;'), 3500);
+    await g.ev(`(c => { c.scene.resume('Room'); c.scene.stop(); })(${S('Pack')})`);
+    await g.room(`r.hard.packs = ${JSON.stringify(keep.packs || {})}; r.cash = ${keep.cash}; r.characters[0].current = null;`);
   });
 
   await step('property: houses are for sale on the map, buying one makes it yours to rebuild and move into; public places cannot be changed', async () => {

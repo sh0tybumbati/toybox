@@ -14,7 +14,20 @@ export const SHELF_LIFE = {
 export const shelfLifeOf = key => SHELF_LIFE[key] ?? 4;
 export const FRIDGE_MULT = 2;
 
-export const BAG_CAP = 8;                // what a person carries
+export const BAG_CAP = 4;                // pockets: what a person carries with no bag
+// Bags you can buy at the supermarket (each person has their own). Carried product takes a slot per batch, like food.
+export const PACKS = {
+  pockets: { label: 'Pockets', slots: BAG_CAP, price: 0 },
+  backpack: { label: 'Backpack', slots: 10, price: 1500 },
+  bigpack: { label: 'Big hiking pack', slots: 16, price: 6000 },
+};
+export const PACK_IDS = Object.keys(PACKS);
+export const PACK_MAX = Math.max(...PACK_IDS.map(k => PACKS[k].slots));
+// Things a place always has in adult mode, even in a save from before they existed: building type -> furniture.
+export const STAPLES = {
+  market: [{ type: 'packrack', x: 720, y: 540 }],
+  alley: [{ type: 'corner', x: 860, y: 520 }],
+};
 export const LARDER_CAP = 24;            // the household's fridge + pantry
 
 export const SHOP_HOURS = [[7, 22]];     // shops open 07:00-22:00

@@ -502,6 +502,15 @@ export const PROP_TYPES = {
       g.fillStyle(0x4a3426, 1).fillRect(-24, -60, 48, 3);
     },
   },
+  packrack: {
+    name: 'Bag Rack', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['buypack'], hours: [[7, 22]], w: 120, h: 130, blurb: 'Bags and backpacks',
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRect(-50, -60, 8, 112).fillRect(42, -60, 8, 112).fillRect(-50, -60, 100, 8);        // the rack
+      g.fillStyle(0xe5685c, 1).fillRoundedRect(-40, -48, 34, 48, 10);                                                 // a red pack
+      g.fillStyle(0x6fb4ea, 1).fillRoundedRect(4, -48, 38, 58, 10);                                                   // a blue one
+      g.fillStyle(0xf0c868, 1).fillRect(-34, -30, 22, 5).fillRect(10, -30, 26, 5);
+    },
+  },
   teller: {
     name: 'Bank Counter', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['bank'], hours: [[9, 16]], w: 190, h: 120, blurb: 'Swap coins and cash',
     draw(g) {
