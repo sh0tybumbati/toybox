@@ -139,6 +139,12 @@ export function paintOutdoor(g, kind) {
     }
     pen.fillStyle(0x9a6238, 1).fillRoundedRect(330, 508, 90, 22, 10).fillRoundedRect(560, 512, 96, 22, 10);
     paintTree(g, 60, 430, 3.4, 19); paintTree(g, 880, 430, 3.0, 20); paintBush(g, 480, 440, 2.4, 21);
+  } else if (kind === 'garden') {                                                   // a back garden: a fence along the back, a lawn and flower borders
+    for (let x = 0; x < W; x += 56) {
+      pen.fillStyle(0xb98b5c, 1).fillRoundedRect(x + 4, WALL_H - 74, 46, 96, 5);
+      pen.fillStyle(0x9a6f45, 1).fillTriangle(x + 4, WALL_H - 74, x + 27, WALL_H - 92, x + 50, WALL_H - 74);
+    }
+    paintBush(g, 330, 442, 2.2, 23); paintBush(g, 560, 440, 2.4, 24); paintTree(g, 880, 430, 2.8, 25);
   } else if (kind === 'park') {
     paintTree(g, 335, 430, 3.4, 11); paintTree(g, 640, 430, 3.0, 12); paintBush(g, 200, 440, 2.4, 13); paintBush(g, 830, 442, 2.8, 14);
   } else {

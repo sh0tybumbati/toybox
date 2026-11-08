@@ -203,6 +203,46 @@ try {
     await g.room('r.hard.autonomy = true;');
   });
 
+  await step('gardening: the Garden Centre sells seeds and gear; a bed takes a seed, needs water, and gives food; the front door leads out to the map', async () => {
+    await g.room("r.hard.autonomy = false; r.setSpeed(1); r.characters.forEach(c => { r.cancelCurrent(c); c.queue = []; c.bag = []; }); r.hard.larder = []; r.cash = 1000; r.clock.day = 21; r.clock.minute = 10 * 60;");
+    const slot = await g.room("return r.city.findIndex(b => b && b.name === 'Garden Centre');");
+    assert.ok(slot >= 0, 'there is a Garden Centre on the map');
+    await g.room(`r.goToZone('${slot}.0');`);
+    await wait(2200);
+    await g.room("const c = r.characters[0], p = r.props.find(q => q.type === 'seedrack'), f = r.frontOf(p); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'buyseeds', p); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Nursery'), 'the seed rack opens the Garden Centre');
+    await g.ev(`(s => { s.buy({ id: 'carrot', pack: true, price: 30 }); s.buy({ id: 'fert', price: 100 }); })(${S('Nursery')})`);
+    assert.deepEqual(await g.room('return [r.hard.seeds.carrot, r.hard.gear.fert, r.cash];'), [1, 1, 870]);
+    await g.ev(`${S('Nursery')}.close()`);
+    await wait(400);
+    // a bed in the park: plant, grow, harvest
+    await g.room("r.goToZone('0.0');");
+    await wait(2200);
+    await g.room("r.hard.home = { tier: 'flat', slot: 0 }; r.addFurniture('gardenbed');");
+    await g.room("const c = r.characters[0], p = r.props.find(q => q.type === 'gardenbed'), f = r.frontOf(p); window.__bed = p; window.__key = r.bedKey(p); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'tend', p); r.passTime(10);");
+    await wait(900);
+    assert.ok(await active('Bed'), 'tending opens the bed ' + JSON.stringify(await g.room("const c = r.characters[0]; return [r.zoneKey, r.props.map(p => p.type + '@' + Math.round(p.x)).join(), c.x, c.lane, c.current && c.current.type, c.current && c.current.phase, c.queue.length, r.canDo('tend', window.__bed, c)];")));
+    await g.ev(`${S('Bed')}.plant('carrot')`);
+    assert.deepEqual(await g.room('const b = r.hard.beds[window.__key]; return [b.crop, b.fert, r.hard.seeds.carrot || 0];'), ['carrot', true, 0], 'planted, fertilised, the packet used');
+    await g.ev(`${S('Bed')}.close()`);
+    await wait(300);
+    for (let i = 0; i < 4; i++) await g.room(`r.hard.beds[window.__key] = { ...r.hard.beds[window.__key], water: 100 }; r.daily(r.clock.day + ${i});`);
+    assert.equal(await g.room('return window.__bed.state;'), 'ready:carrot', 'the carrots are ready and drawn that way');
+    await g.room("const c = r.characters[0]; r.queueAction(c, 'tend', window.__bed); r.passTime(10);");
+    await wait(900);
+    await g.ev(`${S('Bed')}.harvest()`);
+    assert.equal(await g.room("return r.characters[0].bag.filter(f => f.k === 'carrot').length;"), 6, 'five carrots and one extra from the fertiliser');
+    await g.ev(`${S('Bed')}.close()`);
+    await wait(300);
+    // the front door goes out to the road (the map)
+    await g.room("const c = r.characters[0], d = r.props.find(q => q.type === 'frontdoor'), f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'out', d); r.passTime(5);");
+    await wait(900);
+    assert.ok(await active('Hub'), 'the front door opens the map');
+    await g.ev(`${S('Hub')}.close ? ${S('Hub')}.close() : 0`);
+    await g.room('r.hard.autonomy = true;');
+  });
+
   await step('night follows the clock and the kid tips are off', async () => {
     await g.room('r.clock.minute = 21 * 60;');
     await wait(1200);

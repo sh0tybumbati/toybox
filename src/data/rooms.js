@@ -132,6 +132,22 @@ export const ROOMS = {
     ],
     draw(g) { paintOutdoor(g, 'playground'); },
   },
+  garden: {
+    label: '🌻 Garden',
+    outdoor: true,
+    buildable: true,
+    openSky: true,
+    shelves: [],
+    props: [{ type: 'tree', x: 90, y: 480 }, { type: 'bench', x: 700, y: 484 }],
+    draw(g) { paintOutdoor(g, 'garden'); },
+  },
+  nursery: {
+    label: '🪴 Garden Centre',
+    style: { wall: 'mintTiles', floor: 'oak' },
+    shelves: [],
+    props: [{ type: 'seedrack', x: 300, y: 470 }, { type: 'dumpster', x: 700, y: 540 }, { type: 'lightswitch', x: 890, y: 168 }],
+    windows: [{ x: 560, y: 60, w: 200, h: 110 }],
+  },
   // A blank canvas for building from scratch.
   empty: {
     label: '⬜ Empty room',

@@ -223,3 +223,15 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 ## 7. Still open
 Asked in conversation as we go: faction/territory mechanics on the map, weapons list and skill trees, the legal-career ladder vs crime balance,
 the fictional substance catalogue (names, effects, art), district list and look, phone apps, accessibility and content-warning wording, difficulty presets.
+
+## Gardening, the front door and the plant trade (as built, step 1)
+
+Decisions (user): the alley starts the dark supply chain; customers are **named townspeople** (relationships, not anonymous); **addiction can hit household members too**; wear and maintenance (slice 4) comes **after** the trade. Grow gear is sold openly at the **Garden Centre**, next to ordinary seeds; the alley sells only the invented "dark" seeds.
+
+Built:
+- **Front door**: the leftmost room of a home has a `frontdoor` prop (a glass pane shows kerb and road). It is the road side; the **garden** (outdoor room, fenced, open sky) is at the back, last on the ground floor. Using the door opens the map.
+- **Garden Centre** (`nursery` room, its own lot in every scenario): `seedrack` opens the Nursery scene — seed packets (carrot, tomato, potato, berry, corn) and fertiliser. Hours 08:00-18:00.
+- **Garden beds** (`gardenbed`, hard-only): plant a packet, water it (soil loses 40 a day, rain refills it), a dry bed stops growing and withers after two dry days, ready crops are harvested into the bag then the larder. Fertiliser = one extra crop. State is kept in `hard.beds` (keyed `lot:x`), `hard.seeds`, `hard.gear`.
+- Code: `data/hard/plants.js`, `systems/hard/garden.js` (pure, tested), `scenes/hard/NurseryScene.js`, `BedScene.js`.
+
+Still to build (the chain): grow tent + lamp (indoor, hidden, power bill spike) from the Garden Centre; invented plants and their seeds from the alley contact; a lab bench to mix plants with additives into named products (potency, purity, side effects); packaging and stashes (boxes, backpacks); named townsperson customers with tastes, debts and addiction (household members can be hooked too); heat → police raids; rival crews.

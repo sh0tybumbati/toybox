@@ -24,6 +24,7 @@ import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
 import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
 import { SLOTS } from '../../data/buildings.js';
 import { decayHeat } from '../../systems/hard/alley.js';
+import { harvestOf, stage, tickBeds } from '../../systems/hard/garden.js';
 import { shelvesFor } from '../../data/rooms.js';
 import { COLORS, TEXT, hitZone, inkButton, inkChip, inkPanel, inkSwatch, pin, touchable } from '../../ui.js';
 import { INK, inkFill, wobblyPoly, rectPoints } from '../../data/ink.js';
@@ -32,7 +33,7 @@ const TEXT_DEPTH = 10000;
 const BAR_COLORS = { hunger: 0xe8913a, energy: 0x6aaee8, hygiene: 0x6fd0c0, warmth: 0xf08060, mood: 0xf5c14a };
 const NEED_ICONS = { hunger: '🍎', energy: '⚡', hygiene: '🚿', warmth: '🔥', mood: '🙂' };
 const NEED_KEYS = ['hunger', 'energy', 'hygiene', 'warmth', 'mood'];
-const HOME_ROOMS = ['kitchen', 'living', 'bedroom', 'motel'];            // rooms that belong to whoever lives there
+const HOME_ROOMS = ['kitchen', 'living', 'bedroom', 'motel', 'garden'];            // rooms that belong to whoever lives there
 const IDLE_BEFORE_FREE_WILL = 10;                      // game minutes standing around before someone decides for themselves
 
 export const hardMethods = {
@@ -61,7 +62,7 @@ export const hardMethods = {
     const mins = gameMinutes(dt, this.speed);
     if (mins > 0) this.stepGame(mins);
     this.hudTimer = (this.hudTimer || 0) + dt;
-    if (this.hudTimer > 0.25 || this.queueDirty) { this.hudTimer = 0; this.refreshHardHud(); }
+    if (this.hudTimer > 0.25 || this.queueDirty) { this.hudTimer = 0; this.refreshHardHud(); this.refreshBeds(); }
     this.drawWeather(dt);
   },
 
@@ -90,8 +91,33 @@ export const hardMethods = {
       if (e.type === 'evicted') { this.notice('🔒 Evicted! The locks have been changed'); this.sfx.nope(); }
     }
     this.hard.heat = decayHeat(this.hard.heat, 1);                       // attention fades
+    const sky = weatherAt(day, 600).kind;
+    this.hard.beds = tickBeds(this.hard.beds, sky === 'rain' || sky === 'snow');          // the gardens grow (rain waters them)
+    this.refreshBeds();
     this.updateNav();
     this.queueDirty = true;
+  },
+
+  // Garden beds: each is identified by its lot and where it stands; the drawing follows the plant.
+  bedKey(prop) { return `${this.zoneSlot()}:${Math.round(prop.x)}`; },
+  refreshBeds() {
+    for (const p of this.props) if (p.type === 'gardenbed' && p.active) { const b = this.hard.beds[this.bedKey(p)]; p.setState(`${stage(b)}:${b ? b.crop : ''}`); }
+  },
+
+  // The crop comes home: into the bag, then the larder, and anything that does not fit is left to rot.
+  harvestBed(key, c) {
+    const bed = this.hard.beds[key];
+    if (!bed || stage(bed) !== 'ready') return;
+    const { item, count } = harvestOf(bed), now = this.totalMinutes();
+    let kept = 0;
+    for (let i = 0; i < count; i++) {
+      const inBag = addFood(c.bag, item, now, BAG_CAP);
+      if (inBag) { c.bag = inBag; kept++; continue; }
+      const inLarder = addFood(this.hard.larder, item, now, LARDER_CAP);
+      if (inLarder) { this.hard.larder = inLarder; kept++; }
+    }
+    delete this.hard.beds[key];
+    floatText(this, c.x, c.headTopY() - 30, `+${kept} ${item}${kept < count ? ' (no room for the rest)' : ''}`, 22);
   },
 
   // The lot we are standing in, and whether a piece of furniture belongs to a home that isn't ours.
@@ -136,7 +162,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -305,6 +331,7 @@ export const hardMethods = {
     if (action === 'eat' && !this.hard.larder.length && !c.bag.length) return { ok: false, why: 'Nothing to eat: buy food at the shop' };
     if (action === 'store' && !c.bag.length) return { ok: false, why: 'Nothing in your bag' };
     if (action === 'store' && this.hard.larder.length >= LARDER_CAP) return { ok: false, why: 'The larder is full' };
+    if (action === 'buyseeds' && !openNow(hours, this.clock.minute)) return { ok: false, why: 'Closed' };
     if (action === 'sleep' && prop.sleeper) return { ok: false, why: 'Someone is in it' };
     if ((action === 'sit' || action === 'rough') && !freeSeat(prop.def.ride, prop.riders.map(r => r.riding))) return { ok: false, why: 'Taken' };
     if (action === 'labour' && this.hard.gig && standing(this.hard.gig, this.totalMinutes()) !== 'gone') return { ok: false, why: `You already have a gig at ${this.hard.gig.siteName}` };
@@ -369,6 +396,9 @@ export const hardMethods = {
       else if (type === 'rent') this.rentRoom(c, prop);
       else if (type === 'work') { c.current.waiting = true; c.current.arrived = this.totalMinutes(); const gig = this.hard.gig; if (standing(gig, c.current.arrived) === 'late') floatText(this, c.x, c.headTopY() - 40, 'You are late: pay cut', 22); this.openGame('stack', prop, { crate: gig.crate, title: gig.title }); }
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
+      else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
+      else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c }); }
+      else if (type === 'buyseeds') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Nursery', { room: this }); }
       else if (type === 'use') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Device', { room: this, kind: 'computer' }); }
       else if (type === 'news') this.buyPaper(c);
       else if (type === 'buyphone') this.buyPhone(c);

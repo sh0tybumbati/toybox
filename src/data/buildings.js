@@ -48,6 +48,11 @@ export const BLUEPRINTS = {
     exterior: { wall: 'meadow', trim: 'white', roofStyle: 'none', roofColor: 'terracotta' },
     floors: [{ id: 0, rooms: [room(0, 'park'), room(1, 'playground')] }],
   },
+  nursery: {                                  // hard mode only: seeds and garden gear
+    name: 'Garden Centre', cost: null, unique: true,
+    exterior: { wall: 'mint', trim: 'white', roofStyle: 'gable', roofColor: 'forest' },
+    floors: [{ id: 0, rooms: [room(0, 'nursery')] }],
+  },
   shop: {
     name: 'Shop', cost: null, unique: true,
     exterior: { wall: 'blush', trim: 'white', roofStyle: 'flat', roofColor: 'berry' },

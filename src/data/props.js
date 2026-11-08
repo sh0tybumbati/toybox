@@ -357,6 +357,43 @@ export const PROP_TYPES = {
       g.fillStyle(0x8cc4f4, 1).fillRect(-3, -42, 6, 34).fillTriangle(-9, -42, 9, -42, 0, -56);   // the spout
     },
   },
+  frontdoor: {
+    name: 'Front Door', cat: 'home', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['out'], w: 112, h: 230, blurb: 'The road is out here',
+    draw(g) {
+      g.fillStyle(0x7a4a2e, 1).fillRoundedRect(-50, -108, 100, 216, 6);                       // the door
+      g.fillStyle(0x93603c, 1).fillRoundedRect(-40, -98, 80, 196, 4);
+      g.fillStyle(0xbfe3f2, 1).fillRoundedRect(-28, -86, 56, 70, 4);                          // a glass pane: the road shows through
+      g.fillStyle(0x6c6f78, 1).fillRect(-28, -42, 56, 26);                                    // tarmac
+      g.fillStyle(0xe8e2c0, 1).fillRect(-22, -30, 14, 4).fillRect(2, -30, 14, 4);             // road markings
+      g.fillStyle(0xb9b3a4, 1).fillRect(-28, -48, 56, 6);                                     // the kerb
+      g.fillStyle(0xf5c14a, 1).fillCircle(32, 6, 5);                                          // the handle
+      g.fillStyle(0xf1ebdc, 1).fillRoundedRect(-14, -102, 28, 14, 3);                         // house number
+      g.fillStyle(0x6b5648, 1).fillRoundedRect(-44, 106, 88, 10, 4);                          // doormat
+    },
+  },
+  gardenbed: {
+    name: 'Garden Bed', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['tend'], w: 170, h: 90, blurb: 'Grow food',
+    draw(g, st) {
+      const [stageName, crop] = (typeof st === 'string' ? st : 'empty').split(':');
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-80, -4, 160, 54, 8);                          // the frame
+      g.fillStyle(0x5a3b28, 1).fillRoundedRect(-72, -12, 144, 48, 6);                         // the soil
+      if (stageName === 'empty') return;
+      const tall = { seed: 4, growing: 22, ready: 38, dead: 10 }[stageName] ?? 4, col = stageName === 'dead' ? 0x9a8a5a : 0x4fa14a;
+      for (let i = 0; i < 5; i++) {
+        g.fillStyle(col, 1).fillTriangle(-56 + i * 28, -8, -48 + i * 28, -8 - tall, -40 + i * 28, -8);
+        if (stageName === 'ready') g.fillStyle({ carrot: 0xf08a2f, tomato: 0xe5484d, potato: 0xc9a56a, berry: 0x5a6fd0, corn: 0xf5d24a }[crop] || 0xf08a2f, 1).fillCircle(-48 + i * 28, -8 - tall - 4, 6);
+      }
+    },
+  },
+  seedrack: {
+    name: 'Seed Rack', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['buyseeds'], hours: [[8, 18]], w: 150, h: 150, blurb: 'Seeds and garden gear',
+    draw(g) {
+      g.fillStyle(0x8a5e3b, 1).fillRoundedRect(-62, -66, 124, 122, 6);                        // the rack
+      g.fillStyle(0xf1ebdc, 1).fillRect(-54, -56, 108, 8).fillRect(-54, -18, 108, 8).fillRect(-54, 20, 108, 8);
+      [0xf08a2f, 0xe5484d, 0xc9a56a, 0x5a6fd0, 0xf5d24a].forEach((c, i) => { g.fillStyle(c, 1).fillRoundedRect(-52 + i * 22, -52, 18, 26, 3); g.fillStyle(0x4fa14a, 1).fillRoundedRect(-52 + i * 22, -14, 18, 26, 3); });
+      g.fillStyle(0x4fa14a, 1).fillRoundedRect(-52, 24, 50, 24, 4);                           // a bag of feed
+    },
+  },
   dumpster: {
     name: 'Dumpster', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['scavenge'], w: 118, h: 104, blurb: 'Search it',
     draw(g) {

@@ -35,6 +35,8 @@ import { cleanNeeds } from './hard/needs.js';
 import { cleanFood } from './hard/pantry.js';
 import { cleanBills, cleanHome } from './hard/bills.js';
 import { cleanGig } from './hard/gig.js';
+import { cleanBeds, cleanStock } from './hard/garden.js';
+import { CROP_IDS, GEAR_IDS } from '../data/hard/plants.js';
 import { cleanShop } from './hard/stock.js';
 import { BAG_CAP, LARDER_CAP } from '../data/hard/food.js';
 import { registerToys, sanitizeToy } from '../data/toys.js';
@@ -122,6 +124,9 @@ export function sanitizeHard(raw) {
     deals: raw.deals && Number.isFinite(raw.deals.day) && raw.deals.counts && typeof raw.deals.counts === 'object'
       ? { day: Math.floor(raw.deals.day), counts: Object.fromEntries(Object.entries(raw.deals.counts).slice(0, 10).filter(([, n]) => Number.isFinite(n)).map(([k, n]) => [String(k).slice(0, 12), clamp(Math.floor(n), 0, 99)])) } : null,       // what the contact has sold today
     heat: ok(raw.heat) ? clamp(Math.floor(raw.heat), 0, 100) : 0,       // attention you have drawn (fades daily)
+    seeds: cleanStock(raw.seeds, CROP_IDS),                   // seed packets in the household
+    gear: cleanStock(raw.gear, GEAR_IDS),                     // fertiliser and the like
+    beds: cleanBeds(raw.beds),                                // garden plots, keyed 'lot:x'
     gig: cleanGig(raw.gig),                                   // the day-labour job you have been given (null = none)
     phone: Boolean(raw.phone),                                // you have a phone (it can be stolen)
     home: cleanHome(raw.home),                                // where you live (null = nowhere)
