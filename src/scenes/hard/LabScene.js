@@ -61,6 +61,7 @@ export default class LabScene extends Phaser.Scene {
       const y = 214 + i * 54;
       keep(text(this, 190, y - 18, `${g.name} · ${g.units} units`, 19, { fontStyle: 'bold' }).setDepth(8));
       keep(text(this, 190, y + 3, `Potency ${g.potency} · Purity ${g.purity}%${g.effects.length ? ' · calming' : ''}`, 14, { color: '#7a6a58' }).setDepth(8));
+      keep(inkButton(this, 520, y - 4, g.at === 'carry' ? '🎒 Carried' : '🏠 At home', { w: 130, h: 32, size: 15, fill: g.at === 'carry' ? COLORS.orange : COLORS.grey, depth: 9, seed: 270 + i, onTap: () => { h.goods = h.goods.map((x, n) => (n === i ? { ...x, at: x.at === 'carry' ? 'home' : 'carry' } : x)); this.build(); } }));
       keep(inkButton(this, 690, y - 4, `Use 1 (${c.name.split(' ')[0]})`, { w: 170, h: 32, size: 15, fill: COLORS.orange, depth: 9, seed: 260 + i, onTap: () => { r.useProduct(c, i); r.sfx.pop(); this.build(); } }));
     });
   }
@@ -78,7 +79,7 @@ export default class LabScene extends Phaser.Scene {
     const left = p && spend(h.raw, h.adds, this.crop, this.count, this.picked);
     if (!left || h.goods.length >= GOODS_CAP) { r.sfx.nope(); return; }
     h.raw = left.raw; h.adds = left.adds;
-    h.goods = [...h.goods, p];
+    h.goods = [...h.goods, { ...p, at: 'home' }];
     h.heat = addHeat(h.heat, MIX_HEAT);
     this.picked = [];
     r.passTime(MIX_MINUTES); r.dirty = true; r.sfx.ding(); r.updateNav();

@@ -24,14 +24,15 @@ export default class SellScene extends Phaser.Scene {
     this.dyn = [];
     const keep = o => { this.dyn.push(o); return o; }, r = this.room, h = r.hard, day = r.clock.day;
     const here = atCorner(h.custs, day, h.phone);
-    this.batch = Math.min(this.batch, Math.max(0, h.goods.length - 1));
-    const p = h.goods[this.batch];
+    const carried = h.goods.map((g, i) => (g.at === 'carry' ? i : -1)).filter(i => i >= 0);
+    this.batch = Math.min(this.batch, Math.max(0, carried.length - 1));
+    const p = h.goods[carried[this.batch]];
     keep(text(this, W / 2, 166, `Cash: $${r.cash.toLocaleString('en-US')}${h.heat ? `   ·   🚨 Heat ${h.heat}` : ''}`, 19, { color: '#7a6a58' }).setOrigin(0.5));
     if (p) {
-      keep(inkButton(this, 250, 200, `◀`, { w: 40, h: 30, size: 16, fill: COLORS.grey, depth: 6, seed: 270, onTap: () => { this.batch = (this.batch + h.goods.length - 1) % h.goods.length; this.build(); } }));
-      keep(inkButton(this, 710, 200, `▶`, { w: 40, h: 30, size: 16, fill: COLORS.grey, depth: 6, seed: 271, onTap: () => { this.batch = (this.batch + 1) % h.goods.length; this.build(); } }));
+      keep(inkButton(this, 250, 200, `◀`, { w: 40, h: 30, size: 16, fill: COLORS.grey, depth: 6, seed: 270, onTap: () => { this.batch = (this.batch + carried.length - 1) % carried.length; this.build(); } }));
+      keep(inkButton(this, 710, 200, `▶`, { w: 40, h: 30, size: 16, fill: COLORS.grey, depth: 6, seed: 271, onTap: () => { this.batch = (this.batch + 1) % carried.length; this.build(); } }));
       keep(text(this, W / 2, 200, `${p.name} · ${p.units} units · potency ${p.potency} · purity ${p.purity}%${p.effects.length ? ' · calming' : ''}`, 17, { fontStyle: 'bold' }).setOrigin(0.5));
-    } else keep(text(this, W / 2, 200, 'You have nothing to sell.', 18, { color: '#b0584e' }).setOrigin(0.5));
+    } else keep(text(this, W / 2, 200, 'Nothing on you to sell: carry a batch from the bench.', 18, { color: '#b0584e' }).setOrigin(0.5));
     if (!here.length) keep(text(this, W / 2, 330, 'Nobody is waiting tonight.', 22, { color: '#7a6a58' }).setOrigin(0.5));
     here.forEach((id, i) => {
       const cu = CUSTOMERS[id], st = h.custs[id], y = 252 + i * 62, want = stillWants(id, st, day), o = p ? offer(id, st, p) : null, stage = stageOf(st.hook);
@@ -48,12 +49,12 @@ export default class SellScene extends Phaser.Scene {
   }
 
   sell(id, credit) {
-    const r = this.room, h = r.hard, p = h.goods[this.batch], st = h.custs[id];
+    const r = this.room, h = r.hard, carried = h.goods.map((g, i) => (g.at === 'carry' ? i : -1)).filter(i => i >= 0), at = carried[this.batch], p = h.goods[at], st = h.custs[id];
     if (!p) { r.sfx.nope(); return; }
     const out = sell(id, st, p, p.units, r.clock.day, credit);
     if (!out.sold) { r.sfx.nope(); return; }
     h.custs[id] = out.st;
-    h.goods = out.sold >= p.units ? h.goods.filter((_, i) => i !== this.batch) : h.goods.map((g, i) => (i === this.batch ? { ...g, units: g.units - out.sold } : g));
+    h.goods = out.sold >= p.units ? h.goods.filter((_, i) => i !== at) : h.goods.map((g, i) => (i === at ? { ...g, units: g.units - out.sold } : g));
     r.cash += out.cash; h.heat = addHeat(h.heat, SELL_HEAT);
     r.passTime(5); r.updateNav(); r.dirty = true; r.sfx.coin();
     this.build();

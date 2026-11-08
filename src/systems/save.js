@@ -39,6 +39,7 @@ import { cleanBeds, cleanStock } from './hard/garden.js';
 import { CROP_IDS, GEAR_IDS } from '../data/hard/plants.js';
 import { ADDITIVE_IDS } from '../data/hard/lab.js';
 import { cleanGoods } from './hard/lab.js';
+import { HIDE_IDS } from '../data/hard/police.js';
 import { cleanCusts } from './hard/customers.js';
 import { cleanHabits } from './hard/habit.js';
 import { cleanShop } from './hard/stock.js';
@@ -134,6 +135,7 @@ export function sanitizeHard(raw) {
     raw: cleanStock(raw.raw, CROP_IDS),                       // harvested plants that are not food
     adds: cleanStock(raw.adds, ADDITIVE_IDS),                 // additives for the bench
     goods: cleanGoods(raw.goods),                             // finished product waiting to be sold
+    hides: Object.fromEntries(HIDE_IDS.filter(k => raw.hides && raw.hides[k] === true).map(k => [k, true])),          // hiding places bought
     custs: cleanCusts(raw.custs),                             // the six regular customers: trust, hook, what they owe
     hooks: cleanHabits(raw.hooks, Object.keys(raw.needs && typeof raw.needs === 'object' ? raw.needs : {})),       // each household member's habit
     power: ok(raw.power) ? clamp(Math.floor(raw.power), 0, 1e7) : 0,                 // grow-lamp power waiting to land on the next utilities bill                                // garden plots, keyed 'lot:x'

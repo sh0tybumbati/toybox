@@ -61,6 +61,7 @@ try {
     await wait(300);
   });
 
+  await g.room('r.policeRng = () => 1;');                       // random patrols would make the other steps flaky
   await step('the clock and needs: time passes at three speeds, needs decay, nobody hungry stays hungry, you can queue orders', async () => {
     const t0 = await g.room('return { day: r.clock.day, minute: r.clock.minute, hunger: r.characters[0].needs.hunger, speed: r.speed };');
     assert.equal(t0.speed, 1);
@@ -316,7 +317,7 @@ try {
   await step('customers: named townspeople turn up at the corner, pay by taste, build trust and get hooked; texts arrive on the phone; using it yourself drains your needs', async () => {
     await g.room("r.hard.autonomy = false; r.hard.phone = true; r.cash = 1000; r.hard.heat = 0; r.clock.day = 40; r.clock.minute = 22 * 60; r.hard.hooks = {};");
     await g.room("r.hard.custs = Object.fromEntries(['marta', 'dex', 'pip', 'odalys', 'rufus', 'jo'].map(id => [id, { trust: 3, hook: 0, owes: 0, bought: { day: -1, units: 0 }, last: -99 }]));");
-    await g.room("r.hard.goods = [{ crop: 'nightbloom', name: 'Amberdust', potency: 9, purity: 80, units: 6, effects: [], adds: ['amber'] }];");
+    await g.room("r.hard.goods = [{ crop: 'nightbloom', at: 'carry', name: 'Amberdust', potency: 9, purity: 80, units: 6, effects: [], adds: ['amber'] }];");
     const slot = await g.room("return r.city.findIndex(b => b && b.name === 'Back Alley');");
     await g.room(`r.goToZone('${slot}.0');`);
     await wait(2500);
@@ -346,6 +347,64 @@ try {
     await g.room("const id = r.characters[0].id; r.hard.hooks[id] = { hook: 50, last: 0 }; r.characters[0].needs.mood = 70; r.daily(r.clock.day + 1);");
     assert.ok(await g.room('const n = r.characters[0].needs; return n.mood < 70 && r.hard.hooks[r.characters[0].id].hook < 50;'), 'a day without: withdrawal, and the hook eases a little');
     await g.room('r.hard.hooks = {}; r.hard.autonomy = true;');
+  });
+
+  await step('the police: a patrol stop (comply, bribe, run), a raid on the home, arrest, plea or trial, and a sentence that costs days', async () => {
+    const offi = "{ name: 'Officer Ilves', strict: 0.4, line: 'Hold up a second, friend.' }";
+    await g.room("r.hard.autonomy = false; r.policeRng = () => 0; r.hard.record = false; r.hard.heat = 60; r.cash = 20000; r.hard.hides = {}; r.hard.bills = []; r.hard.gig = null; r.hard.home = { tier: 'flat', slot: 0, next: 999 }; r.hard.goods = [{ crop: 'nightbloom', at: 'carry', name: 'Amberdust', potency: 9, purity: 80, units: 3, effects: [], adds: [] }, { crop: 'nightbloom', at: 'home', name: 'Plain nightbloom', potency: 6, purity: 85, units: 2, effects: [], adds: [] }];");
+    const park = await g.room("return r.city.findIndex(b => b && b.name === 'The Park');");
+    await g.room(`r.goToZone('${park}.0');`);
+    await wait(2500);
+    // a stop where you comply and are searched
+    await g.room(`r.policeEvent = { kind: 'stop', officer: ${offi} };`);
+    await wait(900);
+    assert.ok(await active('Police'), 'the patrol stops you');
+    await g.ev(`${S('Police')}.comply([0])`);
+    assert.deepEqual(await g.room('return [r.hard.goods.length, r.hard.goods[0].at];'), [1, 'home'], 'the carried batch is seized, the one at home is not');
+    assert.equal(await g.ev(`${S('Police')}.stage`), 'arrest');
+    await g.ev(`${S('Police')}.finish(0)`);
+    await wait(300);
+    // a bribe that works (rng 0 always passes), then one that fails (rng 1)
+    await g.room(`r.hard.goods = [{ crop: 'nightbloom', at: 'carry', name: 'Amberdust', potency: 9, purity: 80, units: 3, effects: [], adds: [] }]; r.cash = 20000; r.hard.heat = 60; r.policeEvent = { kind: 'stop', officer: ${offi} };`);
+    await wait(900);
+    await g.ev(`${S('Police')}.bribe([0], 1500)`);
+    assert.deepEqual(await g.room('return [r.cash, r.hard.goods.length];'), [18500, 1], 'the bribe worked: you keep the goods, lose the cash');
+    await g.ev(`${S('Police')}.finish(5)`);
+    await wait(300);
+    await g.room(`r.policeRng = () => 0.99; r.policeEvent = { kind: 'stop', officer: ${offi} };`);
+    await wait(900);
+    await g.ev(`${S('Police')}.run([0])`);
+    assert.equal(await g.ev(`${S('Police')}.stage`), 'arrest', 'running failed: arrested for resisting');
+    assert.match(await g.ev(`${S('Police')}.charge.label`), /resisting/);
+    // plead, serve the sentence: days pass, record, bills arrive, heat falls
+    await g.room("window.__day0 = r.clock.day; r.hard.home = { tier: 'flat', slot: 0, next: r.clock.day + 1 };");
+    await g.ev(`(s => { s.sentence({ days: 3, fine: 500 }); })(${S('Police')})`);
+    assert.equal(await g.ev(`${S('Police')}.stage`), 'jail');
+    await g.ev(`(s => { s.room.serveSentence(3, 500); s.finish(0, true); })(${S('Police')})`);
+    await wait(2500);
+    assert.deepEqual(await g.room('return [r.clock.day - window.__day0, r.hard.record, r.hard.heat, Math.floor(r.clock.minute / 10) * 10 === 480 || Math.floor(r.clock.minute / 10) * 10 === 490, r.hard.bills.length > 0, r.cash < 18500];'), [3, true, 25, true, true, true], 'three days inside, a record, a bill waiting, heat down');
+    assert.equal(await active('Police'), false);
+    // a raid finds what is at home; a safe hides it
+    await g.room("r.policeRng = () => 0; r.hard.heat = 70; r.hard.goods = [{ crop: 'nightbloom', at: 'home', name: 'Plain nightbloom', potency: 6, purity: 85, units: 2, effects: [], adds: [] }];");
+    await g.room(`r.policeEvent = { kind: 'raid', officer: ${offi} };`);
+    await wait(900);
+    assert.ok(await active('Police'), 'a raid');
+    await g.ev(`${S('Police')}.raid()`);
+    assert.deepEqual(await g.room('return r.hard.goods.length;'), 0, 'what was at home is seized');
+    assert.equal(await g.ev(`${S('Police')}.stage`), 'arrest');
+    await g.ev(`(s => { s.trial(false); })(${S('Police')})`);
+    assert.equal(await g.ev(`${S('Police')}.stage`), 'free', 'rng 0 wins the trial');
+    await g.ev(`${S('Police')}.finish(0)`);
+    await wait(300);
+    // nothing to find: they leave and the heat eases
+    await g.room("r.hard.heat = 70; r.hard.goods = []; r.hard.beds = {}; r.hard.raw = {}; r.policeEvent = { kind: 'raid', officer: " + offi + " };");
+    await wait(900);
+    await g.ev(`${S('Police')}.raid()`);
+    assert.equal(await g.ev(`${S('Police')}.stage`), 'clear');
+    await g.ev(`${S('Police')}.finish(-15)`);
+    await wait(300);
+    assert.equal(await g.room('return r.hard.heat;'), 55);
+    await g.room('r.policeRng = () => 1; r.hard.autonomy = true;');
   });
 
   await step('night follows the clock and the kid tips are off', async () => {

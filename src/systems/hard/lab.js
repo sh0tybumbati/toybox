@@ -39,6 +39,6 @@ export function cleanGoods(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.filter(g => g && CROPS[g.crop] && CROPS[g.crop].dark && Number.isFinite(g.potency) && Number.isFinite(g.purity) && Number.isFinite(g.units) && g.units > 0).slice(0, GOODS_CAP).map(g => {
     const adds = (Array.isArray(g.adds) ? g.adds : []).filter(a => ADDITIVE_IDS.includes(a)).slice(0, MAX_ADDITIVES);
-    return { crop: g.crop, name: String(g.name || 'Product').slice(0, 24), potency: clamp(Math.floor(g.potency), 1, 30), purity: clamp(Math.floor(g.purity), 5, 100), units: clamp(Math.floor(g.units), 1, 12), effects: (Array.isArray(g.effects) ? g.effects : []).filter(e => e === 'calm'), adds };
+    return { crop: g.crop, at: g.at === 'carry' ? 'carry' : 'home', name: String(g.name || 'Product').slice(0, 24), potency: clamp(Math.floor(g.potency), 1, 30), purity: clamp(Math.floor(g.purity), 5, 100), units: clamp(Math.floor(g.units), 1, 12), effects: (Array.isArray(g.effects) ? g.effects : []).filter(e => e === 'calm'), adds };
   });
 }

@@ -25,6 +25,8 @@ import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig
 import { SLOTS } from '../../data/buildings.js';
 import { decayHeat } from '../../systems/hard/alley.js';
 import { give, harvestOf, powerToday, stage, tickBeds } from '../../systems/hard/garden.js';
+import { hasPlants, officerFor, raidChance, stopChance } from '../../systems/hard/police.js';
+import { RECOVER_HEAT } from '../../data/hard/police.js';
 import { customersDaily } from '../../systems/hard/customers.js';
 import { WITHDRAWAL, drain, habitDaily, newHabit, use as useHabit, useEffect, label as habitLabel } from '../../systems/hard/habit.js';
 import { CROPS, PLOTS, POWER_DAY } from '../../data/hard/plants.js';
@@ -64,6 +66,7 @@ export const hardMethods = {
   tickHard(dt) {
     const mins = gameMinutes(dt, this.speed);
     if (mins > 0) this.stepGame(mins);
+    if (this.policeEvent) this.policeLaunch();
     this.hudTimer = (this.hudTimer || 0) + dt;
     if (this.hudTimer > 0.25 || this.queueDirty) { this.hudTimer = 0; this.refreshHardHud(); this.refreshBeds(); }
     this.drawWeather(dt);
@@ -83,6 +86,7 @@ export const hardMethods = {
       if (deliverIfDue(shop, total)) { if (this.zone && this.zone.sections.some(s => s.type === 'market' && s.id.startsWith(`${slot}.`))) { this.fillShelves(Number(slot)); this.notice('🚚 The delivery van has arrived'); } }
     }
     this.refreshPrices();
+    this.policeHourly(total);
     this.queueDirty = true;
   },
 
@@ -106,8 +110,62 @@ export const hardMethods = {
       if (r.habit.hook > 0) this.hard.hooks[c.id] = r.habit; else delete this.hard.hooks[c.id];
       if (r.withdrawal) { apply(c.needs, WITHDRAWAL); floatText(this, c.x, c.headTopY() - 40, '🥀 Rough day without it', 22); }
     }
+    if (!this.serving) this.policeDaily(day);
     this.updateNav();
     this.queueDirty = true;
+  },
+
+  // --- the police ---------------------------------------------------------------------------
+  policeRng() { return Math.random(); },
+
+  // Every hour spent outdoors with heat on you: a patrol may stop you.
+  policeHourly(total) {
+    if (this.policeEvent || this.policeBusy || this.serving) return;
+    const c = this.selected || this.characters[0];
+    if (!c || c.sleeping || !this.zone) return;
+    const sec = sectionAt(this.zone, c.x).section;
+    if (!sec || !ROOMS[sec.type].outdoor) return;
+    const p = stopChance(this.hard.heat, { record: this.hard.record, carrying: this.hard.goods.some(g => g.at === 'carry'), night: this.night });
+    if (p > 0 && this.policeRng() < p) this.policeEvent = { kind: 'stop', officer: officerFor(total) };
+  },
+
+  // Once a night: with enough heat and something at home to find, a raid.
+  policeDaily(day) {
+    if (this.policeEvent || this.policeBusy) return;
+    const h = this.hard, stash = h.goods.some(g => g.at === 'home') || hasPlants(h.beds, h.raw);
+    if (this.policeRng() < raidChance(h.heat, { record: h.record, stash })) this.policeEvent = { kind: 'raid', officer: officerFor(day) };
+  },
+
+  // Launch a waiting police event as soon as the room is running (not mid-fade, not behind another window).
+  policeLaunch() {
+    if (!this.policeEvent || this.policeBusy || this.switching || this.decor) return;
+    this.policeBusy = true;
+    const event = this.policeEvent;
+    this.policeEvent = null;
+    this.characters.forEach(c => { c.goal = null; });
+    this.scene.pause();
+    this.scene.launch('Police', { room: this, event });
+  },
+
+  policeDone() { this.policeBusy = false; this.queueDirty = true; },
+
+  // Time inside: the days pass (bills arrive, plants dry out, the gig lapses), you come out with a record and a fine to pay.
+  serveSentence(days, fine) {
+    const h = this.hard;
+    this.serving = true;
+    h.record = true; h.gig = null;
+    this.cash -= Math.min(this.cash, fine); h.debt += Math.max(0, fine - this.cash);
+    for (let i = 0; i < days; i++) { this.clock.day += 1; this.lastDay = this.clock.day; this.daily(this.clock.day); }
+    this.clock.minute = 8 * 60;
+    this.lastHour = Math.floor(this.totalMinutes() / 60);
+    this.hourly(this.totalMinutes());
+    this.serving = false;
+    for (const c of this.characters) { c.needs.hunger = 60; c.needs.energy = 70; c.needs.hygiene = 50; c.needs.warmth = 70; c.needs.mood = 35; c.current = null; c.queue = []; }
+    h.heat = RECOVER_HEAT;
+    const park = this.city.findIndex(b => b && b.name === 'The Park');
+    if (park >= 0) this.goToZone(`${park}.0`);
+    this.notice(`⛓️ Out after ${days} day${days === 1 ? '' : 's'}`);
+    this.updateNav(); this.dirty = true;
   },
 
   // Using a unit of product yourself (from the stash at the bench): a lift now, a hook that grows.
@@ -377,7 +435,7 @@ export const hardMethods = {
     if (action === 'eat' && !this.hard.larder.length && !c.bag.length) return { ok: false, why: 'Nothing to eat: buy food at the shop' };
     if (action === 'store' && !c.bag.length) return { ok: false, why: 'Nothing in your bag' };
     if (action === 'store' && this.hard.larder.length >= LARDER_CAP) return { ok: false, why: 'The larder is full' };
-    if (action === 'sell' && !this.hard.goods.length) return { ok: false, why: 'Nothing to sell: mix some product first' };
+    if (action === 'sell' && !this.hard.goods.some(g => g.at === 'carry')) return { ok: false, why: 'Nothing on you to sell: carry a batch from the bench' };
     if (action === 'mix' && !Object.values(this.hard.raw).some(n => n > 0)) return { ok: false, why: 'Nothing to mix: grow something first' };
     if (action === 'buyseeds' && !openNow(hours, this.clock.minute)) return { ok: false, why: 'Closed' };
     if (action === 'sleep' && prop.sleeper) return { ok: false, why: 'Someone is in it' };

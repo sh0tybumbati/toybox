@@ -3,6 +3,7 @@
 import { hash01 } from './weather.js';
 import { hardPriceOf } from '../../data/hard/food.js';
 import { CROPS, GEAR } from '../../data/hard/plants.js';
+import { HIDES, HIDE_IDS } from '../../data/hard/police.js';
 import { ADDITIVES, ADDITIVE_IDS } from '../../data/hard/lab.js';
 
 export const BURNER_PRICE = 1800;
@@ -26,6 +27,7 @@ export function supplies() {
   return [
     { id: 'seed:nightbloom', seed: 'nightbloom', label: `${CROPS.nightbloom.icon} Nightbloom seeds`, price: CROPS.nightbloom.seed, note: 'Slow and fussy. Indoors, under a lamp.', heat: SUPPLY_HEAT.seed, stock: 2 },
     ...ADDITIVE_IDS.map(a => ({ id: `add:${a}`, additive: a, label: `${ADDITIVES[a].icon} ${ADDITIVES[a].label}`, price: ADDITIVES[a].price, note: ADDITIVES[a].note, heat: SUPPLY_HEAT.additive, stock: 5 })),
+    ...HIDE_IDS.map(k => ({ id: `hide:${k}`, hide: k, label: `${HIDES[k].icon} ${HIDES[k].label}`, price: HIDES[k].price, note: HIDES[k].note, heat: 2, stock: 1 })),
     { id: 'gear:bench', gear: 'bench', label: `${GEAR.bench.icon} ${GEAR.bench.label}`, price: GEAR.bench.price, note: GEAR.bench.note, heat: SUPPLY_HEAT.bench, stock: 1 },
   ];
 }
