@@ -19,13 +19,13 @@ export const ROOMS = {
     shelves: [],
     // Props stand on `y` (their bottom edge); `x` is their centre. `stock` fills a storage piece's slots.
     props: [
-      { type: 'shelf', x: 165, y: 309, stock: ['apple', 'banana', 'cookie', 'pizza'] },
-      { type: 'shelf', x: 795, y: 309, stock: ['burger', 'taco', 'donut'] },
-      { type: 'fridge', x: 372, y: 434 },
-      { type: 'oven', x: 590, y: 434 },
-      { type: 'pantry', x: 200, y: 520 },
-      { type: 'table', x: 745, y: 540 },
-      { type: 'chair', x: 590, y: 540 },
+      { type: 'counter', x: 230, y: 434, stock: ['apple', 'banana', 'cookie'] },      // the sink is here; the left wall stays clear for a front door
+      { type: 'fridge', x: 400, y: 434 },
+      { type: 'oven', x: 560, y: 434 },
+      { type: 'pantry', x: 710, y: 434 },
+      { type: 'shelf', x: 795, y: 309, stock: ['burger', 'taco', 'donut', 'pizza'] },
+      { type: 'table', x: 790, y: 545 },
+      { type: 'chair', x: 640, y: 548 },
       { type: 'lightswitch', x: 890, y: 168 },
     ],
     windows: [{ x: 690, y: 70, w: 140, h: 120 }],      // painted dark at night
@@ -45,7 +45,7 @@ export const ROOMS = {
     shelves: [],
     props: [
       { type: 'shelf', x: 165, y: 309, stock: ['teddy', 'ball', 'car', 'box'] },
-      { type: 'shelf', x: 795, y: 309, stock: ['cap', 'crown', 'shades'] },
+      { type: 'shelf', x: 640, y: 309, stock: ['cap', 'crown', 'shades'] },          // clear of the stairs
       { type: 'wardrobe', x: 372, y: 434 },
       { type: 'chest', x: 590, y: 434 },
       { type: 'bed', x: 480, y: 540 },
@@ -55,6 +55,28 @@ export const ROOMS = {
     decor(g) {
       g.fillStyle(0xff8fa3, 1).fillRoundedRect(680, 80, 160, 100, 8);      // picture frame
       g.fillStyle(0xfff3a0, 1).fillCircle(760, 130, 26);
+    },
+  },
+  // A child's room: toys on the shelves and in a trunk, a small bookcase, a bed.
+  kidsroom: {
+    label: '🧸 Kids room',
+    buildable: true,
+    style: { wall: 'sky', floor: 'warm' },
+    shelves: [],
+    props: [
+      { type: 'shelf', x: 165, y: 309, stock: ['teddy', 'ball', 'car', 'box'] },
+      { type: 'shelf', x: 640, y: 309, stock: ['robot', 'dino', 'kite'] },
+      { type: 'bookcase', x: 380, y: 434 },
+      { type: 'trunk', x: 590, y: 434, stock: ['duck', 'puzzle'] },
+      { type: 'bed', x: 480, y: 540 },
+      { type: 'lightswitch', x: 890, y: 168 },
+    ],
+    windows: [{ x: 90, y: 70, w: 190, h: 150 }],
+    decor(g) {
+      g.fillStyle(0xf59ab4, 1).fillEllipse(300, 540, 300, 60);                 // a play rug
+      g.fillStyle(0xffd166, 1).fillEllipse(300, 540, 200, 36);
+      g.fillStyle(0xfff3a0, 1).fillRoundedRect(690, 90, 140, 90, 8);           // a star picture
+      g.fillStyle(0xff8fa3, 1).fillCircle(760, 135, 24);
     },
   },
   // The lobby of a multi-floor building: the elevator lives here.
@@ -86,19 +108,17 @@ export const ROOMS = {
     style: { wall: 'sage', floor: 'warm' },
     shelves: [],
     props: [
-      { type: 'shelf', x: 165, y: 309, stock: ['puzzle', 'guitar', 'backpack'] },
-      { type: 'shelf', x: 795, y: 309, stock: ['ball', 'duck', 'kite'] },
-      { type: 'bookcase', x: 372, y: 434 },
-      { type: 'armchair', x: 640, y: 530 },
+      { type: 'tv', x: 220, y: 470 },
+      { type: 'bookcase', x: 380, y: 434 },
+      { type: 'sofa', x: 540, y: 520 },
+      { type: 'armchair', x: 710, y: 540 },
+      { type: 'shelf', x: 620, y: 309, stock: ['puzzle', 'guitar', 'ball', 'duck'] },     // clear of the stairs
       { type: 'lightswitch', x: 890, y: 168 },
     ],
     windows: [{ x: 90, y: 70, w: 190, h: 150 }],
     decor(g) {
       g.fillStyle(0xe58f8f, 1).fillEllipse(560, 520, 420, 70);             // rug
       g.fillStyle(0xf0b0b0, 1).fillEllipse(560, 520, 330, 48);
-      g.fillStyle(0x6f9be0, 1).fillRoundedRect(450, 330, 220, 70, 18);     // sofa
-      g.fillStyle(0x5584cc, 1).fillRoundedRect(440, 350, 30, 80, 12).fillRoundedRect(650, 350, 30, 80, 12);
-      g.fillStyle(0x7fabee, 1).fillRoundedRect(470, 372, 180, 50, 12);
       g.fillStyle(0xffe066, 1).fillRoundedRect(335, 90, 150, 90, 8);       // picture
       g.fillStyle(0xff8fa3, 1).fillCircle(410, 135, 28);
     },
@@ -263,7 +283,7 @@ export const ROOMS = {
     shelves: [],
     props: [
       { type: 'bookcase', x: 110, y: 434 }, { type: 'bookcase', x: 850, y: 434 },
-      { type: 'chair', x: 330, y: 545 }, { type: 'chair', x: 640, y: 545 }, { type: 'plant', x: 900, y: 540 },
+      { type: 'chair', x: 330, y: 545 }, { type: 'chair', x: 640, y: 545 }, { type: 'plant', x: 190, y: 540 },
       { type: 'lightswitch', x: 890, y: 168 },
     ],
     windows: [{ x: 160, y: 60, w: 150, h: 110 }],

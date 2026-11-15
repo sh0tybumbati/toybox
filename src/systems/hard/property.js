@@ -10,7 +10,7 @@ const money = n => `$${n.toLocaleString('en-US')}`;
 // A house you can live in as an adult: a front door on the road side, a mailbox, and a bathroom of its own (with the shower).
 export function readyHouse(b) {
   const rooms = b.floors[0].rooms, add = (r, ...props) => { r.extra = [...(r.extra || []), ...props]; };
-  add(rooms[0], { type: 'frontdoor', x: 70, y: 440 }, { type: 'mailbox', x: 250, y: 540 });
+  add(rooms[0], { type: 'frontdoor', x: 70, y: 440 }, { type: 'mailbox', x: 170, y: 540 });
   stripLooseShowers(b); ensureBathrooms(b);
   return b;
 }

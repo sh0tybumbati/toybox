@@ -484,7 +484,7 @@ try {
     const chair = await g.room("const p = r.props.find(p => p.type === 'chair'); return [Math.round(p.x), Math.round(p.y)];");
     for (let attempt = 0; attempt < 3 && !(await g.room('return Boolean(r.characters[0].riding);')); attempt++) await g.click(chair[0], chair[1], 3000);
     assert.ok(await g.room('return r.characters[0].sitting;'), 'sitting on the chair');
-    await g.room("r.dismount(r.characters[0], true); r.cameras.main.scrollX = 0;");
+    await g.room("r.dismount(r.characters[0], true); r.cameras.main.scrollX = 0; r.characters[0].x = 300; r.characters[0].lane = 520; r.characters[0].goal = null;");   // (the chair stands beside the table now: step out of the way)
     await g.room("const t = r.props.find(p => p.type === 'table'); window.__tb = t; window.__ball = r.createItem('ball', 150, 540); window.__apple = r.createItem('apple', 250, 540);");
     await wait(700);
     const spot = k => g.room(`const i = window.__${k}, sx = r.cameras.main.scrollX; return [Math.round(i.x - sx), Math.round(i.y), Math.round(i.z), i.base ? 1 : 0];`);

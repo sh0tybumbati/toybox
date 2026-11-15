@@ -26,7 +26,7 @@ export const BLUEPRINTS = {
     exterior: { wall: 'butter', trim: 'white', roofStyle: 'gable', roofColor: 'terracotta' },
     floors: [
       { id: 0, rooms: [room(0, 'kitchen'), room(1, 'living', [stairs(860)])] },
-      { id: 1, rooms: [room(2, 'bedroom', [stairs(860)]), room(3, 'bedroom'), room(4, 'bathroom')] },
+      { id: 1, rooms: [room(2, 'bedroom', [stairs(860)]), room(3, 'kidsroom'), room(4, 'bathroom')] },
     ],
   },
   flat: {                                     // hard mode only: a small rented flat
@@ -90,7 +90,7 @@ export const BLUEPRINTS = {
     floors: [
       { id: 0, rooms: [room(0, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(1, 'living'), room(2, 'kitchen'), room(9, 'bathroom')] },
       { id: 1, rooms: [room(3, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(4, 'bedroom'), room(5, 'living'), room(10, 'bathroom')] },
-      { id: 2, rooms: [room(6, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(7, 'bedroom'), room(8, 'bedroom'), room(11, 'bathroom')] },
+      { id: 2, rooms: [room(6, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(7, 'bedroom'), room(8, 'kidsroom'), room(11, 'bathroom')] },
     ],
   },
   arcade: {

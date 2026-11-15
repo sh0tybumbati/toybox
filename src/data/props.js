@@ -348,6 +348,20 @@ export const PROP_TYPES = {
       g.fillStyle(0x6b7482, 1).fillRoundedRect(-44, 96, 88, 10, 4);                          // the tray
     },
   },
+  counter: {
+    name: 'Kitchen Counter', cat: 'home', mount: 'floor', behaviour: 'storage', w: 190, h: 120, accepts: null,
+    surface: { top: -14 },
+    slots: [{ x: -2, y: -34 }, { x: 36, y: -34 }, { x: 74, y: -34 }],                         // the sink takes the left end
+    draw(g) {
+      g.fillStyle(0xc99466, 1).fillRoundedRect(-90, 0, 180, 60, 5);                           // the cupboards
+      g.lineStyle(3, 0x8a5e3b, 1).lineBetween(0, 4, 0, 56).strokeRoundedRect(-90, 0, 180, 60, 5);
+      g.fillStyle(0x4a3426, 1).fillCircle(-8, 28, 3).fillCircle(8, 28, 3);
+      g.fillStyle(0xe8e2d4, 1).fillRoundedRect(-95, -14, 190, 14, 5);                        // the worktop
+      g.fillStyle(0x9aa4b0, 1).fillRoundedRect(-84, -12, 52, 10, 4);                          // the sink
+      g.fillStyle(0x7fb8e0, 1).fillRoundedRect(-78, -10, 40, 5, 2);
+      g.fillStyle(0xaab4c0, 1).fillRect(-62, -44, 6, 32).fillRoundedRect(-62, -48, 20, 6, 3);   // the tap
+    },
+  },
   toilet: {
     name: 'Toilet', cat: 'home', mount: 'floor', behaviour: 'none', w: 70, h: 100, blurb: 'The loo',
     draw(g) {

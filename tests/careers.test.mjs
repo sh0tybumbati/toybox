@@ -156,10 +156,10 @@ test('every adult scenario has the workplaces; an older adult town gets the Coun
   assert.ok(up.find(b => b && b.floors[0].rooms[0].type === 'nursery').floors[0].rooms[0].extra.some(x => x.type === 'worksite'));
   const save = newHardSave({ scenario: 'flat' });
   const v13 = { ...save, v: 13, city: old };
-  assert.equal(migrate(v13).v, 15);
+  assert.equal(migrate(v13).v, 16);
   const loaded = sanitize(v13);
   assert.deepEqual(loaded.hard.work, {}); assert.deepEqual(loaded.hard.slips, []);
   assert.ok(loaded.city.some(b => b && b.name === 'College'));
   const kid = migrate({ v: 13, zone: '0.0', city: [], coins: 3, characters: [] });
-  assert.equal(kid.v, 15); assert.equal(kid.hard, undefined);
+  assert.equal(kid.v, 16); assert.equal(kid.hard, undefined);
 });

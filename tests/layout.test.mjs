@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { BLUEPRINTS, newBuilding, roomDefW } from '../src/data/buildings.js';
 import { ROOMS, defaultFurniture } from '../src/data/rooms.js';
 import { addRoom, resizeRoom } from '../src/systems/builder.js';
-import { ensureBathrooms, stripLooseShowers } from '../src/systems/layout.js';
+import { ensureBathrooms, stripLooseShowers, OLD_HOME_PROPS } from '../src/systems/layout.js';
+import { scaleX } from '../src/data/rooms.js';
+import { starterCity } from '../src/data/buildings.js';
 import { migrate, sanitizeBuilding } from '../src/systems/save.js';
 import { newHardSave } from '../src/data/hard/start.js';
 
@@ -40,10 +42,27 @@ test('v14 adult saves: showers leave the kitchen, the motel gets a lobby, the ga
   old.city[nur].floors[0].rooms[0].extra = [{ type: 'dumpster', x: 700, y: 540 }];
   old.furniture = { [`${nur}.0`]: [{ type: 'dumpster', x: 700, y: 540, items: [] }] };
   const d = migrate(old);
-  assert.equal(d.v, 15);
+  assert.equal(d.v, 16);
   assert.ok(d.city[0].floors[0].rooms.some(r => r.type === 'bathroom'));
   assert.ok(!d.city[0].floors[0].rooms.some(r => r.type !== 'bathroom' && (r.extra || []).some(p => p.type === 'shower')));
   assert.deepEqual(d.city[motelAt].floors[0].rooms.map(r => r.type), ['hall', 'motel', 'bathroom']);
   assert.equal(d.furniture[`${nur}.0`], undefined, 'the garden centre is laid out afresh');
   assert.ok(sanitizeBuilding(d.city[motelAt]));
+});
+
+const oldDefault = (r) => [...OLD_HOME_PROPS[r.type], ...(r.extra || [])].map(p => ({ type: p.type, x: scaleX(p.x, r.w), y: p.y, items: (p.stock || []).map((k, i) => ({ s: i, k })) }));
+
+test('v15 homes: untouched rooms take the refined layout, arranged ones are left alone, the second bedroom becomes a kids room', () => {
+  const city = starterCity(), f1 = city[0].floors[1].rooms;
+  f1[1].type = 'bedroom';                                         // how the home was before
+  const furniture = { '0.0': oldDefault(city[0].floors[0].rooms[0]), '0.1': oldDefault(city[0].floors[0].rooms[1]), '0.2': oldDefault(f1[0]), '0.3': oldDefault(f1[1]) };
+  furniture['0.1'] = furniture['0.1'].map(p => (p.type === 'bookcase' ? { ...p, x: p.x + 40 } : p));         // the player moved the bookcase
+  const d = migrate({ v: 15, zone: '0.0', characters: [], floors: {}, city, furniture });
+  assert.equal(d.v, 16);
+  assert.equal(d.furniture['0.0'], undefined, 'the untouched kitchen is on the new default (it has its counter)');
+  assert.ok(d.furniture['0.1'], 'the arranged living room keeps what the player did');
+  assert.equal(d.city[0].floors[1].rooms[0].type, 'bedroom', 'the bedroom with the stairs stays a bedroom');
+  assert.equal(d.city[0].floors[1].rooms[1].type, 'kidsroom');
+  assert.equal(d.furniture['0.3'], undefined);
+  assert.ok(ROOMS.kitchen.props.some(p => p.type === 'counter'));
 });

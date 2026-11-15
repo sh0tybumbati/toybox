@@ -10,6 +10,7 @@ const lots = (...list) => {
 };
 const named = (key, name) => ({ ...newBuilding(key), name });
 // A building with extra furniture in one of its rooms (hard-mode homes get a shower, the park a water fountain).
+import { MAILBOX_X } from '../../systems/layout.js';                                          // just inside the front door, clear of the pantry and the counter
 const withExtra = (b, floor, room, ...props) => { const r = b.floors[floor].rooms[room]; r.extra = [...(r.extra || []), ...props]; return b; };
 const park = name => withExtra(named('park', name), 0, 0,
   { type: 'fountain', x: 780, y: 540 }, { type: 'dumpster', x: 80, y: 540 }, { type: 'begspot', x: 200, y: 545 }, { type: 'labourboard', x: 520, y: 540 }, { type: 'worksite', x: 330, y: 545 });
@@ -17,8 +18,8 @@ const shop = name => withExtra(named('market', name), 0, 0, { type: 'newsstand',
 export const shelter = () => withExtra(newBuilding('shelter'), 0, 0, { type: 'worksite', x: 850, y: 545 });
 export const motel = () => withExtra(withExtra(newBuilding('motel'), 0, 0, { type: 'frontdesk', x: 480, y: 520 }), 0, 0, { type: 'mailbox', x: 200, y: 540 });
 const office = () => withExtra(named('postoffice', 'Post Office'), 0, 0, { type: 'paydesk', x: 480, y: 520 }, { type: 'computer', x: 780, y: 540 }, { type: 'worksite', x: 200, y: 545 });
-const mail = (b, floor, room) => withExtra(b, floor, room, { type: 'mailbox', x: 250, y: 540 });
-const desk = (b, floor, room) => withExtra(b, floor, room, { type: 'computer', x: 640, y: 540 });
+const mail = (b, floor, room) => withExtra(b, floor, room, { type: 'mailbox', x: MAILBOX_X, y: 540 });
+const desk = (b, floor, room) => withExtra(b, floor, room, { type: 'computer', x: 720, y: 540 });
 const door = (b, floor, room) => withExtra(b, floor, room, { type: 'frontdoor', x: 70, y: 440 });          // the leftmost room faces the road; a garden is at the back
 const garden = b => { const f = b.floors[0].rooms; f.push({ id: f.length + 10, type: 'garden', w: 960, extra: [{ type: 'gardenbed', x: 300, y: 530 }, { type: 'gardenbed', x: 520, y: 530 }, { type: 'dumpster', x: 880, y: 540 }] }); return b; };
 export const nursery = () => withExtra(newBuilding('nursery'), 0, 0, { type: 'worksite', x: 880, y: 545 });
@@ -40,7 +41,7 @@ export const SCENARIOS = {
   house: {
     label: 'Inherited house, debts', blurb: 'A big run-down house you cannot afford to keep. Repair it, sell it, or lose it.',
     cash: 10000, debt: 500000, record: false, zone: '0.0', home: { tier: 'house', slot: 0 }, phone: true, food: ['rice', 'potato', 'cheese'],
-    city: () => lots(door(garden(desk(mail({ ...named('cottage', 'The Old House'), owned: true }, 0, 1), 0, 0)), 0, 0), park('The Park'), shop('Corner Shop'), office(), shelter(), motel(), newBuilding('alley'), nursery(), bank(), council(), college()),
+    city: () => lots(door(garden(desk(mail({ ...named('cottage', 'The Old House'), owned: true }, 0, 1), 0, 2)), 0, 0), park('The Park'), shop('Corner Shop'), office(), shelter(), motel(), newBuilding('alley'), nursery(), bank(), council(), college()),
   },
   jail: {
     label: 'Just out of jail', blurb: 'A record, a little cash and nowhere to go. Honest work is hard to find.',

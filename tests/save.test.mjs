@@ -10,9 +10,9 @@ const v1 = {
   floors: { kitchen: [{ k: 'apple', x: 421, l: 552 }], bedroom: [{ k: 'car', x: 301, l: 552 }] },
 };
 
-test('v1 saves migrate to a one-character v15 save with a look', () => {
+test('v1 saves migrate to a one-character v16 save with a look', () => {
   const d = migrate(v1);
-  assert.equal(d.v, 15);
+  assert.equal(d.v, 16);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.deepEqual(d.furniture, {});                // nothing saved yet: rooms use their default layout
@@ -67,7 +67,7 @@ test('party is capped at 6, junk looks are repaired, an empty party gets the def
 
 test('v3 saves gain night=false; night survives sanitize', () => {
   const d = sanitize({ v: 3, room: 'bedroom', characters: [], floors: {} });
-  assert.equal(d.v, 15);
+  assert.equal(d.v, 16);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.equal(d.furniture['0.0'], null);          // nothing saved yet: the room uses its default layout
@@ -190,7 +190,7 @@ test('v11 -> v12: arranged homes and parks gain the stocked shelves and playgrou
   const d = sanitize({ v: 11, zone: '0.0', characters: [], floors: {}, city: starterCity(),
     furniture: { '0.0': [{ type: 'fridge', x: 300, y: 434, items: [] }], '1.0': [{ type: 'lamppost', x: 400, y: 434, items: [] }, { type: 'bench', x: 700, y: 480, items: [] }] } });
   const kitchen = d.furniture['0.0'].map(f => f.type);
-  assert.deepEqual(kitchen.filter(t => t === 'shelf'), ['shelf', 'shelf'], 'the kitchen gets its two wall shelves');
+  assert.deepEqual(kitchen.filter(t => t === 'shelf'), ['shelf'], 'the kitchen gets its wall shelf');
   assert.ok(kitchen.includes('fridge'), 'and keeps what it had');
   const shelf = d.furniture['0.0'].find(f => f.type === 'shelf');
   assert.ok(shelf.items.length >= 3, 'the new shelf comes stocked');

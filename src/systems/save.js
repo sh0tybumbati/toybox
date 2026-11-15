@@ -29,7 +29,7 @@ import { MAX_PARTY, defaultParty } from '../data/characters.js';
 import { PETS, MAX_PETS } from '../data/pets.js';
 import { PATTERNS } from '../data/patterns.js';
 import { SCENARIO_IDS, upgradeHardCity, motel, shelter, nursery, bank, council, college } from '../data/hard/scenarios.js';
-import { ensureBathrooms, stripLooseShowers } from './layout.js';
+import { ensureBathrooms, stripLooseShowers, isOldDefault, moveMailbox, moveComputer } from './layout.js';
 import { cleanSetup } from './mode.js';
 import { cleanClock } from './hard/clock.js';
 import { cleanNeeds } from './hard/needs.js';
@@ -87,6 +87,7 @@ export function migrate(d) {
   if (d.v === 12) d = migrateTown(d);
   if (d.v === 13) d = migrateCareers(d);
   if (d.v === 14) d = migrateLayouts(d);
+  if (d.v === 15) d = migrateHomeLayouts(d);
   return d.v === SAVE_VERSION ? d : null;
 }
 
@@ -156,6 +157,30 @@ function migrateLayouts(d) {
     }
   });
   return { ...d, v: 15, city, furniture, looks, floors };
+}
+
+// v15 -> v16: homes get their refined rooms (a kitchen with a sink and a table that has its chair, a living room with a real sofa and a TV,
+// a main bedroom and a kids' room). Only rooms whose furniture is still exactly what they started with are redone; anything you arranged
+// stays as it is.
+function migrateHomeLayouts(d) {
+  const city = (Array.isArray(d.city) ? d.city : []).map(sanitizeBuilding);
+  const furniture = { ...(d.furniture && typeof d.furniture === 'object' ? d.furniture : {}) };
+  city.forEach((b, slot) => {
+    if (!b || !(isHouse(b) || b.owned)) return;
+    for (const f of b.floors) {
+      const beds = f.rooms.filter(r => r.type === 'bedroom');
+      const fresh = new Set(f.rooms.filter(r => { const saved = furniture[sectionId(slot, r.id)]; return saved === undefined || saved === null || isOldDefault(r.type, r.w, r.extra, saved); }));
+      moveComputer(f, r => fresh.has(r));                                  // (before the rooms change type)
+      for (const r of f.rooms) {
+        const id = sectionId(slot, r.id), saved = furniture[id];
+        if (!fresh.has(r)) continue;
+        if (r.type === 'bedroom' && beds.length > 1 && r === beds[beds.length - 1] && !(r.extra || []).some(p => p.type === 'stairs')) r.type = 'kidsroom';
+        if (['kitchen', 'living'].includes(r.type)) moveMailbox(r);
+        if (saved) delete furniture[id];
+      }
+    }
+  });
+  return { ...d, v: 16, city, furniture };
 }
 
 // v9 -> v10: the four old rooms become rooms of the starter city's buildings.
