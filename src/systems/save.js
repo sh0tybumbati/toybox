@@ -11,13 +11,13 @@
 //
 // v11 still had endless wall shelves in homes and parks (now stocked furniture); v10 had no shirt/toy designs; v9 had a flat list of rooms (kitchen, bedroom, park, shop) instead of a city; v8 had no pets; v7 had no tips (migrated players have seen them all); v6 had no furniture (null = the room's default layout); v5 had no recipes; v4 had no coins/unlocked; v3 had no `night`; v2 had no name/look; v1 had a single `char` + top-level `worn`. migrate()
 // upgrades them step by step.
-import { SAVE_VERSION, FLOOR_TOP, FLOOR_BOTTOM } from '../config.js';
+import { SAVE_VERSION, FLOOR_TOP, FLOOR_BOTTOM, GUI_SIZES } from '../config.js';
 import { CATALOG, SLOTS_FOR } from '../data/items.js';
 import { ROOMS, defaultFurniture } from '../data/rooms.js';
 import { WALLPAPERS, FLOORS } from '../data/decor.js';
-import { ROOM_W, MAX_FLOORS, MAX_ROOMS, SLOTS, isHouse, starterCity } from '../data/buildings.js';
+import { ROOM_W, MAX_FLOORS, MAX_ROOMS, SLOTS, isHouse, starterCity, roomDefW, roomMinW, roomMaxW } from '../data/buildings.js';
 import { EXTERIOR_WALLS, TRIMS, ROOF_STYLES, ROOF_COLORS, defaultExterior } from '../data/exterior.js';
-import { allSections, zoneInfo, entryZone } from './world.js';
+import { allSections, zoneInfo, entryZone, sectionId } from './world.js';
 import { isPremium } from '../data/economy.js';
 import { RECIPES } from '../data/recipes.js';
 import { ALL_TIP_IDS } from '../data/tips.js';
@@ -28,13 +28,15 @@ import { DEFAULT_LOOK, sanitizeLook } from '../data/look.js';
 import { MAX_PARTY, defaultParty } from '../data/characters.js';
 import { PETS, MAX_PETS } from '../data/pets.js';
 import { PATTERNS } from '../data/patterns.js';
-import { SCENARIO_IDS, upgradeHardCity } from '../data/hard/scenarios.js';
+import { SCENARIO_IDS, upgradeHardCity, motel, shelter, nursery, bank, council, college } from '../data/hard/scenarios.js';
+import { ensureBathrooms, stripLooseShowers } from './layout.js';
 import { cleanSetup } from './mode.js';
 import { cleanClock } from './hard/clock.js';
 import { cleanNeeds } from './hard/needs.js';
 import { cleanFood } from './hard/pantry.js';
 import { cleanBills, cleanHome } from './hard/bills.js';
 import { cleanGig } from './hard/gig.js';
+import { cleanSlips, cleanWorkMap } from './hard/careers.js';
 import { cleanBeds, cleanStock } from './hard/garden.js';
 import { CROP_IDS, GEAR_IDS } from '../data/hard/plants.js';
 import { ADDITIVE_IDS } from '../data/hard/lab.js';
@@ -83,6 +85,8 @@ export function migrate(d) {
   if (d.v === 10) d = { ...d, v: 11, shirts: [], toys: [] };
   if (d.v === 11) d = migrateStock(d);
   if (d.v === 12) d = migrateTown(d);
+  if (d.v === 13) d = migrateCareers(d);
+  if (d.v === 14) d = migrateLayouts(d);
   return d.v === SAVE_VERSION ? d : null;
 }
 
@@ -118,6 +122,40 @@ function migrateTown(d) {
     return !b && was && isHouse(was) ? was : b;
   });
   return { ...d, v: 13, city };
+}
+
+// v13 -> v14: careers. Adult towns gain the Council Hall and the College (and work at the Garden Centre); the work block starts empty.
+function migrateCareers(d) {
+  if (!d.hard) return { ...d, v: 14 };
+  const city = upgradeHardCity((Array.isArray(d.city) ? d.city : []).map(sanitizeBuilding));
+  return { ...d, v: 14, city };
+}
+
+// v14 -> v15: bathrooms are their own small rooms (no more showers in kitchens), and the public buildings get furniture that belongs
+// in them. Homes get a bathroom; the motel gets a lobby for its desk; the shelter, bank, council, college and garden centre are redone
+// (nobody owns them, so only their furniture is reset).
+const PUBLIC_MAKERS = { motel, shelter, nursery, bank, council, college };
+function migrateLayouts(d) {
+  const city = (Array.isArray(d.city) ? d.city : []).map(sanitizeBuilding);
+  const furniture = { ...(d.furniture && typeof d.furniture === 'object' ? d.furniture : {}) }, looks = { ...(d.looks || {}) }, floors = { ...(d.floors || {}) };
+  const forget = (slot, ids) => { for (const id of ids) { delete furniture[sectionId(slot, id)]; delete floors[sectionId(slot, id)]; delete looks[sectionId(slot, id)]; } };
+  city.forEach((b, slot) => {
+    if (!b) return;
+    const make = PUBLIC_MAKERS[b.floors[0].rooms[0].type];
+    if (make && !b.owned && !isHouse(b)) {                                      // a public place: lay it out again
+      const old = b.floors.flatMap(f => f.rooms.map(r => r.id)), fresh = make();
+      forget(slot, old); b.floors = fresh.floors;
+      return;
+    }
+    if (isHouse(b) || b.owned) {                                                // a home: showers move into a bathroom of their own
+      for (const f of b.floors) for (const r of f.rooms) {
+        const list = furniture[sectionId(slot, r.id)];
+        if (r.type !== 'bathroom' && Array.isArray(list)) furniture[sectionId(slot, r.id)] = list.filter(p => p.type !== 'shower');
+      }
+      stripLooseShowers(b); ensureBathrooms(b);
+    }
+  });
+  return { ...d, v: 15, city, furniture, looks, floors };
 }
 
 // v9 -> v10: the four old rooms become rooms of the starter city's buildings.
@@ -164,6 +202,8 @@ export function sanitizeHard(raw) {
     custs: cleanCusts(raw.custs),                             // the six regular customers: trust, hook, what they owe
     hooks: cleanHabits(raw.hooks, Object.keys(raw.needs && typeof raw.needs === 'object' ? raw.needs : {})),       // each household member's habit
     power: ok(raw.power) ? clamp(Math.floor(raw.power), 0, 1e7) : 0,                 // grow-lamp power waiting to land on the next utilities bill                                // garden plots, keyed 'lot:x'
+    work: cleanWorkMap(raw.work, raw.needs),                  // each person's job, skills, certificates and strikes
+    slips: cleanSlips(raw.slips),                             // payslips waiting in the mail
     gig: cleanGig(raw.gig),                                   // the day-labour job you have been given (null = none)
     phone: Boolean(raw.phone),                                // you have a phone (it can be stolen)
     home: cleanHome(raw.home),                                // where you live (null = nowhere)
@@ -279,7 +319,7 @@ export function sanitizeBuilding(b) {
     const rooms = [];
     for (const r of f.rooms.slice(0, MAX_ROOMS)) {
       if (!r || !ROOMS[r.type] || !takeRoom(r.id)) continue;
-      const w = ok(r.w) ? clamp(Math.round(r.w / ROOM_W.step) * ROOM_W.step, ROOM_W.min, ROOM_W.max) : ROOM_W.def;
+      const w = ok(r.w) ? clamp(Math.round(r.w / ROOM_W.step) * ROOM_W.step, roomMinW(r.type), roomMaxW(r.type)) : roomDefW(r.type);
       const extra = (Array.isArray(r.extra) ? r.extra : []).filter(p => p && PROP_TYPES[p.type] && ok(p.x) && ok(p.y)).slice(0, 6)
         .map(p => ({ type: p.type, x: clamp(Math.round(p.x), 0, ROOM_W.def), y: clamp(Math.round(p.y), 430, 540) }));
       rooms.push({ id: r.id, type: r.type, w, ...(extra.length ? { extra } : {}) });
@@ -376,7 +416,7 @@ export const storeFor = mode => (mode === 'hard' ? hardStore : saveStore);
 export const metaStore = {
   key: 'toybox-meta',
   get() {
-    try { const m = JSON.parse(localStorage.getItem(this.key)) || {}; return { mode: m.mode === 'hard' ? 'hard' : 'kid', pin: typeof m.pin === 'string' ? m.pin : null }; } catch (e) { return { mode: 'kid', pin: null }; }
+    try { const m = JSON.parse(localStorage.getItem(this.key)) || {}; return { mode: m.mode === 'hard' ? 'hard' : 'kid', pin: typeof m.pin === 'string' ? m.pin : null, gui: GUI_SIZES.some(g => g.k === m.gui) ? m.gui : 1 }; } catch (e) { return { mode: 'kid', pin: null, gui: 1 }; }
   },
   set(patch) {
     const next = { ...this.get(), ...patch };

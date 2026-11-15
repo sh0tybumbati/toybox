@@ -1,6 +1,7 @@
 // Room scene mixin — The post: drop an item on a mailbox, choose a building, and it arrives the next time you go there.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { H, W } from '../../config.js';
+import { H } from '../../config.js';
+import { view } from '../../view.js';
 import { addParcel, destinations, takeParcels } from '../../systems/mail.js';
 import { deliveryFee } from '../../systems/market.js';
 import { furnType } from '../../systems/ikea.js';
@@ -23,15 +24,15 @@ export const mailMethods = {
     const fee = box.def.fee, dests = destinations(this.city).filter(d => !fee || d.slot !== this.zone.slot), ui = (this.mailUI = []);
     const add = o => { pin(o).setDepth(9700); ui.push(o); return o; };
     const back = () => { this.closeMailPicker(); this.letOut(key, box); };          // changed your mind: it pops back out (flat-packs get built right here)
-    add(this.add.rectangle(0, 0, W, H, 0x000000, 0.35).setOrigin(0).setInteractive().on('pointerdown', back));
+    add(this.add.rectangle(0, 0, view.w, H, 0x000000, 0.35).setOrigin(0).setInteractive().on('pointerdown', back));
     const rows = Math.ceil(dests.length / 2), h = 130 + rows * 56;
-    add(inkPanel(this, W / 2, H / 2, 560, h, { depth: 9700, seed: 14 })).setInteractive(new Phaser.Geom.Rectangle(W / 2 - 280, H / 2 - h / 2, 560, h), Phaser.Geom.Rectangle.Contains);
-    add(richText(this, fee ? 'Deliver it to…  🚚' : 'Post it to…  📮', { fontSize: '30px', fontStyle: 'bold' })).setPosition(W / 2, H / 2 - h / 2 + 36);
+    add(inkPanel(this, view.w / 2, H / 2, 560, h, { depth: 9700, seed: 14 })).setInteractive(new Phaser.Geom.Rectangle(view.w / 2 - 280, H / 2 - h / 2, 560, h), Phaser.Geom.Rectangle.Contains);
+    add(richText(this, fee ? 'Deliver it to…  🚚' : 'Post it to…  📮', { fontSize: '30px', fontStyle: 'bold' })).setPosition(view.w / 2, H / 2 - h / 2 + 36);
     dests.forEach((d, i) => {
-      const x = W / 2 + (i % 2 ? 130 : -130), y = H / 2 - h / 2 + 90 + Math.floor(i / 2) * 56;
+      const x = view.w / 2 + (i % 2 ? 130 : -130), y = H / 2 - h / 2 + 90 + Math.floor(i / 2) * 56;
       add(inkButton(this, x, y, fee ? `${d.name} · ${deliveryFee(this.zone.slot, d.slot)} 🪙` : d.name, { w: 230, h: 44, size: 22, fill: COLORS.green, depth: 9700, onTap: () => this.sendParcel(key, d.slot, box) }));
     });
-    add(inkButton(this, W / 2, H / 2 + h / 2 - 34, furnType(key) ? 'Keep it here' : 'Never mind', { w: 180, h: 38, size: 20, fill: COLORS.grey, depth: 9700, onTap: back }));
+    add(inkButton(this, view.w / 2, H / 2 + h / 2 - 34, furnType(key) ? 'Keep it here' : 'Never mind', { w: 180, h: 38, size: 20, fill: COLORS.grey, depth: 9700, onTap: back }));
   },
 
   // Something that was going on the van stays: an item pops out of the box; a flat-pack is built here and now.

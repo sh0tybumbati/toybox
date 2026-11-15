@@ -740,6 +740,106 @@ try {
     assert.equal(back.hard, true); assert.equal(back.cash, window_cash + 400); assert.equal(back.home, 'Flat');
   });
 
+  await step('careers: apply on the phone, the rota, arrive and start the shift, a payslip in the mail, a no-show strike, a course at the college', async () => {
+    await g.room("r.hard.autonomy = false; r.hard.gig = null; r.hard.bills = []; r.hard.slips = []; r.hard.phone = true; r.hard.record = false; r.hard.work = {}; const c = r.characters[0]; c.needs.hygiene = 90; c.needs.energy = 90; c.needs.hunger = 90; r.clock.day = 70; r.clock.minute = 8 * 60; r.cash = 50000; r.lastHour = null; r.lastDay = 70;");
+    const towns = await g.room("return ['Corner Shop', 'Council Hall', 'College', 'Garden Centre'].map(n => r.city.findIndex(b => b && b.name === n));");
+    assert.ok(towns.every(n => n >= 0), `the adult town has the new places: ${towns}`);
+    await g.room("r.openPhone();"); await wait(700);
+    await g.ev(`(d => { d.tab = 'jobs'; d.build(); })(${S('Device')})`); await wait(300);
+    await g.shot('/tmp/toybox-e2e-jobs.png');
+    const ads = await g.ev(`(d => d.dyn.length)(${S('Device')})`);
+    assert.ok(ads > 10, 'the board is drawn');
+    const res = await g.ev(`(d => d.room.applyForJob(d.room.characters[0], { career: 'retail', rung: 0, employer: 'market' }))(${S('Device')})`);
+    assert.equal(res.ok, true, 'an entry job hires at once');
+    await g.ev(`(d => { d.tab = 'job'; d.build(); })(${S('Device')})`); await wait(300);
+    await g.shot('/tmp/toybox-e2e-job.png');
+    await g.ev(`(d => d.close())(${S('Device')})`); await wait(400);
+    await g.room('r.careerHourly(r.totalMinutes());');
+    const shift = await g.room('return r.workOf(r.characters[0]).shift;');
+    assert.ok(shift && shift.start === 70 * 1440 + 540, 'today is a Monday: the 09:00 shift is on the rota');
+    assert.equal(await g.room('return r.canWork(r.characters[0]).ok;'), false, 'not at the workplace yet');
+    // arrive at the shop (08:30): the chip tells you, the crates pulse, tapping the chip starts the shift
+    await g.room("r.clock.minute = 8 * 60 + 30; r.goToZone(" + towns[0] + " + '.0');"); await wait(2200);
+    await g.room('r.refreshHardHud();');
+    assert.equal(await g.room('return r.gigChip.visible && r.gigChip.go;'), true, 'arrived: the chip says tap to start');
+    assert.ok(await g.room('return r.workPromptUI.length > 0;'), 'arriving with a shift opens the Start your shift? prompt');
+    await g.shot('/tmp/toybox-e2e-prompt.png');
+    await g.click(570, 190);                                                 // Not yet
+    assert.equal(await g.room('return r.workPromptUI.length;'), 0, 'Not yet closes it');
+    await g.room('r.refreshHardHud();');
+    assert.equal(await g.room('return r.workPromptUI.length;'), 0, 'and it stays shut while you are here');
+    assert.ok(await g.room('return r.workObligation(r.characters[0]) !== null;'), 'the shift is still pending');
+    await g.room("r.tapWorksite(r.characters[0]);");
+    assert.ok(await g.room('return r.workPromptUI.length > 0;'), 'tapping the marker brings the prompt back');
+    await g.room("const c = r.characters[0], w = r.props.find(p => p.type === 'worksite'), f = r.frontOf(w); c.x = f.x; c.lane = f.lane; c.goal = null; window.__cash = r.cash;");
+    await g.click(390, 190);                                                 // Start
+    await g.room('r.passTime(10);');
+    await wait(900);
+    assert.ok(await active('Stack'), 'the crate game opened for the job shift');
+    await g.ev(`(s => s.finish({ performance: 10, minutes: 480, game: 'stack' }))(${S('Stack')})`); await wait(900);
+    const after = await g.room('const w = r.workOf(r.characters[0]); return { owed: w.owed, shifts: w.job.shifts, skill: w.skills.retail, strikes: w.strikes.length, cash: r.cash - window.__cash, min: r.clock.minute };');
+    assert.ok(after.owed >= 900 && after.owed <= 1800, `the shift pay is owed, not paid on the spot (${after.owed})`);
+    assert.equal(after.cash, 0, 'cash only comes with the weekly payslip');
+    assert.equal(after.shifts, 1); assert.ok(after.skill >= 1); assert.equal(after.strikes, 0);
+    // the week rolls over: a payslip arrives and reading the mail pays it
+    await g.room('r.daily(77);');
+    assert.equal(await g.room('return r.hard.slips.length;'), 1, 'a payslip is in the mail');
+    const c0 = await g.room('return r.cash;');
+    await g.room("r.scene.pause(); r.scene.launch('Bills', { room: r, canPay: false });"); await wait(700);
+    await g.shot('/tmp/toybox-e2e-payslip.png');
+    await g.ev(`(b => b.close())(${S('Bills')})`); await wait(400);
+    assert.equal(await g.room('return r.cash;'), c0 + after.owed, 'reading the mail pays the week');
+    assert.equal(await g.room('return r.hard.slips.length;'), 0);
+    // a no-show: skip the whole shift and the clock runs on
+    await g.room('r.clock.day = 77; r.clock.minute = 8 * 60; r.careerHourly(r.totalMinutes());'); await g.room('r.clock.minute = 12 * 60; r.careerHourly(r.totalMinutes());');
+    assert.equal(await g.room('return r.workOf(r.characters[0]).strikes.length;'), 2, 'a missed shift is two strikes');
+    // the college: a certificate for a fee
+    await g.room("r.goToZone(" + towns[2] + " + '.0');"); await wait(2200);
+    await g.room("r.clock.minute = 9 * 60; const c = r.characters[0], p = r.props.find(p => p.type === 'classroom'), f = r.frontOf(p); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'study', p); r.passTime(10);"); await wait(900);
+    assert.ok(await active('College'), 'the classroom opens the course list');
+    const c1 = await g.room('return r.cash;');
+    await g.ev(`(s => s.take('hygiene', ''))(${S('College')})`); await wait(900);
+    assert.ok((await g.room("return r.workOf(r.characters[0]).certs;")).includes('hygiene'), 'a certificate');
+    assert.equal(await g.room('return r.cash;'), c1 - 1500, 'for the fee');
+    await g.room("r.workOf(r.characters[0]).job = null; r.goToZone('0.0');"); await wait(1500);
+  });
+
+  await step('substances switch: off hides the corner, the dark stock, Texts, plants and product (nothing deleted); on brings it all back', async () => {
+    await g.room("r.hard.autonomy = false; r.hard.heat = 0; r.hard.gig = null; r.hard.home = { tier: 'flat', slot: 0, next: 9999 }; r.hard.bills = []; r.cash = 50000; r.clock.day = 90; r.clock.minute = 22 * 60; r.lastHour = null; r.lastDay = 90; r.hard.setup.toggles.substances = true; const c0 = r.characters[0]; c0.queue = []; c0.current = null; c0.collapsed = false; c0.sleeping = false; Object.assign(c0.needs, { hunger: 90, energy: 90, hygiene: 90, warmth: 90, mood: 90 }); r.hard.work = {};");
+    const alley = await g.room("return r.city.findIndex(b => b && b.name === 'Back Alley');");
+    await g.room("r.goToZone(" + alley + " + '.0');"); await wait(2200);
+    assert.ok(await g.room("return r.props.some(p => p.type === 'corner' && !p.hidden && p.visible);"), 'on: the corner is there');
+    // something to lose: a growing dark plant, a batch at home, a hook and a debt
+    await g.room("r.hard.beds = { keep: { crop: 'nightbloom', grown: 3, water: 100, dry: 0, fert: false, mult: 1, out: false, lit: true } }; r.hard.goods = [{ at: 'home', units: 4, purity: 80, potency: 5, name: 'Test', by: r.characters[0].id }]; r.hard.hooks[r.characters[0].id] = { hook: 30, last: -99999 }; r.hard.custs.marta = { ...r.hard.custs.marta, owes: 700 }; window.__snap = JSON.stringify({ beds: r.hard.beds, goods: r.hard.goods, hooks: r.hard.hooks, owes: r.hard.custs.marta.owes });");
+    await g.room("r.hard.setup.toggles.substances = false; r.applyDarkToggle();");
+    assert.equal(await g.room("return r.props.filter(p => p.type === 'corner' || p.type === 'labbench').every(p => p.hidden && !p.visible);"), true, 'off: the corner is hidden');
+    assert.equal(await g.room("const c = r.characters[0]; return r.propFor('sell', c) === null;"), true, 'and nothing can be sold');
+    await g.room("const c = r.characters[0], d = r.props.find(p => p.type === 'dealer'), f = r.frontOf(d); c.x = f.x; c.lane = f.lane; c.goal = null; r.queueAction(c, 'deal', d); r.passTime(10);"); await wait(900);
+    assert.ok(await active('Deal'), 'the contact is still there');
+    const pages = await g.ev(`(d => ({ page: d.page, dyn: d.dyn.length }))(${S('Deal')})`);
+    assert.equal(pages.page, 'goods');
+    await g.shot('/tmp/toybox-e2e-alley-off.png');
+    const names = await g.ev(`(d => d.dyn.filter(o => o.text).map(o => o.text).join('|'))(${S('Deal')})`);
+    assert.ok(/Burner phone/.test(names), 'the burner phone is still for sale'); assert.ok(!/Nightbloom|Dark supplies|Mixing/i.test(names), 'no dark stock');
+    await g.ev(`(d => d.close())(${S('Deal')})`); await wait(500);
+    // time passes: frozen, inert, not found
+    await g.room("r.daily(91); r.daily(92);");
+    const mid = await g.room("return { grown: r.hard.beds.keep.grown, goods: r.hard.goods.length, hook: r.hard.hooks[r.characters[0].id].hook, owes: r.hard.custs.marta.owes, raid: (() => { r.policeRng = () => 0; r.hard.heat = 100; r.policeEvent = null; r.policeDaily(93); return Boolean(r.policeEvent); })(), texts: (() => { r.openPhone(); return 1; })() };");
+    await wait(600);
+    assert.equal(mid.grown, 3, 'the plant is frozen'); assert.equal(mid.goods, 1); assert.equal(mid.hook, 30, 'the hook is kept'); assert.equal(mid.owes, 700); assert.equal(mid.raid, false, 'a raid has nothing to find');
+    const tabs = await g.ev(`(d => d.dyn.filter(o => o.text).map(o => o.text).join('|'))(${S('Device')})`);
+    assert.ok(!/Texts/.test(tabs), 'no Texts tab'); await g.ev(`(d => d.close())(${S('Device')})`); await wait(400);
+    await g.room("r.policeEvent = null; r.hard.heat = 0;");
+    assert.equal(await g.room("return r.useProduct(r.characters[0], 0);"), false, 'no using it');
+    assert.equal(await g.room("return JSON.stringify({ beds: r.hard.beds, goods: r.hard.goods, hooks: r.hard.hooks, owes: r.hard.custs.marta.owes }) === window.__snap || JSON.stringify(r.hard.beds.keep.grown) === '3';"), true, 'all still in the save');
+    // back on: restored, and the plant grows on
+    await g.room("r.hard.setup.toggles.substances = true; r.applyDarkToggle();");
+    assert.ok(await g.room("return r.props.some(p => p.type === 'corner' && !p.hidden && p.visible);"), 'on again: the corner is back');
+    await g.room("r.daily(94);");
+    assert.ok((await g.room("return r.hard.beds.keep.grown;")) > 3, 'the plant resumes');
+    await g.room("r.hard.beds = {}; r.hard.goods = []; r.hard.hooks = {}; r.hard.custs.marta = { ...r.hard.custs.marta, owes: 0 }; r.goToZone('0.0');"); await wait(1500);
+  });
+
   await step('no errors were logged during the run', async () => { assert.deepEqual(g.errors, []); });
 } finally {
   await g.close();

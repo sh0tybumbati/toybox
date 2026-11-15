@@ -1,6 +1,7 @@
 // Room scene mixin — Elevators, stairs and ladders: tap one to pick another floor of the building.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { H, W } from '../../config.js';
+import { H } from '../../config.js';
+import { view } from '../../view.js';
 import { defaultFurniture } from '../../data/rooms.js';
 import { PROP_TYPES } from '../../data/props.js';
 import { floatText } from '../../systems/interactions.js';
@@ -48,14 +49,14 @@ export const connectorMethods = {
     this.closeLiftPanel();
     const z = this.zone, ui = (this.liftUI = []);
     const add = o => { pin(o).setDepth(9700); ui.push(o); return o; };
-    add(this.add.rectangle(0, 0, W, H, 0x000000, 0.35).setOrigin(0).setInteractive().on('pointerdown', () => this.closeLiftPanel()));
+    add(this.add.rectangle(0, 0, view.w, H, 0x000000, 0.35).setOrigin(0).setInteractive().on('pointerdown', () => this.closeLiftPanel()));
     const rows = [...targets.map(id => z.building.floors.findIndex(f => f.id === id)), z.floorIndex].sort((a, b) => b - a);
     const h = 84 + rows.length * 58, top = H / 2 - h / 2;
-    add(inkPanel(this, W / 2, H / 2, 310, h, { depth: 9700, seed: 4 })).setInteractive(new Phaser.Geom.Rectangle(W / 2 - 155, H / 2 - h / 2, 310, h), Phaser.Geom.Rectangle.Contains);
-    add(richText(this, `${prop.def.name}: where to?`, { fontSize: '26px', fontStyle: 'bold' })).setPosition(W / 2, top + 34);
+    add(inkPanel(this, view.w / 2, H / 2, 310, h, { depth: 9700, seed: 4 })).setInteractive(new Phaser.Geom.Rectangle(view.w / 2 - 155, H / 2 - h / 2, 310, h), Phaser.Geom.Rectangle.Contains);
+    add(richText(this, `${prop.def.name}: where to?`, { fontSize: '26px', fontStyle: 'bold' })).setPosition(view.w / 2, top + 34);
     rows.forEach((idx, i) => {
       const here = idx === z.floorIndex, y = top + 80 + i * 58;
-      const btn = add(inkButton(this, W / 2, y, `${here ? '📍 ' : ''}${floorLabel(idx)}`, { w: 220, fill: here ? COLORS.grey : COLORS.green, size: 23, depth: 9700 }));
+      const btn = add(inkButton(this, view.w / 2, y, `${here ? '📍 ' : ''}${floorLabel(idx)}`, { w: 220, fill: here ? COLORS.grey : COLORS.green, size: 23, depth: 9700 }));
       if (!here) btn.on('pointerdown', () => this.rideTo(z.building.floors[idx].id, prop));
     });
   },

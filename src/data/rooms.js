@@ -145,8 +145,35 @@ export const ROOMS = {
     label: '🪴 Garden Centre',
     style: { wall: 'mintTiles', floor: 'oak' },
     shelves: [],
-    props: [{ type: 'seedrack', x: 300, y: 470 }, { type: 'dumpster', x: 700, y: 540 }, { type: 'lightswitch', x: 890, y: 168 }],
+    props: [
+      { type: 'plant', x: 90, y: 434 }, { type: 'seedrack', x: 300, y: 470 }, { type: 'plant', x: 520, y: 434 },
+      { type: 'plant', x: 640, y: 540 }, { type: 'cabinet', x: 800, y: 434 }, { type: 'plant', x: 900, y: 540 },
+      { type: 'lightswitch', x: 890, y: 168 },
+    ],
     windows: [{ x: 560, y: 60, w: 200, h: 110 }],
+  },
+  // A bathroom is its own small room (half a screen) so a shower never ends up in a kitchen or a bedroom.
+  bathroom: {
+    label: '🚿 Bathroom',
+    buildable: true,
+    bin: false,
+    w: 480, minW: 480, maxW: 720,
+    style: { wall: 'mintTiles', floor: 'checker' },
+    shelves: [],
+    props: [
+      { type: 'basin', x: 150, y: 434 },
+      { type: 'toilet', x: 470, y: 434 },
+      { type: 'shower', x: 790, y: 540 },
+      { type: 'lightswitch', x: 890, y: 168 },
+    ],
+    windows: [{ x: 300, y: 70, w: 200, h: 120 }],
+    decor(g) {
+      g.fillStyle(0xdbe9f6, 1).fillRoundedRect(110, 90, 100, 120, 10);     // a mirror over the basin
+      g.lineStyle(5, 0x9ab4cc, 1).strokeRoundedRect(110, 90, 100, 120, 10);
+      g.fillStyle(0xffffff, 0.7).fillRect(124, 104, 14, 70);
+      g.fillStyle(0xf59ab4, 1).fillRoundedRect(380, 330, 150, 14, 6);      // a towel rail
+      g.fillStyle(0xfff3a0, 1).fillRoundedRect(396, 344, 40, 70, 5);
+    },
   },
   // A blank canvas for building from scratch.
   empty: {
@@ -199,18 +226,57 @@ export const ROOMS = {
     label: '🏦 Bank',
     style: { wall: 'sky', floor: 'checker' },
     shelves: [],
-    props: [{ type: 'lightswitch', x: 890, y: 168 }],
+    props: [
+      { type: 'plant', x: 70, y: 434 }, { type: 'bench', x: 190, y: 540 }, { type: 'desk', x: 790, y: 500 },
+      { type: 'chair', x: 700, y: 540 }, { type: 'plant', x: 900, y: 434 }, { type: 'lightswitch', x: 890, y: 168 },
+    ],
     windows: [{ x: 160, y: 60, w: 150, h: 110 }],
     decor(g) {
       g.fillStyle(0xf0c868, 1).fillRoundedRect(380, 200, 200, 46, 10);                 // a sign
       g.fillStyle(0x4a3426, 1).fillRect(410, 216, 140, 5).fillRect(430, 228, 100, 5);
+      g.fillStyle(0x8a94a4, 1).fillCircle(790, 220, 84);                               // the vault door
+      g.fillStyle(0xb9c2d0, 1).fillCircle(790, 220, 68);
+      g.lineStyle(6, 0x6b7482, 1).strokeCircle(790, 220, 84).strokeCircle(790, 220, 46);
+      g.fillStyle(0x4a5368, 1).fillCircle(790, 220, 14).fillRect(784, 150, 12, 26).fillRect(784, 264, 12, 26).fillRect(720, 214, 26, 12).fillRect(834, 214, 26, 12);
+    },
+  },
+  council: {
+    label: '🏛 Council Hall',
+    style: { wall: 'sky', floor: 'checker' },
+    shelves: [],
+    props: [
+      { type: 'plant', x: 70, y: 434 }, { type: 'bench', x: 160, y: 540 }, { type: 'desk', x: 600, y: 500 },
+      { type: 'chair', x: 520, y: 540 }, { type: 'bookcase', x: 790, y: 434 }, { type: 'floorlamp', x: 920, y: 500 },
+      { type: 'lightswitch', x: 890, y: 168 },
+    ],
+    windows: [{ x: 160, y: 60, w: 150, h: 110 }, { x: 640, y: 60, w: 150, h: 110 }],
+    decor(g) {
+      g.fillStyle(0xcf4a4a, 1).fillRoundedRect(400, 80, 70, 110, 6);                   // a banner and a notice board
+      g.fillStyle(0xf0c868, 1).fillCircle(435, 135, 18);
+      g.fillStyle(0x9a6f45, 1).fillRoundedRect(330, 210, 140, 70, 6);
+      for (const [x, y] of [[344, 222], [394, 224], [434, 220], [352, 252], [408, 250]]) g.fillStyle(0xf5ecd8, 1).fillRect(x, y, 30, 22);
+    },
+  },
+  college: {
+    label: '🎓 College',
+    style: { wall: 'sky', floor: 'oak' },
+    shelves: [],
+    props: [
+      { type: 'bookcase', x: 110, y: 434 }, { type: 'bookcase', x: 850, y: 434 },
+      { type: 'chair', x: 330, y: 545 }, { type: 'chair', x: 640, y: 545 }, { type: 'plant', x: 900, y: 540 },
+      { type: 'lightswitch', x: 890, y: 168 },
+    ],
+    windows: [{ x: 160, y: 60, w: 150, h: 110 }],
+    decor(g) {
+      g.fillStyle(0x3f6a52, 1).fillRoundedRect(330, 130, 300, 120, 8);                 // a blackboard
+      g.fillStyle(0xf5ecd8, 1).fillRect(356, 160, 160, 5).fillRect(356, 186, 220, 5).fillRect(356, 212, 120, 5);
     },
   },
   postoffice: {
     label: '📮 Post office',
     style: { wall: 'sky', floor: 'oak' },
     shelves: [
-      { x: 15,  y: 295, items: ['cookie', 'apple', 'cake', 'jam'] },
+      { x: 15,  y: 295, items: ['box', 'box', 'backpack', 'puzzle'] },
       { x: 645, y: 295, items: ['teddy', 'ball', 'kite', 'cap'] },
     ],
     props: [{ type: 'mailbox', x: 330, y: 470 }, { type: 'mailbox', x: 640, y: 470 }, { type: 'lightswitch', x: 890, y: 168 }],
@@ -259,7 +325,7 @@ export const ROOMS = {
     style: { wall: 'sage', floor: 'concrete' },
     shelves: [],
     props: [
-      { type: 'frontdesk', x: 160, y: 520 }, { type: 'bed', x: 480, y: 540 }, { type: 'chair', x: 700, y: 540 },
+      { type: 'bed', x: 480, y: 540 }, { type: 'chair', x: 700, y: 540 }, { type: 'floorlamp', x: 840, y: 500 },
       { type: 'lightswitch', x: 890, y: 168 },
     ],
     windows: [{ x: 640, y: 60, w: 150, h: 110 }],
@@ -268,6 +334,7 @@ export const ROOMS = {
     label: '🧱 Back alley',
     outdoor: true,
     shelves: [],
+    margin: [0x5d5057, 0x3b3b44],
     props: [{ type: 'dumpster', x: 130, y: 540 }, { type: 'firebarrel', x: 360, y: 540 }, { type: 'dealer', x: 640, y: 540 }, { type: 'corner', x: 860, y: 520 }],
     draw(g) { paintAlley(g); },
   },

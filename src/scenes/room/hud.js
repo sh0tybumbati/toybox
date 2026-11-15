@@ -1,14 +1,22 @@
 // Room scene mixin — HUD: top-bar buttons, coin counter, opening the map and recipe book.
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { W, HUD_SCALE } from '../../config.js';
+import { W, H, HUD_SCALE } from '../../config.js';
+import { view } from '../../view.js';
 import { metaStore } from '../../systems/save.js';
 import { CARD, COLORS, inkButton, inkChip, inkDisc, inkPlate, pin } from '../../ui.js';
 
 export const hudMethods = {
   createHud(hasSave) {
     // The HUD lives in three layers, scaled about the left, centre and right edges so it stays tucked in its corners.
-    const layer = x => pin(this.add.container(x, 0).setScale(HUD_SCALE).setDepth(10000));
-    this.hudL = layer(0); this.hudC = layer(W / 2 * (1 - HUD_SCALE)); this.hudR = layer(W * (1 - HUD_SCALE));
+    // Anything added to a layer is pinned to the screen too (pinning only reaches the children a container already has, and a
+    // child left unpinned is drawn in place but hit-tested as if it scrolled with the room: its buttons stop working).
+    const layer = () => {
+      const c = pin(this.add.container(0, 0).setDepth(10000)), add = c.add;
+      c.add = function (o) { add.call(this, o); for (const k of [].concat(o)) k.setScrollFactor(0, 0, true); return this; };
+      return c;
+    };
+    this.hudL = layer(); this.hudC = layer(); this.hudR = layer(); this.hudBL = layer(); this.hudBR = layer();      // the bottom two hold the player card and the clock in adult mode
+    this.layoutHud();
     const left = o => { this.hudL.add(o); return o; }, centre = o => { this.hudC.add(o); return o; }, right = o => { this.hudR.add(o); return o; }, fixed = left;
     this.roomLabel = centre(inkPlate(this, W / 2 - 20, 32, '', { maxW: 400 }));
     fixed(inkButton(this, 76, 32, '🗺️ Map', { w: 116, h: 48, fill: COLORS.gold, size: 22, onTap: () => this.openMap(), depth: 10000 }));
@@ -24,6 +32,19 @@ export const hudMethods = {
     disc(2, 'icon-book', () => this.openBook());
     this.editDisc = disc(3, 'icon-furniture', () => this.toggleEdit());
     this.updateNav();
+  },
+
+  // The size of the HUD: its base scale times the player's GUI size. Each layer is scaled about the edge it is tucked into.
+  hudScale() { return HUD_SCALE * metaStore.get().gui; },
+  layoutHud() {
+    const s = this.hudScale(), x = { l: 0, c: view.w / 2 - W / 2 * s, r: view.w - W * s }, yb = H * (1 - s);
+    for (const [layer, px, py] of [[this.hudL, x.l, 0], [this.hudC, x.c, 0], [this.hudR, x.r, 0], [this.hudBL, x.l, yb], [this.hudBR, x.r, yb]]) if (layer) layer.setScale(s).setPosition(px, py);
+  },
+  // Settings: change the GUI size, and put anything that was placed from the old size back.
+  setGuiSize(k) {
+    metaStore.set({ gui: k });
+    this.layoutHud();
+    this.hideTip(); this.refreshTip();
   },
 
   // Settings' "start over": wipes the saved toybox (an adult game falls back to the kid world).

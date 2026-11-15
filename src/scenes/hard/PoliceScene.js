@@ -28,7 +28,7 @@ export default class PoliceScene extends Phaser.Scene {
     this.dyn.forEach(o => o.destroy());
     this.dyn = [];
     const r = this.room, h = r.hard, o = this.event.officer;
-    const carried = h.goods.map((g, i) => (g.at === 'carry' ? i : -1)).filter(i => i >= 0);
+    const goods = this.room.subs() ? h.goods : [], carried = goods.map((g, i) => (g.at === 'carry' ? i : -1)).filter(i => i >= 0);
     if (this.stage === 'stop') {
       this.say(160, `${o.name}: "${o.line}"`, 22);
       if (!carried.length) { this.say(250, 'You have nothing on you. "Alright. Move along."', 20, { color: '#7a6a58' }); this.button(380, 'Walk on', COLORS.green, () => this.finish(-5)); return; }
@@ -64,7 +64,7 @@ export default class PoliceScene extends Phaser.Scene {
 
   // --- the stop -------------------------------------------------------------------------------
   comply(carried) {
-    const h = this.room.hard, found = search(h.goods, 'carry', Boolean(h.hides.bag), () => this.rng());
+    const h = this.room.hard, found = search(this.room.subs() ? h.goods : [], 'carry', Boolean(h.hides.bag), () => this.rng());
     if (!found.length) { this.stage = 'clear'; this.flags = { msg: '"Huh. Clean. Move along."', heat: -5 }; this.show(); return; }
     this.arrest(found, {});
   }
@@ -85,7 +85,7 @@ export default class PoliceScene extends Phaser.Scene {
 
   // --- the raid -------------------------------------------------------------------------------
   raid() {
-    const h = this.room.hard, found = search(h.goods, 'home', Boolean(h.hides.safe), () => this.rng()), plants = hasPlants(h.beds, h.raw);
+    const h = this.room.hard, found = search(this.room.subs() ? h.goods : [], 'home', Boolean(h.hides.safe), () => this.rng()), plants = this.room.subs() && hasPlants(h.beds, h.raw);
     if (!found.length && !plants) { this.stage = 'clear'; this.flags = { msg: 'They turn the place over and find nothing. They leave.', heat: -15 }; this.show(); return; }
     this.arrest(found, { plants, raid: true });
   }

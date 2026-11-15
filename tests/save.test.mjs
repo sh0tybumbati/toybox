@@ -10,9 +10,9 @@ const v1 = {
   floors: { kitchen: [{ k: 'apple', x: 421, l: 552 }], bedroom: [{ k: 'car', x: 301, l: 552 }] },
 };
 
-test('v1 saves migrate to a one-character v13 save with a look', () => {
+test('v1 saves migrate to a one-character v15 save with a look', () => {
   const d = migrate(v1);
-  assert.equal(d.v, 13);
+  assert.equal(d.v, 15);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.deepEqual(d.furniture, {});                // nothing saved yet: rooms use their default layout
@@ -67,7 +67,7 @@ test('party is capped at 6, junk looks are repaired, an empty party gets the def
 
 test('v3 saves gain night=false; night survives sanitize', () => {
   const d = sanitize({ v: 3, room: 'bedroom', characters: [], floors: {} });
-  assert.equal(d.v, 13);
+  assert.equal(d.v, 15);
   assert.equal(d.night, false);
   assert.equal(d.coins, 0);
   assert.equal(d.furniture['0.0'], null);          // nothing saved yet: the room uses its default layout

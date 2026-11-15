@@ -27,7 +27,8 @@ export default class DealScene extends Phaser.Scene {
     const r = this.room, h = r.hard;
     keep(text(this, W / 2, 168, '"Keep your voice down. Cash only."', 20, { color: '#7a6a58', fontStyle: 'italic' }).setOrigin(0.5));
     keep(text(this, W / 2, 196, `Cash: $${r.cash.toLocaleString('en-US')}${h.heat ? `   ·   🚨 Heat ${h.heat}` : ''}`, 20).setOrigin(0.5));
-    ['goods', 'supplies'].forEach((p, i) => keep(inkButton(this, W / 2 - 110 + i * 220, 232, p === 'goods' ? 'Goods' : 'Dark supplies', { w: 200, h: 34, size: 18, fill: this.page === p ? COLORS.gold : COLORS.grey, depth: 6, seed: 140 + i, onTap: () => { this.page = p; this.build(); } })));
+    const pages = this.room.subs() ? ['goods', 'supplies'] : ['goods'];                 // the dark stock is only there with the substances switch on
+    if (pages.length > 1) pages.forEach((p, i) => keep(inkButton(this, W / 2 - 110 + i * 220, 232, p === 'goods' ? 'Goods' : 'Dark supplies', { w: 200, h: 34, size: 18, fill: this.page === p ? COLORS.gold : COLORS.grey, depth: 6, seed: 140 + i, onTap: () => { this.page = p; this.build(); } })));
     (this.page === 'goods' ? offers(r.clock.day) : supplies()).forEach((o, i) => {
       const compact = this.page !== 'goods', y = compact ? 276 + i * 36 : 290 + i * 58, left = o.stock != null ? o.stock - (h.deals.counts[o.id] || 0) : null, soldOut = left === 0, own = (o.id === 'burner' && h.phone) || (o.hide && h.hides[o.hide]);       // (y is set above)
       keep(inkPanel(this, W / 2, y, 560, compact ? 33 : 50, { fill: CARD, radius: 12, shadow: false, weight: 2.8, seed: 150 + i, depth: 4 }));
@@ -52,7 +53,7 @@ export default class DealScene extends Phaser.Scene {
       if (!bag) { r.sfx.nope(); this.note('Your bag is full.'); return; }
       c.bag = bag;
     } else h.phone = true;
-    r.cash -= o.price; h.heat = addHeat(h.heat, o.heat);
+    r.cash -= o.price; h.heat = addHeat(h.heat, r.subs() ? o.heat : 0);                  // with the substances switch off nothing here is illegal
     h.deals.counts[o.id] = (h.deals.counts[o.id] || 0) + 1;
     r.updateNav(); r.dirty = true; r.queueDirty = true; r.sfx.coin();
     this.build();

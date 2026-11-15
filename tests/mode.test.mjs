@@ -86,8 +86,10 @@ test('the clock, needs and free-will switch are saved and repaired', () => {
 test('hard-mode scenarios put the right furniture in: a shower at home, a fountain in the park', () => {
   for (const id of ['bench', 'flat', 'house', 'jail']) {
     const save = newHardSave({ scenario: id });
-    const types = save.city.filter(Boolean).flatMap(b => b.floors.flatMap(f => f.rooms.flatMap(r => (r.extra || []).map(p => p.type))));
+    const rooms = save.city.filter(Boolean).flatMap(b => b.floors.flatMap(f => f.rooms));
+    const types = rooms.flatMap(r => (r.extra || []).map(p => p.type));
     assert.ok(types.includes('fountain'), `${id}: a fountain to wash at`);
-    if (id === 'flat' || id === 'house') assert.ok(types.includes('shower'), `${id}: a shower`);
+    if (id === 'flat' || id === 'house') assert.ok(rooms.some(r => r.type === 'bathroom'), `${id}: a bathroom of its own`);
+    assert.ok(!types.includes('shower'), `${id}: no shower dropped into another room`);
   }
 });

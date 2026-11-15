@@ -1,27 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { JOB_TEMPLATES, JOB_IDS, LISTINGS_PER_DAY } from '../src/data/hard/jobs.js';
-import { listings } from '../src/systems/hard/jobs.js';
 import { SCENARIOS } from '../src/data/hard/scenarios.js';
 import { newHardSave } from '../src/data/hard/start.js';
 import { sanitize } from '../src/systems/save.js';
 import { PROP_TYPES } from '../src/data/props.js';
 import { ACTIONS } from '../src/data/hard/needs.js';
 import { roughHour } from '../src/systems/hard/street.js';
-
-test('the classifieds: the same ads on the same day, different ads on other days, pay within 8% of the going rate', () => {
-  assert.deepEqual(listings(5), listings(5));
-  assert.equal(listings(5).length, LISTINGS_PER_DAY);
-  const days = new Set(Array.from({ length: 20 }, (_, d) => listings(d).map(j => j.id).join()));
-  assert.ok(days.size > 8, 'the ads change from day to day');
-  for (let d = 0; d < 30; d++) for (const ad of listings(d)) {
-    const base = JOB_TEMPLATES.find(j => j.id === ad.id);
-    assert.ok(ad.pay >= base.pay * 0.9 && ad.pay <= base.pay * 1.1, `${ad.id}: ${ad.pay}`);
-    assert.equal(ad.pay % 50, 0);
-  }
-  assert.equal(new Set(listings(3).map(j => j.id)).size, LISTINGS_PER_DAY, 'no repeats in one paper');
-  assert.equal(JOB_IDS.length, 7);
-});
 
 test('the phone and the computer: homes come with a phone, the bench and the jail start do not; devices and where to get them exist', () => {
   assert.equal(SCENARIOS.bench.phone, false); assert.equal(SCENARIOS.jail.phone, false);

@@ -3,7 +3,8 @@
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
 import { BIN, FLOOR_TOP, FLOOR_BOTTOM, H } from '../../config.js';
 import { ROOMS, defaultFurniture, shelvesFor } from '../../data/rooms.js';
-import { defaultLook, paintDivider, paintRoom, paintSunbeams } from '../../data/decor.js';
+import { defaultLook, paintDivider, paintMargin, paintRoom, paintSunbeams } from '../../data/decor.js';
+import { EDGE_EXTRA } from '../../view.js';
 import { InkPen } from '../../data/inkpen.js';
 import Character from '../../entities/Character.js';
 import { flushProps } from '../../systems/props.js';
@@ -177,8 +178,7 @@ export const worldMethods = {
     this.binObjs = [];
     this.beams = [];
     this.sectionGfx = {};
-    const cam = this.cameras.main;
-    cam.setBounds(0, 0, this.worldW, H);
+    this.setCamBounds();
     this.props = [];
     let n = 0;
     for (const sec of zone.sections) {
@@ -187,6 +187,12 @@ export const worldMethods = {
       this.roomGfx.push(g);
       this.sectionGfx[sec.id] = { room: g };
       paintRoom(g, type, look, sec.w);
+      for (const [side, at] of [[0, -EDGE_EXTRA], [1, sec.offset + sec.w]]) {          // wall and floor past the ends of the zone, for wide windows
+        if ((side === 0 && sec.index > 0) || (side === 1 && sec.index < zone.sections.length - 1)) continue;
+        const edge = this.add.graphics().setDepth(0).setPosition(at, 0);
+        paintMargin(edge, type, look, EDGE_EXTRA);
+        this.roomGfx.push(edge);
+      }
       const shelfG = this.add.graphics().setDepth(0.05).setPosition(sec.offset, 0);       // shelves sit on top, so repainting the room keeps them
       this.roomGfx.push(shelfG);
       if (SUNBEAMS && !type.outdoor && look.windows.length) {          // light through the windows, off at night (the ink style has no lighting effects)
@@ -202,7 +208,7 @@ export const worldMethods = {
         this.roomGfx.push(door);
       }
 
-      for (const entry of this.sectionProps(sec)) this.props.push(this.createProp({ ...entry, x: entry.x + sec.offset }, sec));
+      for (const entry of this.sectionProps(sec)) { const made = this.createProp({ ...entry, x: entry.x + sec.offset }, sec); this.props.push(made); if (this.hard) this.hideIfDark(made); }
 
       const pen = new InkPen(shelfG, 77 + sec.index);
       for (const sh of shelvesFor(sec.type, sec.w)) {

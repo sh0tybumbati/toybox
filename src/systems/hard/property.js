@@ -3,14 +3,15 @@ import { BLUEPRINTS, newBuilding } from '../../data/buildings.js';
 import { BUILD_PRICE, LISTINGS, LOT_PRICE, SELL_RATE } from '../../data/hard/property.js';
 import { BIZ, BIZ_BLUEPRINTS } from '../../data/hard/business.js';
 import { newBiz } from './business.js';
+import { ensureBathrooms, stripLooseShowers } from '../layout.js';
 
 const money = n => `$${n.toLocaleString('en-US')}`;
 
-// A house you can live in as an adult: a front door on the road side, a mailbox, a shower in the last room of the ground floor.
+// A house you can live in as an adult: a front door on the road side, a mailbox, and a bathroom of its own (with the shower).
 export function readyHouse(b) {
   const rooms = b.floors[0].rooms, add = (r, ...props) => { r.extra = [...(r.extra || []), ...props]; };
   add(rooms[0], { type: 'frontdoor', x: 70, y: 440 }, { type: 'mailbox', x: 250, y: 540 });
-  add(rooms[rooms.length - 1], { type: 'shower', x: 860, y: 540 });
+  stripLooseShowers(b); ensureBathrooms(b);
   return b;
 }
 

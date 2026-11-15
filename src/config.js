@@ -17,7 +17,7 @@ export const MAX_FLOOR_ITEMS = 20;      // oldest floor clutter fades away beyon
 // Trash bin: anything that lands on the floor inside this footprint is binned.
 export const BIN = { x: 880, lane: 565, minLane: 500, halfW: 46 };
 
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 15;
 
 // Text defaults to this stack so emoji look the same everywhere (index.html loads the font).
 export const FONT = '"Patrick Hand", "Comic Sans MS", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", cursive';
@@ -27,3 +27,5 @@ export const UI_FONT = '"Fredoka", "Patrick Hand", "Noto Color Emoji", "Apple Co
 
 // The HUD (top bar, player card, clock) is drawn at this fraction of its design size, anchored to its corner.
 export const HUD_SCALE = 0.6;
+// The player's choice of how big the HUD is (multiplies HUD_SCALE); kept in the meta store so it applies in both modes.
+export const GUI_SIZES = [{ k: 0.8, label: 'Small' }, { k: 1, label: 'Normal' }, { k: 1.3, label: 'Large' }, { k: 1.6, label: 'Huge' }];

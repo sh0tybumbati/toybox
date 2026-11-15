@@ -348,6 +348,32 @@ export const PROP_TYPES = {
       g.fillStyle(0x6b7482, 1).fillRoundedRect(-44, 96, 88, 10, 4);                          // the tray
     },
   },
+  toilet: {
+    name: 'Toilet', cat: 'home', mount: 'floor', behaviour: 'none', w: 70, h: 100, blurb: 'The loo',
+    draw(g) {
+      g.fillStyle(0xe9f1f5, 1).fillRoundedRect(-26, -50, 52, 44, 8);                          // the cistern
+      g.fillStyle(0xaab4c0, 1).fillRoundedRect(-8, -58, 16, 8, 3);                            // the flush
+      g.fillStyle(0xf4f8fa, 1).fillRoundedRect(-34, -8, 68, 26, 10);                          // the bowl
+      g.fillStyle(0xd6e3ea, 1).fillRoundedRect(-24, 16, 48, 36, 8);                           // the base
+    },
+  },
+  basin: {
+    name: 'Basin', cat: 'home', mount: 'floor', behaviour: 'none', hardActions: ['wash'], w: 90, h: 110, blurb: 'A quick wash',
+    draw(g) {
+      g.fillStyle(0xd6e3ea, 1).fillRoundedRect(-14, 6, 28, 48, 6);                            // the pedestal
+      g.fillStyle(0xf4f8fa, 1).fillRoundedRect(-40, -12, 80, 24, 12);                         // the bowl
+      g.fillStyle(0xaab4c0, 1).fillRect(-3, -34, 6, 22).fillRoundedRect(-3, -36, 18, 6, 3);   // the tap
+      g.fillStyle(0x8cc4f4, 1).fillRect(10, -30, 3, 14);
+    },
+  },
+  plant: {
+    name: 'Potted Plant', cat: 'home', mount: 'floor', behaviour: 'none', w: 80, h: 130, blurb: 'Something green',
+    draw(g) {
+      g.fillStyle(0xc9784a, 1).fillRoundedRect(-24, 14, 48, 40, 6).fillRoundedRect(-28, 8, 56, 12, 4);   // the pot
+      g.fillStyle(0x4a9a56, 1).fillEllipse(-18, -18, 26, 58).fillEllipse(18, -22, 26, 62).fillEllipse(0, -34, 30, 70);
+      g.fillStyle(0x6fbf6e, 1).fillEllipse(-4, -28, 12, 40);
+    },
+  },
   fountain: {
     name: 'Water Fountain', cat: 'play', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['wash'], w: 70, h: 110, blurb: 'A quick wash',
     draw(g) {
@@ -528,6 +554,15 @@ export const PROP_TYPES = {
       g.fillStyle(0xeaf2fa, 1).fillRoundedRect(-76, -50, 152, 38, 4);
       g.fillStyle(0xf0c868, 1).fillRoundedRect(-38, -74, 76, 18, 4);                         // a gold sign
       g.fillStyle(0x4a3426, 1).fillRect(-26, -69, 52, 3).fillRect(-18, -63, 36, 3);
+    },
+  },
+  classroom: {
+    name: 'Classroom', cat: 'town', mount: 'floor', behaviour: 'none', hardOnly: true, hardActions: ['study'], hours: [[9, 16]], w: 190, h: 110, blurb: 'Day classes and certificates',
+    draw(g) {
+      g.fillStyle(0x9a6f45, 1).fillRoundedRect(-84, -6, 168, 22, 5).fillRect(-70, 16, 10, 40).fillRect(60, 16, 10, 40);       // a long desk
+      g.fillStyle(0xf5ecd8, 1).fillRoundedRect(-60, -22, 46, 16, 3).fillRoundedRect(8, -20, 50, 14, 3);                       // books
+      g.fillStyle(0xe5685c, 1).fillRect(-60, -22, 46, 4);
+      g.fillStyle(0x6b8fd0, 1).fillRect(8, -20, 50, 4);
     },
   },
   frontdesk: {

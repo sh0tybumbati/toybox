@@ -14,7 +14,7 @@ import { START_SCORE } from './credit.js';
 export function newHardSave(rawSetup) {
   const setup = cleanSetup(rawSetup, SCENARIO_IDS), sc = SCENARIOS[setup.scenario];
   return sanitize({
-    v: 13, zone: sc.zone, city: sc.city(), coins: 0,
+    v: 14, zone: sc.zone, city: sc.city(), coins: 0,
     characters: [{ id: 'adult1', name: 'You', look: { ...DEFAULT_LOOK, age: 'adult', hair: { ...DEFAULT_LOOK.hair } }, worn: {} }],
     hard: { setup, credit: newCredit(START_SCORE[setup.scenario]), cash: sc.cash, debt: sc.debt, record: sc.record, fresh: true, phone: Boolean(sc.phone), larder: (sc.food || []).reduce((list, k) => addFood(list, k, newClock().minute, LARDER_CAP) || list, []), home: sc.home ? newHome(sc.home.tier, sc.home.slot, 0) : null },
   });

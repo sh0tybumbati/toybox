@@ -1,7 +1,8 @@
 // Room scene mixin — Hard mode, slice 1: the game clock, people's needs, their queue of actions and free will, and the
 // HUD for them (docs/hardcore-mode.md). These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
 // Nothing here runs in kid mode (`this.hard` is null).
-import { W, FLOOR_BOTTOM, FLOOR_TOP, UI_FONT } from '../../config.js';
+import { W, H, FLOOR_BOTTOM, FLOOR_TOP, UI_FONT } from '../../config.js';
+import { view } from '../../view.js';
 import { ACTIONS, MAX_QUEUE, PAPER_PRICE, PHONE_PRICE, nutritionOf } from '../../data/hard/needs.js';
 import { ROOMS } from '../../data/rooms.js';
 import { sectionAt } from '../../systems/world.js';
@@ -25,6 +26,9 @@ import { letDaily } from '../../systems/hard/landlord.js';
 import { bizDaily, shiftedOn, walkOut } from '../../systems/hard/business.js';
 import { BIZ } from '../../data/hard/business.js';
 import { SALE_RATE, SCORE_EVENTS } from '../../data/hard/credit.js';
+import { splitBeds, subsOn, isDarkBed, isDarkProp } from '../../systems/hard/toggles.js';
+import { EMPLOYER_NAMES } from '../../data/hard/careers.js';
+import { nextShift, rungOf, weekday } from '../../systems/hard/careers.js';
 import { newHome, overdue, rent, tickBills, totalDue, unseen } from '../../systems/hard/bills.js';
 import { SHIFT_DRAIN, SHIFT_MINUTES } from '../../data/hard/gigs.js';
 import { payFor, pickGig, standing, travelMinutes } from '../../systems/hard/gig.js';
@@ -44,10 +48,10 @@ import { INK } from '../../data/ink.js';
 const TEXT_DEPTH = 10000;
 const BAR_COLORS = { hunger: 0xe8913a, energy: 0x6aaee8, hygiene: 0x6fd0c0, warmth: 0xf08060, mood: 0xf5c14a };
 const NEED_ICONS = { hunger: 'need-hunger', energy: 'need-energy', hygiene: 'need-hygiene', warmth: 'need-warmth', mood: 'need-mood' };
-const QUEUE_Y = 274;
+const QUEUE_Y = 108;
 const pinTo = (layer, o) => { layer.add(o); return o; };
 const NEED_KEYS = ['hunger', 'energy', 'hygiene', 'warmth', 'mood'];
-const HOME_ROOMS = ['kitchen', 'living', 'bedroom', 'motel', 'garden'];            // rooms that belong to whoever lives there
+const HOME_ROOMS = ['kitchen', 'living', 'bedroom', 'bathroom', 'motel', 'garden'];            // rooms that belong to whoever lives there
 const IDLE_BEFORE_FREE_WILL = 10;                      // game minutes standing around before someone decides for themselves
 
 export const hardMethods = {
@@ -96,11 +100,13 @@ export const hardMethods = {
     }
     this.refreshPrices();
     this.policeHourly(total);
+    this.careerHourly(total);
     this.queueDirty = true;
   },
 
   // Once a day: bills arrive, go late, or cost you your home.
   daily(day) {
+    this.careerDaily(day);
     for (const e of tickBills(this.hard, day)) {
       if (e.type === 'issued') this.notice('📬 Bills have come in the mail');
       if (e.type === 'late') {
@@ -114,11 +120,12 @@ export const hardMethods = {
     this.businessDaily(day);
     this.hard.heat = decayHeat(this.hard.heat, 1);                       // attention fades
     const sky = weatherAt(day, 600).kind;
-    this.hard.power = (this.hard.power || 0) + powerToday(this.hard.beds, POWER_DAY);          // grow lamps run up the power bill
-    this.hard.beds = tickBeds(this.hard.beds, sky === 'rain' || sky === 'snow');          // the gardens grow (rain waters them)
+    const { live, frozen } = splitBeds(this.hard.beds, this.subs());                  // with the substances switch off the dark plants are frozen, not deleted
+    this.hard.power = (this.hard.power || 0) + powerToday(live, POWER_DAY);          // grow lamps run up the power bill
+    this.hard.beds = { ...frozen, ...tickBeds(live, sky === 'rain' || sky === 'snow') };          // the gardens grow (rain waters them)
     this.refreshBeds();
-    this.hard.custs = customersDaily(this.hard.custs, day);              // those who go without come down
-    for (const c of this.characters) {                                   // a day without: the hook eases, but a real habit makes it miserable
+    if (this.subs()) this.hard.custs = customersDaily(this.hard.custs, day);              // those who go without come down
+    for (const c of this.subs() ? this.characters : []) {                // a day without: the hook eases, but a real habit makes it miserable
       const h = this.hard.hooks[c.id];
       if (!h) continue;
       const r = habitDaily(h, this.totalMinutes());
@@ -135,19 +142,19 @@ export const hardMethods = {
 
   // Every hour spent outdoors with heat on you: a patrol may stop you.
   policeHourly(total) {
-    if (this.policeEvent || this.policeBusy || this.serving) return;
+    if (!this.hard.setup.toggles.police || this.policeEvent || this.policeBusy || this.serving) return;
     const c = this.selected || this.characters[0];
     if (!c || c.sleeping || !this.zone) return;
     const sec = sectionAt(this.zone, c.x).section;
     if (!sec || !ROOMS[sec.type].outdoor) return;
-    const p = stopChance(this.hard.heat, { record: this.hard.record, carrying: this.hard.goods.some(g => g.at === 'carry'), night: this.night });
+    const p = stopChance(this.hard.heat, { record: this.hard.record, carrying: this.subs() && this.hard.goods.some(g => g.at === 'carry'), night: this.night });
     if (p > 0 && this.policeRng() < p) this.policeEvent = { kind: 'stop', officer: officerFor(total) };
   },
 
   // Once a night: with enough heat and something at home to find, a raid.
   policeDaily(day) {
-    if (this.policeEvent || this.policeBusy) return;
-    const h = this.hard, stash = h.goods.some(g => g.at === 'home') || hasPlants(h.beds, h.raw);
+    if (!this.hard.setup.toggles.police || this.policeEvent || this.policeBusy) return;
+    const h = this.hard, stash = this.subs() && (h.goods.some(g => g.at === 'home') || hasPlants(h.beds, h.raw));
     if (this.policeRng() < raidChance(h.heat, { record: h.record, stash })) this.policeEvent = { kind: 'raid', officer: officerFor(day) };
   },
 
@@ -187,7 +194,7 @@ export const hardMethods = {
   // Using a unit of product yourself (from the stash at the bench): a lift now, a hook that grows.
   useProduct(c, index) {
     const p = this.hard.goods[index];
-    if (!p) return false;
+    if (!p || !this.subs()) return false;
     const e = useEffect(p);
     apply(c.needs, e.needs);
     this.hard.hooks[c.id] = useHabit(this.hard.hooks[c.id] || newHabit(), p, this.totalMinutes());
@@ -206,7 +213,7 @@ export const hardMethods = {
       let key = this.bedKey(p);
       if (p.bedKey && p.bedKey !== key && this.hard.beds[p.bedKey]) { this.hard.beds[key] = this.hard.beds[p.bedKey]; delete this.hard.beds[p.bedKey]; }      // it was moved: the plant goes with it
       p.bedKey = key;
-      const b = this.hard.beds[key];
+      const b = this.hard.beds[key] && (this.subs() || !isDarkBed(this.hard.beds[key])) ? this.hard.beds[key] : null;
       if (b) {                                           // sun and rain outdoors; indoors it needs a lamp in the same room
         const sec = sectionAt(this.zone, p.x).section, outdoor = Boolean(sec && ROOMS[sec.type].outdoor), open = PLOTS[p.type].open;
         const lamp = this.props.some(q => q.type === 'growlamp' && q.active && sectionAt(this.zone, q.x).section === sec);
@@ -281,7 +288,7 @@ export const hardMethods = {
 
   // The bills window closed: whoever was reading them is done.
   billsClosed() {
-    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell', 'bank', 'buypack', 'bizdesk'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
+    for (const c of this.characters) if (c.current && c.current.waiting && ['mail', 'pay', 'use', 'news', 'deal', 'tend', 'buyseeds', 'mix', 'sell', 'bank', 'buypack', 'bizdesk', 'study'].includes(c.current.type)) { c.current = null; this.queueDirty = true; }
   },
 
   // At the motel front desk: pay the first week and the room is yours.
@@ -408,7 +415,7 @@ export const hardMethods = {
       tick(c.needs, mins, { sleeping: c.sleeping ? 'bed' : c.rough ? 'bench' : c.collapsed ? 'floor' : false, env: toggles.survival ? this.envFor(c) : undefined });
       if (c.rough) this.roughRisks(c, mins);
       this.checkCollapse(c);
-      const d = drain(this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0);      // a habit wears you down
+      const d = drain(this.subs() && this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0);      // a habit wears you down
       if (d) apply(c.needs, Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v * mins])));
       this.tickAction(c, mins);
       this.freeWill(c, mins);
@@ -432,7 +439,7 @@ export const hardMethods = {
   // Rain and snow fall (and the light dulls) in the open-air rooms only.
   drawWeather(dt) {
     const w = this.weatherNow(), out = this.zone && this.zone.sections.some(s => ROOMS[s.type] && ROOMS[s.type].outdoor), falling = out && (w.kind === 'rain' || w.kind === 'snow');
-    if (!this.fxGfx) { this.fxGfx = this.add.graphics().setDepth(7900).setScrollFactor(0); this.flakes = Array.from({ length: 90 }, (_, i) => ({ x: (i * 97) % W, y: (i * 53) % 600, v: 0.7 + (i % 5) * 0.15 })); this.dullRect = this.add.rectangle(0, 0, W, 600, 0x8c96aa).setOrigin(0).setDepth(7800).setScrollFactor(0).setBlendMode(Phaser.BlendModes.MULTIPLY).setAlpha(0); }
+    if (!this.fxGfx) { this.fxGfx = this.add.graphics().setDepth(7900).setScrollFactor(0); this.flakes = Array.from({ length: 90 }, (_, i) => ({ x: (i * 97) % view.w, y: (i * 53) % 600, v: 0.7 + (i % 5) * 0.15 })); this.dullRect = this.add.rectangle(0, 0, 4000, 600, 0x8c96aa).setOrigin(0).setDepth(7800).setScrollFactor(0).setBlendMode(Phaser.BlendModes.MULTIPLY).setAlpha(0); }
     this.dullRect.setAlpha(out && w.kind !== 'clear' ? (w.kind === 'cloudy' ? 0.16 : 0.3) : 0);
     const g = this.fxGfx.clear();
     if (!falling) return;
@@ -440,8 +447,8 @@ export const hardMethods = {
     g.lineStyle(snow ? 4 : 2, snow ? 0xffffff : 0x9fc4ec, snow ? 0.9 : 0.7);
     for (const f of this.flakes) {
       f.y += (snow ? 70 : 520) * f.v * dt; f.x += (snow ? Math.sin(f.y / 40) * 20 : -60) * dt;
-      if (f.y > 600) { f.y = -10; f.x = Math.random() * W; }
-      if (f.x < -10) f.x = W + 10;
+      if (f.y > 600) { f.y = -10; f.x = Math.random() * view.w; }
+      if (f.x < -10) f.x = view.w + 10;
       if (snow) g.fillStyle(0xffffff, 0.9).fillCircle(f.x, f.y, 3); else g.lineBetween(f.x, f.y, f.x - 4, f.y + 16);
     }
   },
@@ -533,19 +540,15 @@ export const hardMethods = {
     if (action === 'eat' && !this.hard.larder.length && !c.bag.length) return { ok: false, why: 'Nothing to eat: buy food at the shop' };
     if (action === 'store' && !c.bag.length) return { ok: false, why: 'Nothing in your bag' };
     if (action === 'store' && this.hard.larder.length >= LARDER_CAP) return { ok: false, why: 'The larder is full' };
+    if (action === 'tend' && !this.subs() && isDarkBed(this.hard.beds[this.bedKey(prop)])) return { ok: false, why: 'Nothing to tend' };
     if (action === 'sell' && !this.hard.goods.some(g => g.at === 'carry')) return { ok: false, why: 'Nothing on you to sell: carry a batch from the bench' };
     if (action === 'mix' && !Object.values(this.hard.raw).some(n => n > 0)) return { ok: false, why: 'Nothing to mix: grow something first' };
     if (action === 'buyseeds' && !openNow(hours, this.clock.minute)) return { ok: false, why: 'Closed' };
     if (action === 'sleep' && prop.sleeper) return { ok: false, why: 'Someone is in it' };
     if ((action === 'sit' || action === 'rough') && !freeSeat(prop.def.ride, prop.riders.map(r => r.riding))) return { ok: false, why: 'Taken' };
+    if (action === 'labour' && this.workOf(c).job && this.workOf(c).job.rota.days.includes(weekday(this.clock.day))) return { ok: false, why: 'You have a shift today' };
     if (action === 'labour' && this.hard.gig && standing(this.hard.gig, this.totalMinutes()) !== 'gone') return { ok: false, why: `You already have a gig at ${this.hard.gig.siteName}` };
-    if (action === 'work') {
-      const gig = this.hard.gig;
-      if (!gig) return { ok: false, why: 'No work: ask at the labour board (06:00-09:00)' };
-      if (standing(gig, this.totalMinutes()) === 'gone') return { ok: false, why: 'They found someone else' };
-      const here = this.zone && this.zone.sections.some(s => s.type === gig.site);
-      if (!here) return { ok: false, why: `Your gig is at ${gig.siteName}` };
-    }
+    if (action === 'work') { const w = this.canWork(c); if (!w.ok) return w; }
     if (action === 'pay' && !this.hard.bills.length) return { ok: false, why: 'No bills to pay' };
     if (action === 'news' && this.cash < PAPER_PRICE) return { ok: false, why: `A paper is $${PAPER_PRICE}` };
     if (action === 'buyphone' && this.hard.phone) return { ok: false, why: 'You have a phone' };
@@ -598,7 +601,8 @@ export const hardMethods = {
       else if (type === 'beg') { c.current.waiting = true; this.openGame('beg', prop); }
       else if (type === 'mail' || type === 'pay') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bills', { room: this, canPay: type === 'pay' }); }
       else if (type === 'rent') this.rentRoom(c, prop);
-      else if (type === 'work') { c.current.waiting = true; c.current.arrived = this.totalMinutes(); const gig = this.hard.gig; if (standing(gig, c.current.arrived) === 'late') floatText(this, c.x, c.headTopY() - 40, 'You are late: pay cut', 22); this.openGame('stack', prop, { crate: gig.crate, title: gig.title }); }
+      else if (type === 'work') this.startWork(c, prop);
+      else if (type === 'study') { c.current.waiting = true; this.scene.pause(); this.scene.launch('College', { room: this, who: c }); }
       else if (type === 'deal') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Deal', { room: this, who: c }); }
       else if (type === 'out') { c.current = null; this.queueDirty = true; this.openMap(); }
       else if (type === 'tend') { c.current.waiting = true; this.scene.pause(); this.scene.launch('Bed', { room: this, key: this.bedKey(prop), who: c, type: prop.type }); }
@@ -654,9 +658,10 @@ export const hardMethods = {
   // The begging mini-game ended: what you collected, and an hour passed.
   hardGameResult(id, result) {
     const c = this.characters.find(x => x.current && x.current.waiting) || this.selected || this.characters[0];
-    const arrived = c && c.current && c.current.arrived;
+    const arrived = c && c.current && c.current.arrived, job = c && c.current && c.current.job;
     if (c && c.current && c.current.waiting) { c.current = null; this.queueDirty = true; }
     if (!result) return;
+    if (id === 'stack' && job) { this.jobShiftResult(c, job, result.performance); return; }
     if (id === 'stack' && this.hard.gig) {                                // the shift is done: paid by how well and how punctually
       const pay = payFor(this.hard.gig, arrived ?? this.totalMinutes(), result.performance);
       this.hard.gig = null;
@@ -698,7 +703,15 @@ export const hardMethods = {
   },
 
   // Room in this person's bag for food: the size of the bag they own, less the product batches they carry.
-  bagCap(c) { return foodCap(this.hard.packs, this.hard.goods, c.id); },
+  bagCap(c) { return foodCap(this.hard.packs, this.subs() ? this.hard.goods : [], c.id); },
+  subs() { return subsOn(this.hard); },
+  // The switch changed (or a room was built): the dark furniture hides or comes back; nothing is removed from the save.
+  applyDarkToggle() { for (const p of this.props) this.hideIfDark(p); this.queueDirty = true; this.refreshBeds(); },
+  hideIfDark(p) {
+    const hide = Boolean(this.hard) && !this.subs() && isDarkProp(p.type);
+    p.hidden = hide; p.setVisible(!hide);
+    if (p.input) p.input.enabled = !hide;
+  },
 
   openBag(c, shop = false) {
     if (this.switching) return;
@@ -726,7 +739,7 @@ export const hardMethods = {
 
   // --- free will ----------------------------------------------------------------------------------
   usable(p, action, c) {
-    return p.active && p.def.hardActions && p.def.hardActions.includes(action) && openNow(p.def.hours, this.clock.minute)
+    return p.active && !p.hidden && p.def.hardActions && p.def.hardActions.includes(action) && openNow(p.def.hours, this.clock.minute)
       && !this.isLocked(p, action) && (action !== 'eat' || this.hard.larder.length > 0 || (c && c.bag.length > 0)) && (action !== 'store' || !c || c.bag.length > 0)
       && (action !== 'sleep' || !p.sleeper) && (action !== 'sit' || freeSeat(p.def.ride, p.riders.map(r => r.riding)))
       && (action !== 'rough' || freeSeat(p.def.ride, p.riders.map(r => r.riding)));
@@ -768,10 +781,11 @@ export const hardMethods = {
     this.closeActionMenu();
     const c = this.selected || this.characters[0];
     if (!c) return;
+    if (prop.def.hardActions.includes('work')) { this.tapWorksite(c); return; }
     const actions = prop.def.hardActions, ui = (this.actionMenu = []);
-    const x = clamp(prop.x - this.cameras.main.scrollX, 100, W - 100), y = clamp(prop.y - prop.def.h / 2 - 34, 130, 520);
+    const x = clamp(prop.x - this.cameras.main.scrollX, 100, view.w - 100), y = clamp(prop.y - prop.def.h / 2 - 34, 130, 520);
     const add = o => { pin(o); ui.push(o); return o; };
-    add(this.add.rectangle(0, 0, W, 600, 0x000000, 0.001).setOrigin(0).setDepth(9400).setInteractive().on('pointerdown', () => this.closeActionMenu()));
+    add(this.add.rectangle(0, 0, view.w, 600, 0x000000, 0.001).setOrigin(0).setDepth(9400).setInteractive().on('pointerdown', () => this.closeActionMenu()));
     const hint = add(this.add.text(x, y + 38, '', { fontSize: '17px', color: '#fff7e0', stroke: '#3a2a22', strokeThickness: 4 }).setOrigin(0.5).setDepth(9500));
     actions.forEach((a, i) => {
       const def = ACTIONS[a], bx = x + (i - (actions.length - 1) / 2) * 122, can = this.canDo(a, prop, c);
@@ -787,7 +801,7 @@ export const hardMethods = {
 
   // --- the hard-mode HUD: clock + speed, needs, and the queue --------------------------------------
   createHardHud() {
-    const X = 14, Y = 70, CW = 330, CH = 172, D = TEXT_DEPTH, add = o => { this.hudL.add(o); return o; }, R = o => { this.hudR.add(o); return o; };
+    const X = 14, CW = 330, CH = 172, Y = H - 14 - CH, D = TEXT_DEPTH, add = o => { this.hudBL.add(o); return o; }, R = o => { this.hudR.add(o); return o; }, B = o => { this.hudBR.add(o); return o; };
     this.cardRect = { x: X, y: Y, w: CW, h: CH };
     add(inkPanel(this, X + CW / 2, Y + CH / 2, CW, CH, { fill: CARD, depth: D - 2, seed: 61, radius: 24 }));
     // who you are: a face in a ring that follows the mood, the name, a mood pill and the cash
@@ -805,18 +819,20 @@ export const hardMethods = {
     this.pocketText = add(this.add.text(X + 18, Y + CH - 33, '', { fontSize: '17px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
     add(hitZone(this, X + 110, Y + CH - 24, 210, 34, () => this.openBag(), D + 1));                            // tap your pockets to see the bag
     this.bagButton = add(inkButton(this, X + CW - 66, Y + CH - 26, '🍎 Snack', { w: 104, h: 32, size: 16, fill: COLORS.gold, depth: D, seed: 95, onTap: () => { const c = this.selected || this.characters[0]; if (c && !this.queueAction(c, 'eat', null)) this.sfx.nope(); } }));
-    // the clock, the weather and the speed, top right
-    const RX = W - 14 - 302, RY = 70;
-    R(inkPanel(this, RX + 151, RY + 38, 302, 76, { fill: CARD, depth: D - 2, seed: 64, radius: 22 }));
-    this.clockText = R(this.add.text(RX + 18, RY + 10, '', { fontSize: '22px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
-    this.weatherText = R(this.add.text(RX + 18, RY + 42, '', { fontSize: '15px', color: '#7a6a58', fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
-    this.speedButtons = SPEEDS.map((s, i) => R(inkButton(this, RX + 160 + i * 38, RY + 38, ['⏸', '▶', '⏩', '⏭'][i], { w: 34, h: 34, size: 15, fill: PAPER, depth: D, seed: 90 + i, onTap: () => this.setSpeed(i) })));
+    // the clock, the weather and the speed, bottom right
+    const RX = W - 14 - 302, RY = H - 14 - 76;
+    B(inkPanel(this, RX + 151, RY + 38, 302, 76, { fill: CARD, depth: D - 2, seed: 64, radius: 22 }));
+    this.clockText = B(this.add.text(RX + 18, RY + 10, '', { fontSize: '22px', color: TEXT, fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    this.weatherText = B(this.add.text(RX + 18, RY + 42, '', { fontSize: '15px', color: '#7a6a58', fontFamily: UI_FONT, fontStyle: 'bold' }).setDepth(D));
+    this.speedButtons = SPEEDS.map((s, i) => B(inkButton(this, RX + 160 + i * 38, RY + 38, ['⏸', '▶', '⏩', '⏭'][i], { w: 34, h: 34, size: 15, fill: PAPER, depth: D, seed: 90 + i, onTap: () => this.setSpeed(i) })));
     this.alertChips = [];
-    this.shopChip = R(inkChip(this, W - 150, 178, '', { size: 15, depth: D, h: 30, fill: CARD })).setVisible(false);
-    this.billChip = R(inkChip(this, W - 150, 216, '', { size: 15, depth: D, h: 30, fill: 0xffe3d4 })).setVisible(false);
-    this.gigChip = R(inkChip(this, W - 150, 254, '', { size: 14, depth: D, h: 30, fill: 0xe3f2d0 })).setVisible(false);
+    this.shopChip = R(inkChip(this, W - 150, 84, '', { size: 15, depth: D, h: 30, fill: CARD })).setVisible(false);
+    this.billChip = R(inkChip(this, W - 150, 122, '', { size: 15, depth: D, h: 30, fill: 0xffe3d4 })).setVisible(false);
+    this.gigChip = R(inkChip(this, W - 150, 160, '', { size: 14, depth: D, h: 30, fill: 0xe3f2d0 })).setVisible(false);
+    this.gigChip.setInteractive(new Phaser.Geom.Rectangle(-150, -16, 300, 32), Phaser.Geom.Rectangle.Contains).on('pointerdown', () => { const w = this.selected || this.characters[0]; if (this.gigChip.go && w) { this.tapWorksite(w); } });
     this.phoneBtn = R(inkDisc(this, W - 36 - 4 * 56, 32, 'icon-phone', { onTap: () => this.openPhone(), seed: 49 }));
-    this.progressGfx = add(this.add.graphics().setDepth(D + 1));
+    this.progressGfx = this.add.graphics().setDepth(D + 1);
+    this.hudL.add(this.progressGfx);
     this.queueUI = [];
     this.setSpeed(1);
     this.queueDirty = true;
@@ -840,18 +856,23 @@ export const hardMethods = {
     this.coinText.x = X + CW - 16 - this.coinText.width / 2;
     const g = this.needsGfx.clear(), avg = NEED_KEYS.reduce((n, k) => n + c.needs[k], 0) / NEED_KEYS.length;
     NEED_KEYS.forEach((k, i) => inkMeter(g, X + 40 + i * 62 - 25, Y + 108, 50, 14, c.needs[k] / 100, BAR_COLORS[k], 5 + i));
-    const st = status(c.needs), hook = this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0;
+    const st = status(c.needs), hook = this.subs() && this.hard.hooks[c.id] ? this.hard.hooks[c.id].hook : 0;
     const flags = [st.starving ? 'Starving' : st.hungry && 'Hungry', st.exhausted ? 'Exhausted' : st.tired && 'Tired', st.freezing ? 'Freezing' : st.cold && 'Cold', st.dirty && 'Dirty', habitLabel(hook) && habitLabel(hook)[0].toUpperCase() + habitLabel(hook).slice(1)].filter(Boolean);
     const mood = avg >= 78 ? ['Feeling great', 'laugh', 0x78c363, 0xd9f0c8] : avg >= 52 ? ['Feeling okay', 'need-mood', 0xf0c040, 0xfff0b8] : avg >= 30 ? ['Feeling low', 'sour', 0xf2ae44, 0xffddb0] : ['Feeling awful', 'yuck', 0xe5685c, 0xf8c8c0];
     const shown = flags.length ? flags.slice(0, 2).join(' · ') : mood[0];
     this.nameText.setText(c.name);
-    if (this.moodShown !== shown) { this.moodShown = shown; if (this.moodPill) this.moodPill.destroy(); this.moodPill = pinTo(this.hudL, inkChip(this, X + 78, Y + 54, shown, { size: 15, depth: TEXT_DEPTH, h: 26, seed: 62, fill: flags.length ? 0xf8c8c0 : mood[3] })); this.moodPill.x = X + 78 + this.moodPill.width / 2; }
+    if (this.moodShown !== shown) { this.moodShown = shown; if (this.moodPill) this.moodPill.destroy(); this.moodPill = pinTo(this.hudBL, inkChip(this, X + 78, Y + 54, shown, { size: 15, depth: TEXT_DEPTH, h: 26, seed: 62, fill: flags.length ? 0xf8c8c0 : mood[3] })); this.moodPill.x = X + 78 + this.moodPill.width / 2; }
     this.moodFace.setTexture(ensureSpriteTexture(this, mood[1]));
     this.moodRing.clear().fillStyle(0x4a382c, 0.92).fillCircle(X + 42, Y + 45, 29).fillStyle(mood[2], 1).fillCircle(X + 40, Y + 40, 29).lineStyle(3, INK, 1).strokeCircle(X + 40, Y + 40, 29).fillStyle(0xfff6dc, 1).fillCircle(X + 40, Y + 40, 23);
-    this.pocketText.setText(`🎒 ${c.bag.length + carriedBy(this.hard.goods, c.id)}/${slotsOf(this.hard.packs, c.id)}   🧊 ${this.hard.larder.length}${this.hard.heat ? `   🚨 ${this.hard.heat}` : ''}`);
-    const gig = this.hard.gig, nowT = this.totalMinutes();
-    this.gigChip.setVisible(Boolean(gig) && standing(gig, nowT) !== 'gone');
-    if (gig) this.gigChip.setLabel(`🧱 ${gig.title} · ${gig.siteName} by ${timeLabel({ minute: gig.due % 1440 })}${standing(gig, nowT) === 'late' ? ' · LATE' : ''}`);
+    this.pocketText.setText(`🎒 ${c.bag.length + (this.subs() ? carriedBy(this.hard.goods, c.id) : 0)}/${slotsOf(this.hard.packs, c.id)}   🧊 ${this.hard.larder.length}${this.hard.heat && this.hard.setup.toggles.police ? `   🚨 ${this.hard.heat}` : ''}`);
+    const gig = this.hard.gig, nowT = this.totalMinutes(), work = this.workOf(c), ob = this.workWatch(c), arrival = ob && { label: '🔨 You have work here: tap to start' }, next = nextShift(work, nowT), gigLive = Boolean(gig) && standing(gig, nowT) !== 'gone';
+    this.gigChip.setVisible(gigLive || Boolean(next) || Boolean(arrival));
+    if (arrival) this.gigChip.setLabel(arrival.label);
+    else if (gigLive) this.gigChip.setLabel(`🧱 ${gig.title} · ${gig.siteName} by ${timeLabel({ minute: gig.due % 1440 })}${standing(gig, nowT) === 'late' ? ' · LATE' : ''}`);
+    else if (next) this.gigChip.setLabel(`💼 ${rungOf(work.job.career, work.job.rung).title} · ${EMPLOYER_NAMES[work.job.employer]} · ${label({ day: next.day, minute: next.start % 1440 })}`);
+    this.gigChip.go = Boolean(arrival);
+    if (this.gigChip.input) this.gigChip.input.hitArea.setTo(-this.gigChip.width / 2, -16, this.gigChip.width, 32);
+    if (ob && c.current?.type !== 'work' && (this.pulseT = (this.pulseT || 0) + 0.25) >= 1.5) { this.pulseT = 0; this.props.filter(p => p.def.hardActions && p.def.hardActions.includes('work')).forEach(p => p.boing(0.6)); }
     const due = this.hard.bills, late = overdue(due, this.clock.day).length;
     this.billChip.setVisible(due.length > 0 && due.every(b => b.seen)).setLabel(`📬 ${due.length} bill${due.length > 1 ? 's' : ''} · $${totalDue(due).toLocaleString('en-US')}${late ? ' · LATE' : ''}`);
     this.props.filter(p => p.def.behaviour === 'mail').forEach(p => p.setState(unseen(due).length > 0));         // the flag goes up when there is post

@@ -23,7 +23,7 @@ export default class PackScene extends Phaser.Scene {
     this.dyn = [];
     const keep = o => { this.dyn.push(o); return o; }, r = this.room, h = r.hard, c = this.who, slots = slotsOf(h.packs, c.id);
     keep(text(this, W / 2, 168, `${c.name} · ${PACKS[tierOf(h.packs, c.id)].label} · ${slots} slots`, 22, { fontStyle: 'bold' }).setOrigin(0.5));
-    const batches = h.goods.filter(g => g.at === 'carry' && (g.by === c.id || g.by === undefined)), cells = [...c.bag.map(f => ({ food: f.k })), ...batches.map(g => ({ batch: g }))];
+    const batches = (this.room.subs() ? h.goods : []).filter(g => g.at === 'carry' && (g.by === c.id || g.by === undefined)), cells = [...c.bag.map(f => ({ food: f.k })), ...batches.map(g => ({ batch: g }))];
     const per = 8, gap = 78, x0 = W / 2 - (Math.min(slots, per) - 1) * gap / 2;
     for (let i = 0; i < slots; i++) {
       const x = x0 + (i % per) * gap, y = 232 + Math.floor(i / per) * gap, cell = cells[i];

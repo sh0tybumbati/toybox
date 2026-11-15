@@ -29,6 +29,7 @@ import DeviceScene from './src/scenes/hard/DeviceScene.js';
 import StackScene from './src/scenes/minigames/StackScene.js';
 import DealScene from './src/scenes/hard/DealScene.js';
 import NurseryScene from './src/scenes/hard/NurseryScene.js';
+import CollegeScene from './src/scenes/hard/CollegeScene.js';
 import BedScene from './src/scenes/hard/BedScene.js';
 import LabScene from './src/scenes/hard/LabScene.js';
 import SellScene from './src/scenes/hard/SellScene.js';
@@ -36,6 +37,7 @@ import PoliceScene from './src/scenes/hard/PoliceScene.js';
 import PackScene from './src/scenes/hard/PackScene.js';
 import LandlordScene from './src/scenes/hard/LandlordScene.js';
 import BusinessScene from './src/scenes/hard/BusinessScene.js';
+import { view, viewWidthFor, fitToWindow, centreOverlays } from './src/view.js';
 import HopperScene from './src/scenes/minigames/HopperScene.js';
 
 // Every `add.text` without its own font gets the emoji-friendly stack.
@@ -44,14 +46,18 @@ Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, styl
   return addText.call(this, x, y, text, { fontFamily: FONT, ...style });
 };
 
+view.w = viewWidthFor(window.innerWidth, window.innerHeight);
 window.__toybox = new Phaser.Game({   // handy for poking at the game from the console and from tests
 
   type: Phaser.AUTO,
-  width: W,
+  width: view.w,
   height: H,
   parent: 'game',
   backgroundColor: '#2b2233',
   input: { touch: true, activePointers: 1 },        // one finger at a time — a toy, not a two-handed game
-  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene, CampScene, ConsoleScene, BubbleScene, MemoryScene, HopperScene, CashierScene, IkeaScene, SettingsScene, AdultGateScene, PinScene, HardSetupScene, BankScene, BegScene, BillsScene, DeviceScene, StackScene, DealScene, NurseryScene, BedScene, LabScene, SellScene, PoliceScene, PackScene, LandlordScene, BusinessScene],
+  scene: [BootScene, RoomScene, CreatorScene, HubScene, BookScene, CatalogScene, BuilderScene, FishingScene, ArcadeScene, ShirtShopScene, SculptScene, CampScene, ConsoleScene, BubbleScene, MemoryScene, HopperScene, CashierScene, IkeaScene, SettingsScene, AdultGateScene, PinScene, HardSetupScene, BankScene, BegScene, BillsScene, DeviceScene, StackScene, DealScene, NurseryScene, BedScene, LabScene, SellScene, PoliceScene, PackScene, LandlordScene, BusinessScene, CollegeScene],
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
 });
+// Fill the window: the canvas keeps the window's shape (the height stays H), and overlay scenes stay centred.
+window.addEventListener('resize', () => fitToWindow(window.__toybox));
+window.__toybox.events.on('prestep', () => centreOverlays(window.__toybox));

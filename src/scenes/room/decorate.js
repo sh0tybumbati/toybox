@@ -1,7 +1,8 @@
 // Room scene mixin — Decorate mode: repaint the room in view (wallpaper, floor) and place, move, resize and remove its
 // windows, with a live preview. A saved look stores only what the player changed (systems/decorate.js).
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { H, W } from '../../config.js';
+import { H } from '../../config.js';
+import { view } from '../../view.js';
 import { FLOORS, WALLPAPERS, defaultLook, paintRoom } from '../../data/decor.js';
 import { INK, inkDashed, wobblyPoly, rectPoints } from '../../data/ink.js';
 import { ROOMS } from '../../data/rooms.js';
@@ -45,15 +46,15 @@ export const decorateMethods = {
   buildDecorUI() {
     this.clearDecorUI();
     const sec = this.decorSection(), type = ROOMS[sec.type], d = this.decor, ui = fn => { const o = pin(fn); o.setDepth?.(D + 1); d.ui.push(o); return o; };
-    const panel = pin(inkPanel(this, W / 2, H - 92, 928, 168, { depth: D, seed: 15 }));
-    d.ui.push(panel.setInteractive(new Phaser.Geom.Rectangle(W / 2 - 464, H - 176, 928, 168), Phaser.Geom.Rectangle.Contains));   // taps on the panel don't fall through
+    const panel = pin(inkPanel(this, view.w / 2, H - 92, 928, 168, { depth: D, seed: 15 }));
+    d.ui.push(panel.setInteractive(new Phaser.Geom.Rectangle(view.w / 2 - 464, H - 176, 928, 168), Phaser.Geom.Rectangle.Contains));   // taps on the panel don't fall through
     ui(inkChip(this, 178, H - 156, `🎨 ${type.label.split(' ').slice(1).join(' ')}`, { size: 23, depth: D + 1, h: 36, fill: CARD }));
     const tabs = [['walls', 'Walls'], ['floor', 'Floor'], ['windows', 'Windows']];
     tabs.forEach(([id, label], i) => ui(inkButton(this, 400 + i * 118, H - 156, label, {
       w: 108, h: 42, size: 21, fill: d.tab === id ? COLORS.gold : CARD, depth: D + 1, seed: i + 3, onTap: () => { d.tab = id; d.sel = 0; this.sfx.click(); this.buildDecorUI(); } })));
-    ui(inkButton(this, W - 96, H - 156, '✔ Done', { w: 120, h: 44, size: 22, fill: COLORS.green, depth: D + 1, onTap: () => this.exitDecorate() }));
+    ui(inkButton(this, view.w - 96, H - 156, '✔ Done', { w: 120, h: 44, size: 22, fill: COLORS.green, depth: D + 1, onTap: () => this.exitDecorate() }));
 
-    if (type.outdoor) { ui(this.add.text(W / 2, H - 80, 'Outdoors is already lovely — head inside to redecorate!', { fontSize: '24px', color: TEXT }).setOrigin(0.5)); return; }
+    if (type.outdoor) { ui(this.add.text(view.w / 2, H - 80, 'Outdoors is already lovely — head inside to redecorate!', { fontSize: '24px', color: TEXT }).setOrigin(0.5)); return; }
     if (d.tab === 'windows') this.buildWindowTools(sec, ui);
     else this.buildSwatches(sec, ui, d.tab === 'walls' ? WALLPAPERS : FLOORS, d.tab === 'walls' ? 'wall' : 'floor');
   },

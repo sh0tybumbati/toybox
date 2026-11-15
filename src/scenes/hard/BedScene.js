@@ -23,7 +23,7 @@ export default class BedScene extends Phaser.Scene {
     const keep = o => { this.dyn.push(o); return o; }, h = this.room.hard, bed = h.beds[this.key], st = stage(bed);
     const say = (y, str, size = 22, extra = {}) => keep(text(this, W / 2, y, str, size, extra).setOrigin(0.5));
     if (st === 'empty') {
-      const owned = CROP_IDS.filter(id => h.seeds[id] > 0);
+      const owned = CROP_IDS.filter(id => h.seeds[id] > 0 && (!CROPS[id].dark || this.room.subs()));
       say(178, owned.length ? 'Plant what?' : 'No seeds. The Garden Centre sells them.', 22, { color: '#7a6a58' });
       owned.forEach((id, i) => {
         keep(inkButton(this, W / 2, 226 + i * 50, `${CROPS[id].icon} ${CROPS[id].label}  ×${h.seeds[id]}`, { w: 280, h: 40, size: 20, fill: COLORS.green, depth: 6, seed: 190 + i, onTap: () => this.plant(id) }));

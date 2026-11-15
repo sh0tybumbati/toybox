@@ -6,13 +6,19 @@
 // room starts with beyond its type's own (e.g. the stairs). Ids are unique within a building.
 // Blueprints are ready-made buildings you can build on an empty lot (cost in coins; null = only in the starting city).
 
+import { ROOMS } from './rooms.js';
+
 export const ROOM_W = { min: 720, max: 1920, step: 120, def: 960 };
 export const MAX_FLOORS = 5;
 export const MAX_ROOMS = 5;               // per floor
 export const BUILD_COST = { room: 0, floor: 0 };            // kid mode: building is free (hard mode prices it in cash, data/hard/property.js)
 
 const stairs = x => ({ type: 'stairs', x, y: 434 });
-const room = (id, type, extra) => ({ id, type, w: ROOM_W.def, ...(extra ? { extra } : {}) });
+// A room type's own width limits (a bathroom is half a screen); most are ROOM_W.
+export const roomDefW = type => (ROOMS[type] && ROOMS[type].w) || ROOM_W.def;
+export const roomMinW = type => (ROOMS[type] && ROOMS[type].minW) || ROOM_W.min;
+export const roomMaxW = type => (ROOMS[type] && ROOMS[type].maxW) || ROOM_W.max;
+const room = (id, type, extra) => ({ id, type, w: roomDefW(type), ...(extra ? { extra } : {}) });
 
 export const BLUEPRINTS = {
   home: {
@@ -20,18 +26,18 @@ export const BLUEPRINTS = {
     exterior: { wall: 'butter', trim: 'white', roofStyle: 'gable', roofColor: 'terracotta' },
     floors: [
       { id: 0, rooms: [room(0, 'kitchen'), room(1, 'living', [stairs(860)])] },
-      { id: 1, rooms: [room(2, 'bedroom', [stairs(860)]), room(3, 'bedroom')] },
+      { id: 1, rooms: [room(2, 'bedroom', [stairs(860)]), room(3, 'bedroom'), room(4, 'bathroom')] },
     ],
   },
   flat: {                                     // hard mode only: a small rented flat
     name: 'Flat', house: true, cost: null, unique: true,
     exterior: { wall: 'sky', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
-    floors: [{ id: 0, rooms: [room(0, 'kitchen'), room(1, 'bedroom')] }],
+    floors: [{ id: 0, rooms: [room(0, 'kitchen'), room(1, 'bedroom'), room(2, 'bathroom')] }],
   },
   motel: {                                    // hard mode only: rent a room by the week
     name: 'Motel', cost: null, unique: true,
     exterior: { wall: 'butter', trim: 'berry', roofStyle: 'flat', roofColor: 'terracotta' },
-    floors: [{ id: 0, rooms: [room(0, 'motel')] }],
+    floors: [{ id: 0, rooms: [room(0, 'hall'), room(1, 'motel'), room(2, 'bathroom')] }],
   },
   alley: {                                    // hard mode only: where things are bought without questions
     name: 'Back Alley', cost: null, unique: true,
@@ -43,10 +49,20 @@ export const BLUEPRINTS = {
     exterior: { wall: 'stone', trim: 'navy', roofStyle: 'flat', roofColor: 'slate' },
     floors: [{ id: 0, rooms: [room(0, 'bank')] }],
   },
+  council: {                                  // hard mode only: the clerks' office (public service careers)
+    name: 'Council Hall', cost: null, unique: true,
+    exterior: { wall: 'stone', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
+    floors: [{ id: 0, rooms: [room(0, 'council')] }],
+  },
+  college: {                                  // hard mode only: day classes that give certificates
+    name: 'College', cost: null, unique: true,
+    exterior: { wall: 'brick', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
+    floors: [{ id: 0, rooms: [room(0, 'college')] }],
+  },
   shelter: {                                  // hard mode only: a night shelter
     name: 'Shelter', cost: null, unique: true,
     exterior: { wall: 'blush', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
-    floors: [{ id: 0, rooms: [room(0, 'shelter')] }],
+    floors: [{ id: 0, rooms: [room(0, 'shelter'), room(1, 'bathroom')] }],
   },
   park: {
     name: 'Park', cost: null,
@@ -66,15 +82,15 @@ export const BLUEPRINTS = {
   cottage: {
     name: 'Cottage', house: true, cost: 0,
     exterior: { wall: 'sky', trim: 'white', roofStyle: 'gable', roofColor: 'slate' },
-    floors: [{ id: 0, rooms: [room(0, 'living'), room(1, 'kitchen'), room(2, 'bedroom')] }],
+    floors: [{ id: 0, rooms: [room(0, 'living'), room(1, 'kitchen'), room(2, 'bedroom'), room(3, 'bathroom')] }],
   },
   apartments: {
     name: 'Apartments', house: true, cost: 0,
     exterior: { wall: 'brick', trim: 'white', roofStyle: 'flat', roofColor: 'slate' },
     floors: [
-      { id: 0, rooms: [room(0, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(1, 'living'), room(2, 'kitchen')] },
-      { id: 1, rooms: [room(3, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(4, 'bedroom'), room(5, 'living')] },
-      { id: 2, rooms: [room(6, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(7, 'bedroom'), room(8, 'bedroom')] },
+      { id: 0, rooms: [room(0, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(1, 'living'), room(2, 'kitchen'), room(9, 'bathroom')] },
+      { id: 1, rooms: [room(3, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(4, 'bedroom'), room(5, 'living'), room(10, 'bathroom')] },
+      { id: 2, rooms: [room(6, 'hall', [{ type: 'elevator', x: 480, y: 434 }]), room(7, 'bedroom'), room(8, 'bedroom'), room(11, 'bathroom')] },
     ],
   },
   arcade: {

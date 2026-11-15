@@ -24,6 +24,14 @@ export function payBillsFrom(room, ids) {
 // The bill rows, drawn into any scene (the mail, the post office counter, the computer, the phone). `ctx` = { room, canPay, keep, rebuild }.
 export function renderBills(scene, { room, canPay, keep, rebuild, top = 214, totalY = 484 }) {
   const h = room.hard, day = room.clock.day, tier = h.home && h.home.tier;
+  const slips = scene.slipRows || (scene.slipRows = room.readSlips()), shift = slips.length;                 // reading the mail pays out any payslips
+  slips.slice(0, 3).forEach((sl, i) => {
+    const y = top + i * 50;
+    keep(inkPanel(scene, W / 2, y, 620, 42, { fill: 0xe3f2d0, radius: 12, shadow: false, weight: 2.8, seed: 70 + i, depth: 4 }));
+    keep(text(scene, 192, y - 12, `Payslip · ${sl.who}`, 22, { fontStyle: 'bold' }).setDepth(5));
+    keep(text(scene, 440, y - 11, `week to ${dayName({ day: sl.day - 1 })}`, 19, { color: '#7a6a58' }).setDepth(5));
+    keep(text(scene, 560, y - 12, `+$${sl.amount.toLocaleString('en-US')}`, 22, { fontStyle: 'bold', color: '#3f7f3f' }).setDepth(5));
+  });
   const bills = [...h.bills].sort((a, b) => a.due - b.due);
   keep(text(scene, W / 2, top - 46, h.home ? `Cash on you: $${room.cash.toLocaleString('en-US')}` : 'You have nowhere to live, so nothing comes in the post.', 20, { color: '#7a6a58' }).setOrigin(0.5));
   const payBills = ids => {
@@ -31,8 +39,8 @@ export function renderBills(scene, { room, canPay, keep, rebuild, top = 214, tot
     room.sfx.coin();
     rebuild();
   };
-  bills.slice(0, 6).forEach((b, i) => {
-    const y = top + i * 50, late = day > b.due;
+  bills.slice(0, 6 - Math.min(3, shift)).forEach((b, i) => {
+    const y = top + (i + Math.min(3, shift)) * 50, late = day > b.due;
     keep(inkPanel(scene, W / 2, y, 620, 42, { fill: late ? 0xfde0d8 : CARD, radius: 12, shadow: false, weight: 2.8, seed: 90 + i, depth: 4 }));
     keep(text(scene, 192, y - 12, `${billLabel(b.kind, tier)}`, 22, { fontStyle: 'bold' }).setDepth(5));
     keep(text(scene, 440, y - 11, `due ${dayName({ day: b.due })}${late ? ' · LATE' : ''}`, 19, { color: late ? '#b0584e' : '#7a6a58' }).setDepth(5));
@@ -49,7 +57,7 @@ export function renderBills(scene, { room, canPay, keep, rebuild, top = 214, tot
 export default class BillsScene extends Phaser.Scene {
   constructor() { super('Bills'); }
 
-  init(data) { this.room = data.room; this.canPay = Boolean(data.canPay); this.dyn = []; }
+  init(data) { this.room = data.room; this.canPay = Boolean(data.canPay); this.dyn = []; this.slipRows = null; }
 
   create() {
     backdrop(this, 700, 470, this.canPay ? 'Pay bills' : 'Your mail', { seed: 47, onClose: () => this.close() });

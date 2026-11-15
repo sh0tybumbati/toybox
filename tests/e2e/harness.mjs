@@ -32,6 +32,14 @@ function serve() {
   return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(server)));
 }
 
+// Every live browser registers a synchronous teardown here, so a crash, Ctrl-C or
+// process.exit() can't leave Chromium (and its GPU/renderer children) running.
+const teardowns = new Set();
+function runTeardowns() { for (const fn of [...teardowns]) fn(); }
+process.on('exit', runTeardowns);
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { runTeardowns(); process.exit(130); });
+process.on('uncaughtException', e => { console.error(e); runTeardowns(); process.exit(1); });
+
 export async function launch({ width = 960, height = 600, touch = false } = {}) {
   const chrome = findChrome();
   if (!chrome) throw new Error('no Chromium/Chrome found (set CHROME=/path/to/chrome)');
@@ -39,17 +47,35 @@ export async function launch({ width = 960, height = 600, touch = false } = {}) 
   const url = `http://127.0.0.1:${server.address().port}/`;
   const port = 9300 + Math.floor(Math.random() * 400);
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'toybox-e2e-'));
+  // detached = its own process group, so one signal to -pid reaches every child process
   const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--enable-unsafe-swiftshader', `--remote-debugging-port=${port}`,
-    `--user-data-dir=${profile}`, `--window-size=${width},${height}`, 'about:blank'], { stdio: 'ignore' });
+    `--user-data-dir=${profile}`, `--window-size=${width},${height}`, 'about:blank'], { stdio: 'ignore', detached: true });
+  let ws;
+  let closed = false;
+  const teardown = () => {
+    if (closed) return;
+    closed = true;
+    teardowns.delete(teardown);
+    try { ws?.close(); } catch (e) { /* ignore */ }
+    try { process.kill(-proc.pid, 'SIGKILL'); } catch (e) { /* already gone */ }
+    try { server.close(); } catch (e) { /* ignore */ }
+    fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  };
+  teardowns.add(teardown);
 
-  let target;
-  for (let i = 0; i < 60 && !target; i++) {
-    try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find(t => t.type === 'page'); } catch (e) { /* not up yet */ }
-    if (!target) await wait(250);
+  try {
+    let target;
+    for (let i = 0; i < 60 && !target; i++) {
+      try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find(t => t.type === 'page'); } catch (e) { /* not up yet */ }
+      if (!target) await wait(250);
+    }
+    if (!target) throw new Error('Chromium did not start');
+    ws = new WebSocket(target.webSocketDebuggerUrl);
+    await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+  } catch (e) {
+    teardown();
+    throw e;
   }
-  if (!target) throw new Error('Chromium did not start');
-  const ws = new WebSocket(target.webSocketDebuggerUrl);
-  await new Promise(r => { ws.onopen = r; });
 
   let id = 0;
   const pending = new Map();
@@ -112,12 +138,7 @@ export async function launch({ width = 960, height = 600, touch = false } = {}) 
       await wait(120); await api.touch('touchEnd', x1, y1); await wait(after);
     },
 
-    async close() {
-      try { ws.close(); } catch (e) { /* ignore */ }
-      proc.kill('SIGKILL');
-      server.close();
-      fs.rmSync(profile, { recursive: true, force: true });
-    },
+    async close() { teardown(); },
   };
   return api;
 }

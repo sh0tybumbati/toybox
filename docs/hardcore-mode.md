@@ -2,7 +2,8 @@
 
 A hidden, adults-only mode of Toybox: the same world, rooms, buildings, items, mini-games and art, but run as a
 survival-capitalism life sim (Sims × Schedule 1). **Child mode stays the default and stays exactly as it is.**
-This document is the plan; nothing here is built yet.
+Version: 2.0 · 2026-11-10 · owner: designer. Sections 0-5 are the design; section 6 is the build order with what is built; the "(as built)"
+sections record what shipped. Specs for upcoming slices live in their own files (see "Specs" under section 6).
 
 ## 0. Decisions (user, 2026-11-08)
 
@@ -174,14 +175,14 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 1. **Clock + needs (BUILT, 2026-11-08):** 1 min = 1 hour clock driving day/night, pause + 3 speeds, hunger/energy/hygiene/mood, free-will autonomy and an action queue.
 2. **Survival home-less core (BUILT, 2026-11-08):** the *Park bench* scenario: weather/seasons, places to sleep, being moved on, scavenging/begging, shelter, day labour.
 3. **Food, shops and bills (BUILT, 2026-11-08):** finite shop stock and prices, pantry/fridge stock and spoilage, rent/bills in the mailbox, the phone.
-4. **Wear + maintenance** (paint, floors, furniture, clothes, cars) and the *Cheap flat* + *Inherited house* scenarios.
-5. **Jobs:** job board, shifts as scheduled blocks, tardiness, skills, retail/service then trades/makers and farming/food careers.
-6. **Making and selling:** quality + demand, gadget bench, stalls, farming plots (legal crops).
-7. **Districts + citizens:** bigger scrolling map, 60 named citizens with routines, relationships and memory, abstracted off-screen.
-8. **Combat + health:** the side-view brawler, injuries, clinics, addiction hooks; skill trees.
-9. **Police + justice:** patrols, wanted levels, witnesses/evidence, arrest, jail as scheduled time, plea/trial, bribes, the *Just out of jail* scenario.
-10. **Factions + the fictional trade:** crews, territory, grow/process/package/distribute, suppliers, customers, debts, raids.
-11. **Business ownership + public-service careers + life goals/legacy + aging.**
+4. **Wear + maintenance (SPEC READY: docs/wear-spec.md):** furniture, room looks and clothes; the *Cheap flat* and *Inherited house* scenarios exist, their worn starts come with this slice. Cars/garage later.
+5. **Jobs and careers (IN BUILD: docs/careers-spec.md, plus docs/worksite-prompt-spec.md):** four 4-rung ladders, courses, shifts, strikes, Council Hall and College buildings. Police/medical ladders wait for slices 8-9.
+6. **Making and selling (PARTLY BUILT):** the gadget bench is not built; farming plots, the garden and businesses (shop/workshop/farm) are. Wholesale supply chain: SPEC READY docs/supply-chain-spec.md.
+7. **Districts + citizens:** bigger scrolling map, 60 named citizens with routines, relationships and memory, abstracted off-screen. *Not specced.*
+8. **Combat + health:** the side-view brawler, injuries, clinics, addiction hooks; skill trees. *Not specced.*
+9. **Police + justice (MOSTLY BUILT, built early):** patrols, stops (comply/bribe/run), raids, arrest, plea/trial, sentences. Still to do: wanted levels from witnesses/evidence, honest vs corrupt officers, jail as a scheduled place with prison jobs, the *Just out of jail* scenario.
+10. **Factions + the fictional trade (PARTLY BUILT, built early):** alley contact, nightbloom, lab bench, six named customers, addiction, heat. Still to do: crews, territory, hired sellers, stash houses, rivals, debts between crews.
+11. **Business ownership + public-service careers + life goals/legacy + aging:** business ownership, landlord, property, credit and mortgages, bags are BUILT (steps 6a-6e). Still to do: life goals, legacy, aging, police and medical ladders.
 12. **Balance + simulation tests:** "a normal week survives", economy closure, faction stability, performance budget for the NPC population.
 
 ### Slice 0 as built
@@ -220,9 +221,14 @@ Additive; `SAVE_VERSION` bump with a migration that just adds `mode: 'kid'`. `sa
 - Open-air rooms no longer get a wall divider between them (park + playground flow into one another).
 - **Back Alley** (hard mode, on every map): a dark brick outdoor room with a bin, a **fire barrel** (Warm up: +96 warmth/hour, beats the worst winter night) and **the contact**, who only shows up 18:00-05:00. For now he sells a burner phone ($1,800, no bills) and three kinds of "fell off a lorry" food at half price (3 each per day). What you do there draws **heat** (0-100, fades 8/day, shown as 🚨 in the HUD). Heat has no consequences yet: the police (slice 9) will read it. The seeds, supplies and buyers of the fictional plants will use this same place (see the flow below).
 
+### Specs (ready, not yet fully built)
+- docs/careers-spec.md (slice 5), docs/worksite-prompt-spec.md, docs/wear-spec.md (slice 4), docs/casino-spec.md (arcade becomes a casino; kid arcade pays coins; A2 held for the user), docs/supply-chain-spec.md (wholesale; the walk-in cap awaits the user).
+- Decisions recorded 2026-11-10 (user): careers have abstract bosses and coworkers, 4 rungs, skills plus paid courses; wear covers furniture, room looks and clothes (no cars), DIY-first repairs, an Inherited house that starts run-down but livable; the casino is a hard-mode reskin of the arcade with slots and blackjack, a gambling-habit risk, a setup toggle `gambling`, markers and collectors; supply chains start with legal wholesale.
+
 ## 7. Still open
 Asked in conversation as we go: faction/territory mechanics on the map, weapons list and skill trees, the legal-career ladder vs crime balance,
-the fictional substance catalogue (names, effects, art), district list and look, phone apps, accessibility and content-warning wording, difficulty presets.
+the fictional substance catalogue beyond nightbloom, district list and look, more phone apps, accessibility and content-warning wording (the gambling wording is in casino-spec), difficulty presets, cars and the garage, dirt and cleaning chores.
+Note: the Back Alley's "heat has no consequences yet" is out of date; the police now read it (slice 9 above).
 
 ## Gardening, the front door and the plant trade (as built, step 1)
 

@@ -14,6 +14,7 @@ import { Sfx } from '../systems/sfx.js';
 import { stepBody, isMoving, inBin } from '../systems/physics.js';
 import { containerMethods } from './room/containers.js';
 import { hardMethods } from './room/hard.js';
+import { careerMethods } from './room/career.js';
 import { ALL_TIP_IDS } from '../data/tips.js';
 import { COIN_TO_CASH, toCoins } from '../systems/mode.js';
 import { storeFor } from '../systems/save.js';
@@ -108,7 +109,7 @@ export default class RoomScene extends Phaser.Scene {
     this.nightSince = this.time.now - (this.night ? NIGHT_SLEEP_MS : 0);
 
     // Night = a dark blue multiply layer over everything (HUD sits above it); fixed to the screen.
-    this.nightOverlay = this.add.rectangle(0, 0, W, H, 0x5560a8).setOrigin(0).setDepth(8000).setScrollFactor(0)
+    this.nightOverlay = this.add.rectangle(0, 0, 4000, H, 0x5560a8).setOrigin(0).setDepth(8000).setScrollFactor(0)
       .setBlendMode(Phaser.BlendModes.MULTIPLY).setAlpha(this.night ? 0.85 : 0);
 
     this.zoneHint = this.add.graphics().setDepth(5); // shows valid drop zones while dragging
@@ -137,6 +138,9 @@ export default class RoomScene extends Phaser.Scene {
     window.addEventListener('pagehide', this.onPageHide);
     this.events.once('shutdown', () => window.removeEventListener('pagehide', this.onPageHide));
 
+    this.scale.on('resize', this.onResize, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
+    this.onResize();
     this.setupDragEvents();
   }
 
@@ -247,4 +251,4 @@ export default class RoomScene extends Phaser.Scene {
   }
 }
 
-Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods, playMethods, containerMethods, hardMethods);
+Object.assign(RoomScene.prototype, hudMethods, economyMethods, worldMethods, savingMethods, furnitureMethods, partyMethods, objectMethods, dragMethods, tipMethods, walkingMethods, socialMethods, petMethods, cameraMethods, connectorMethods, decorateMethods, gameMethods, mailMethods, playMethods, containerMethods, hardMethods, careerMethods);

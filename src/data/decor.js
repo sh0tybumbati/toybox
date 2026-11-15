@@ -110,6 +110,20 @@ export function paintIndoor(g, type, look, w = W) {
   }
 }
 
+// The strip of wall and floor painted past either end of a zone, so a window wider than the room is still covered.
+// `w` wide, drawn from x = 0 of `g`.
+export function paintMargin(g, type, look, w) {
+  if (!type.outdoor) {
+    const wall = WALLPAPERS[look.wall] || WALLPAPERS[type.style.wall], floor = FLOORS[look.floor] || FLOORS[type.style.floor];
+    wall.paint(g, w); floor.paint(g, w);
+    return;
+  }
+  const [sky, ground] = type.margin || [0xbfe3f2, MAP_COLORS.grass];
+  g.fillStyle(sky, 1).fillRect(0, 0, w, WALL_H);
+  g.fillStyle(ground, 1).fillRect(0, WALL_H, w, H - WALL_H);
+  inkLine(g, { x: 0, y: WALL_H }, { x: w, y: WALL_H }, { w: 4.5, seed: 8, amp: 3, heavy: 1 });
+}
+
 // Outdoor rooms: a flat sky, wobbly clouds and hills, a lumpy ground line, trees and bushes. `kind` = 'park' | 'playground'.
 export function paintOutdoor(g, kind) {
   g.fillStyle(0xbfe3f2, 1).fillRect(0, 0, W, WALL_H);

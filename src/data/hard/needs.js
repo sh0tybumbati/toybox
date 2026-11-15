@@ -48,6 +48,7 @@ export const ACTIONS = {
   bizdesk: { label: 'Run the business', icon: '💼', minutes: 5 },
   buypack: { label: 'Look at bags', icon: '🎒', minutes: 5 },
   bank:  { label: 'Use the bank', icon: '🏦', minutes: 5 },
+  study: { label: 'Take a class', icon: '🎓', minutes: 5 },
   use:   { label: 'Use computer', icon: '💻', minutes: 10 },
   news:  { label: 'Buy a paper ($80)', icon: '📰', minutes: 5 },
   buyphone: { label: 'Buy a phone ($3500)', icon: '📱', minutes: 5 },

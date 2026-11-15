@@ -1,7 +1,8 @@
 // Room scene mixin — Furniture: placing, moving, adding and removing pieces (furniture mode).
 // These methods are mixed into RoomScene (see ../RoomScene.js), so `this` is the scene.
-import { W } from '../../config.js';
+
 import { PROP_TYPES } from '../../data/props.js';
+import { view } from '../../view.js';
 import Prop from '../../entities/Prop.js';
 import { COLORS, inkButton, inkChip, pin, touchable } from '../../ui.js';
 import { spriteImage } from '../../systems/itemTextures.js';
@@ -54,10 +55,10 @@ export const furnitureMethods = {
     for (const p of this.pets) p.input.enabled = false;
     for (const p of this.props) { p.input.draggable = true; this.attachRemoveButton(p); }
     const add = o => { pin(o).setDepth(9500); this.editUI.push(o); return o; };
-    add(inkChip(this, W / 2, 76, '🛋️ Furniture mode — drag to move, ✖ to remove', { size: 21, depth: 9500 }));
-    add(inkButton(this, W / 2 - 190, 120, '➕ Add furniture', { w: 188, fill: COLORS.green, size: 21, depth: 9500, onTap: () => this.openCatalog() }));
-    if (this.editRights() === 'full') add(inkButton(this, W / 2, 120, '🎨 Decorate', { w: 150, fill: COLORS.purple, size: 21, depth: 9500, onTap: () => this.enterDecorate() }));
-    add(inkButton(this, W / 2 + 150, 120, '✔ Done', { w: 110, fill: COLORS.orange, size: 21, depth: 9500, onTap: () => this.exitEdit() }));
+    add(inkChip(this, view.w / 2, 76, '🛋️ Furniture mode — drag to move, ✖ to remove', { size: 21, depth: 9500 }));
+    add(inkButton(this, view.w / 2 - 190, 120, '➕ Add furniture', { w: 188, fill: COLORS.green, size: 21, depth: 9500, onTap: () => this.openCatalog() }));
+    if (this.editRights() === 'full') add(inkButton(this, view.w / 2, 120, '🎨 Decorate', { w: 150, fill: COLORS.purple, size: 21, depth: 9500, onTap: () => this.enterDecorate() }));
+    add(inkButton(this, view.w / 2 + 150, 120, '✔ Done', { w: 110, fill: COLORS.orange, size: 21, depth: 9500, onTap: () => this.exitEdit() }));
     this.sfx.click();
   },
 
@@ -87,7 +88,7 @@ export const furnitureMethods = {
 
   // A new piece from the catalogue, dropped near the middle for the player to place.
   addFurniture(type) {
-    if (this.props.length >= this.furnitureLimit()) { floatText(this, this.cameras.main.scrollX + W / 2, 200, 'This building floor is full!', 28); return; }
+    if (this.props.length >= this.furnitureLimit()) { floatText(this, this.cameras.main.scrollX + view.w / 2, 200, 'This building floor is full!', 28); return; }
     const def = PROP_TYPES[type];
     const mid = this.cameras.main.scrollX + 480;
     const at = clampPlacement(def, mid + ((this.props.length % 5) - 2) * 60, def.mount === 'wall' ? def.h + 90 : 500, this.worldW);

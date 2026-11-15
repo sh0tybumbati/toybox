@@ -2,7 +2,7 @@
 // function changes the building in place and returns what it made / the new value, or
 // null/false when the change isn't allowed. Costs are charged by the caller (BUILD_COST).
 import { ROOMS } from '../data/rooms.js';
-import { ROOM_W, MAX_FLOORS, MAX_ROOMS } from '../data/buildings.js';
+import { ROOM_W, MAX_FLOORS, MAX_ROOMS, roomDefW, roomMinW, roomMaxW } from '../data/buildings.js';
 import { clamp } from '../util.js';
 
 export const MAX_FLOOR_W = 5760;                      // keep any floor to about six screens
@@ -18,8 +18,8 @@ export const findRoom = (b, roomId) => { for (const f of b.floors) { const r = f
 // A new room of `type` at the end of a floor (or null if full / too wide / not a buildable type).
 export function addRoom(b, floorId, type) {
   const f = findFloor(b, floorId);
-  if (!f || !isBuildableRoom(type) || f.rooms.length >= MAX_ROOMS || floorWidth(f) + ROOM_W.def > MAX_FLOOR_W) return null;
-  const room = { id: nextRoomId(b), type, w: ROOM_W.def };
+  if (!f || !isBuildableRoom(type) || f.rooms.length >= MAX_ROOMS || floorWidth(f) + roomDefW(type) > MAX_FLOOR_W) return null;
+  const room = { id: nextRoomId(b), type, w: roomDefW(type) };
   f.rooms.push(room);
   return room;
 }
@@ -36,7 +36,7 @@ export function removeRoom(b, roomId) {
 export function resizeRoom(b, roomId, steps) {
   const hit = findRoom(b, roomId);
   if (!hit) return null;
-  const want = clamp(hit.room.w + steps * ROOM_W.step, ROOM_W.min, ROOM_W.max);
+  const want = clamp(hit.room.w + steps * ROOM_W.step, roomMinW(hit.room.type), roomMaxW(hit.room.type));
   const room = hit.room, others = floorWidth(hit.floor) - room.w;
   room.w = Math.min(want, MAX_FLOOR_W - others);
   return room.w;

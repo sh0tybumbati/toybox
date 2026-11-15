@@ -20,10 +20,10 @@ test('a zone is one wide panorama: rooms side by side, each as wide as it is', (
   const z = zoneInfo(city, '0.1');
   assert.equal(z.name, 'Home');
   assert.equal(z.floorLabel, 'Floor 1');
-  assert.deepEqual(z.sections.map(s => s.type), ['bedroom', 'bedroom']);
-  assert.deepEqual(z.sections.map(s => s.offset), [0, 960]);
-  assert.equal(z.width, 960 + 1440);
-  assert.deepEqual(z.sections.map(s => s.id), ['0.2', '0.3']);
+  assert.deepEqual(z.sections.map(s => s.type), ['bedroom', 'bedroom', 'bathroom']);
+  assert.deepEqual(z.sections.map(s => s.offset), [0, 960, 2400]);
+  assert.equal(z.width, 960 + 1440 + 480);
+  assert.deepEqual(z.sections.map(s => s.id), ['0.2', '0.3', '0.4']);
   assert.equal(zoneInfo(city, '0.7'), null);
   assert.equal(zoneInfo(city, '5.0'), null, 'empty lot');
   assert.equal(zoneInfo(city, 'nope'), null);

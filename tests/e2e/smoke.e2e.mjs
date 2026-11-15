@@ -192,22 +192,22 @@ try {
     const after = await g.room("return { table: r.props.find(p => p.type === 'picnictable').stored.filter(Boolean).map(i => i.key), loose: r.bodies.filter(b => b.key === 'apple' && !b.storedIn && !b.dead).length };");
     assert.deepEqual(after.table, ['banana', 'cookie', 'milk'], 'the apple left the table and nothing took its place');
     assert.equal(after.loose, 1);
-    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/park.png');
+    await g.shot('/tmp/toybox-e2e-park.png');
     // sit on the bench, get off; whizz down the slide
     await g.room("r.detached = true; r.tapPlay(r.props.find(p => p.type === 'bench'));");
     assert.ok(await until('return Boolean(r.characters[0].riding);'), 'the friend sat on the bench');
     await wait(500);
-    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/bench.png');
+    await g.shot('/tmp/toybox-e2e-bench.png');
     await g.room('r.dismount(r.characters[0]);');
     assert.ok(!(await g.room('return Boolean(r.characters[0].riding);')));
     await g.room("r.selected = r.characters[0]; r.tapPlay(r.props.find(p => p.type === 'swing'));");
     assert.ok(await until('return Boolean(r.characters[0].riding);', 12000), 'and on the swing');
     await g.room('r.detached = true; r.cameras.main.scrollX = 960;');
     await wait(1800);
-    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/swing.png');
+    await g.shot('/tmp/toybox-e2e-swing.png');
     await g.room("r.dismount(r.characters[0]); r.tapPlay(r.props.find(p => p.type === 'slide'));");
     assert.ok(await until('return r.characters[0].riding && r.characters[0].riding.u > 0.55;', 12000), 'up the ladder and onto the chute');
-    await g.shot('/tmp/claude-1000/-home-ad/e43a6497-b1cf-4c1d-b7cf-64805f4b3fec/scratchpad/slide.png');
+    await g.shot('/tmp/toybox-e2e-slide.png');
     assert.ok(await until('return !r.characters[0].riding;'), 'back on the ground after the slide');
     assert.ok(await g.room('return r.coins >= 1;'), 'a trip down the slide earns a coin');
     await g.room("for (const b of r.bodies.filter(b => b.key === 'apple' && !b.dead)) r.discard(b, { alpha: 0 });");   // tidy the loose apple away for the next step
@@ -249,7 +249,7 @@ try {
   await step('panorama: a floor is wider than the screen; dragging works with the camera scrolled', async () => {
     await g.room("r.goToZone('0.1');");
     await wait(1500);
-    assert.equal(await g.room('return r.worldW;'), 1920, 'two bedrooms side by side');
+    assert.equal(await g.room('return r.worldW;'), 2400, 'two bedrooms and a bathroom side by side');
     await g.room("r.detached = true; r.cameras.main.scrollX = 960; r.createItem('ball', 1260, 520);");
     await wait(700);
     const at = await g.room("const i = r.bodies.find(b => b.key === 'ball' && !b.onShelf && !b.worn && !b.storedIn && b.x > 1000); return [Math.round(i.x - r.cameras.main.scrollX), Math.round(i.y)];");
@@ -260,7 +260,15 @@ try {
     await wait(500);
     await g.room('r.panDir = 0;');
     assert.ok(await g.room('return r.cameras.main.scrollX;') > 960 - 1, 'arrows scroll (clamped at the far end)');
-    assert.equal(await g.room('return r.zone.sections.length;'), 2);
+    assert.equal(await g.room('return r.zone.sections.length;'), 3);
+  });
+
+  await step('the HUD still works with the camera scrolled along a wide floor (its buttons are hit-tested where they are drawn)', async () => {
+    const at = await g.room("r.detached = true; r.cameras.main.scrollX = 400; const b = r.hudR.list.find(o => o.input && o.input.enabled); const m = b.getBounds(); return [Math.round(m.centerX), Math.round(m.centerY)];");
+    await g.click(at[0], at[1], 800);
+    assert.ok(await g.ev("__toybox.scene.isActive('Settings')"), 'the gear opened settings while the camera was scrolled');
+    await g.ev("(s => { s.scene.resume('Room'); s.scene.stop(); })(__toybox.scene.getScene('Settings'))");
+    await wait(300);
   });
 
   await step('stairs: tapping them takes you to the floor below, beside the matching stairs', async () => {
@@ -287,14 +295,14 @@ try {
     assert.ok(await g.ev("__toybox.scene.isActive('Builder')"), 'builder is open');
     await g.ev("(b => { b.buyRoom(b.b.floors[0].id, 'bedroom'); b.buyFloor(); b.selRoom = b.b.floors[0].rooms[0].id; b.addConnector('stairs'); })(__toybox.scene.getScene('Builder'))");
     const city = await g.room("const b = r.city[5]; return { floors: b.floors.length, rooms: b.floors[0].rooms.length, coins: r.coins };");
-    assert.equal(city.floors, 2); assert.equal(city.rooms, 4); assert.equal(city.coins, 60, 'and so are rooms and floors');
+    assert.equal(city.floors, 2); assert.equal(city.rooms, 5); assert.equal(city.coins, 60, 'and so are rooms and floors');
     await g.ev("(b => b.close())(__toybox.scene.getScene('Builder'))");
     await wait(300);
     await g.ev("(h => h.visit(5))(__toybox.scene.getScene('Hub'))");
     await wait(1800);
     const z = await g.room('return { zone: r.zoneKey, w: r.worldW, props: r.props.map(p => p.type) };');
     assert.equal(z.zone, '5.0');
-    assert.equal(z.w, 4 * 960);
+    assert.equal(z.w, 4 * 960 + 480);
     assert.ok(z.props.includes('stairs'), 'the stairs we added are there');
     await g.room("r.goToZone('0.1');");
     await wait(1500);
